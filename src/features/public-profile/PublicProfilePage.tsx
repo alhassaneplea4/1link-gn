@@ -10,6 +10,7 @@ import type { PublicPageResult } from '@/models/page';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { RESERVED_USERNAMES } from '@/utilities/validation';
+import { useLiteMode } from './useLiteMode';
 import './public.css';
 
 /** Met à jour les métadonnées de partage (titre, description, Open Graph) côté client. */
@@ -71,6 +72,7 @@ function StatePage({ kind, onRetry }: { kind: 'draft' | 'suspended' | 'unavailab
 export default function PublicProfilePage() {
   const { username = '' } = useParams();
   const t = useT('pub');
+  const [lite, toggleLite] = useLiteMode();
   const reserved = RESERVED_USERNAMES.has(username.toLowerCase());
   const res = useResource<PublicPageResult>(() => (reserved ? Promise.resolve({ state: 'not_found' as const }) : api.page.getPublicPage(username)), [username]);
   const page = res.data?.state === 'published' ? res.data.page : null;
@@ -98,7 +100,10 @@ export default function PublicProfilePage() {
   if (data.state !== 'published') return <StatePage kind={data.state} />;
   return (
     <main id="main">
-      <PageRenderer page={data.page} pageUrl={pageShareUrl(data.page.username)} fullscreen branding={data.branding} onTrack={onTrack} />
+      <PageRenderer
+        page={data.page} pageUrl={pageShareUrl(data.page.username)} fullscreen branding={data.branding} onTrack={onTrack} lite={lite}
+        footer={<button type="button" aria-pressed={lite} onClick={toggleLite} title={t('pub.lite.hint')}>{lite ? t('pub.lite.on') : t('pub.lite.off')}</button>}
+      />
     </main>
   );
 }

@@ -59,6 +59,18 @@ test.describe('page publique d’un utilisateur', () => {
     await expect(page.getByRole('link', { name: /Dernière vidéo/ })).toHaveAttribute('rel', /noopener/);
   });
 
+  test('mode économe : bascule, mémorisation après rechargement et lien « version légère »', async ({ page }) => {
+    await page.goto('/mariama');
+    await expect(page.locator('.pg')).not.toHaveClass(/pg--lite/);
+    await page.getByRole('button', { name: 'Activer le mode économe' }).click();
+    await expect(page.locator('.pg')).toHaveClass(/pg--lite/);
+    await page.reload();
+    await expect(page.locator('.pg')).toHaveClass(/pg--lite/);
+    await expect(page.getByRole('button', { name: 'Mode économe activé' })).toHaveAttribute('aria-pressed', 'true');
+    await page.goto('/mariama?lite=0');
+    await expect(page.locator('.pg')).not.toHaveClass(/pg--lite/);
+  });
+
   test('distingue brouillon, suspendue, indisponible et introuvable', async ({ page }) => {
     await page.goto('/brouillon-demo');
     await expect(page.getByRole('heading', { name: /pas encore publiée/ })).toBeVisible();

@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, type CSSProperties } from 'react';
+import { memo, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { useT } from '@/i18n/core';
 import type { AnyBlock } from '@/models/blocks';
@@ -21,6 +21,10 @@ interface PageRendererProps {
   fullscreen?: boolean;
   /** Affiche « Créé avec 1Link » (offre Free). */
   branding?: boolean;
+  /** Mode économe en données. */
+  lite?: boolean;
+  /** Contenu additionnel en pied de page (mode économe, signalement…). */
+  footer?: ReactNode;
   onTrack?: (blockId: string) => void;
   highlightBlockId?: string | null;
   className?: string;
@@ -63,18 +67,18 @@ function BlockView({ block, ctx, index, highlighted }: { block: AnyBlock; ctx: R
  * Rendu unique d'une page 1Link : utilisé par la page publique, l'aperçu de l'éditeur,
  * l'éditeur d'apparence, l'onboarding et la page d'accueil. Une seule source de vérité visuelle.
  */
-export const PageRenderer = memo(function PageRenderer({ page, pageUrl, preview = false, fullscreen = false, branding = false, onTrack, highlightBlockId = null, className = '' }: PageRendererProps) {
+export const PageRenderer = memo(function PageRenderer({ page, pageUrl, preview = false, fullscreen = false, branding = false, lite = false, footer, onTrack, highlightBlockId = null, className = '' }: PageRendererProps) {
   const t = useT('pub');
   const { appearance } = page;
   const style = useMemo(() => appearanceToStyle(appearance), [appearance]);
   const attrs = appearanceDataAttrs(appearance);
   useEffect(() => loadFont(appearance.font.family), [appearance.font.family]);
-  const ctx = useMemo<RenderContext>(() => ({ username: page.username, pageUrl, preview, onTrack }), [page.username, pageUrl, preview, onTrack]);
+  const ctx = useMemo<RenderContext>(() => ({ username: page.username, pageUrl, preview, lite, onTrack }), [page.username, pageUrl, preview, lite, onTrack]);
   const visible = page.blocks.filter((b) => b.visible);
   const runs = useMemo(() => toRuns(visible), [visible]);
   let n = 0;
   return (
-    <div className={`pg ${fullscreen ? 'pg--full' : ''} ${className}`} style={style} {...attrs}>
+    <div className={`pg ${fullscreen ? 'pg--full' : ''} ${lite ? 'pg--lite' : ''} ${className}`} style={style} {...attrs}>
       <div className="pg__inner">
         {runs.map((run) =>
           run.kind === 'single' ? (
@@ -87,6 +91,7 @@ export const PageRenderer = memo(function PageRenderer({ page, pageUrl, preview 
             </div>
           ),
         )}
+        {footer && <div className="pg-footer">{footer}</div>}
         {branding && (
           <footer className="pg-brand">
             <a href={preview ? undefined : '/'} onClick={(e) => preview && e.preventDefault()} tabIndex={preview ? -1 : undefined}>

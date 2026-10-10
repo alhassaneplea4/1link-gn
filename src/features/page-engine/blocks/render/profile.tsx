@@ -2,6 +2,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useT } from '@/i18n/core';
 import { initials } from '@/utilities/misc';
 import type { BlockRenderProps } from '../types';
+import { PgImage } from './image';
 
 export function ProfileRender({ block, ctx }: BlockRenderProps<'profile'>) {
   const t = useT('pub');
@@ -11,7 +12,7 @@ export function ProfileRender({ block, ctx }: BlockRenderProps<'profile'>) {
   const Heading = ctx.preview ? 'h3' : 'h1';
   return (
     <header className="pg-profile">
-      {hasCover && <img className="pg-profile__cover" src={d.coverUrl} alt="" width={640} height={200} loading="lazy" decoding="async" />}
+      {hasCover && <PgImage className="pg-profile__cover" src={d.coverUrl} alt="" width={640} height={200} ctx={ctx} />}
       <div className="pg-avatar" aria-hidden={d.avatarUrl ? undefined : true}>
         {d.avatarUrl ? (
           <img src={d.avatarUrl} alt={d.displayName} width={96} height={96} decoding="async" />

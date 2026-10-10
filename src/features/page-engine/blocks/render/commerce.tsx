@@ -7,6 +7,7 @@ import type { BlockRenderProps } from '../types';
 import { formatPrice } from '../money';
 import { whatsappHref } from '../urls';
 import { PgLink } from './links';
+import { PgImage } from './image';
 
 /** Catalogue : chaque produit ouvre une discussion WhatsApp pré-remplie. Aucun paiement n'est traité. */
 export function ShopRender({ block, ctx }: BlockRenderProps<'shop'>) {
@@ -21,7 +22,7 @@ export function ShopRender({ block, ctx }: BlockRenderProps<'shop'>) {
           const message = t('pub.order.message', { product: it.name, price: price ? ` (${price})` : '' });
           return (
             <li key={i} className="pg-card pg-product">
-              {it.imageUrl && <img src={it.imageUrl} alt="" width={320} height={240} loading="lazy" decoding="async" />}
+              {it.imageUrl && <PgImage src={it.imageUrl} alt="" width={320} height={240} ctx={ctx} />}
               <div className="pg-product__body">
                 <h3>{it.name}</h3>
                 {it.description && <p>{it.description}</p>}

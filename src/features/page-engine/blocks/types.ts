@@ -10,6 +10,8 @@ export interface RenderContext {
   pageUrl: string;
   /** Aperçu dans l'éditeur : les clics ne suivent pas les liens et ne sont pas comptabilisés. */
   preview: boolean;
+  /** Mode économe en données : images différées (affichées au clic), effets visuels coûteux désactivés. */
+  lite?: boolean;
   onTrack?: (blockId: string) => void;
 }
 

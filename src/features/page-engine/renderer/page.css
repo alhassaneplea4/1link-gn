@@ -195,3 +195,15 @@
 .pg-note { font-size: 0.85em; color: var(--pg-muted); }
 .pg-note--legal { display: flex; gap: 6px; align-items: flex-start; font-size: 0.78em; text-align: left; }
 .pg-note--legal svg { flex: none; margin-top: 2px; }
+
+/* — Mode économe : pas d'animation, pas de flou, pas d'ombre portée — */
+.pg--lite, .pg--lite * { animation: none !important; transition: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.pg--lite .pg-card, .pg--lite .pg-btn, .pg--lite .pg-avatar { box-shadow: none !important; }
+.pg--lite[data-card='glass'] .pg-card, .pg--lite[data-btn='glass'] .pg-btn { background: var(--pg-surface); }
+.pg-imgate { display: grid; place-content: center; justify-items: center; gap: 4px; width: 100%; background: var(--pg-soft); color: var(--pg-muted); font-size: 0.8em; font-weight: 650; border: 1.5px dashed var(--pg-border); border-radius: calc(var(--pg-r) * 0.6); min-height: 64px; }
+.pg-imgate:hover { border-color: var(--pg-primary); color: var(--pg-text); }
+.pg-imgate:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; }
+.pg-footer { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: center; align-items: center; font-size: 0.8em; color: var(--pg-muted); padding-top: 10px; }
+.pg-footer button { color: inherit; text-decoration: underline; text-underline-offset: 3px; min-height: 36px; padding: 0 4px; font-weight: 600; }
+.pg-footer button:hover { color: var(--pg-text); }
+.pg-footer button:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; border-radius: 4px; }

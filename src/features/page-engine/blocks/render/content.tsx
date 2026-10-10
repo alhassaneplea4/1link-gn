@@ -4,6 +4,7 @@ import { useT } from '@/i18n/core';
 import type { BlockRenderProps } from '../types';
 import { embedUrl, parseVideo, safeHref } from '../urls';
 import { PgLink } from './links';
+import { PgImage } from './image';
 
 export function TextRender({ block }: BlockRenderProps<'text'>) {
   const { title, body } = block.data;
@@ -55,7 +56,7 @@ export function PortfolioRender({ block, ctx }: BlockRenderProps<'portfolio'>) {
           const inner = (
             <>
               {it.imageUrl ? (
-                <img src={it.imageUrl} alt="" width={640} height={480} loading="lazy" decoding="async" />
+                <PgImage src={it.imageUrl} alt="" width={640} height={480} ctx={ctx} />
               ) : (
                 <div className="pg-thumb-empty"><Icon name="image" size={28} /></div>
               )}
@@ -86,7 +87,7 @@ export function PortfolioRender({ block, ctx }: BlockRenderProps<'portfolio'>) {
   );
 }
 
-export function GalleryRender({ block }: BlockRenderProps<'gallery'>) {
+export function GalleryRender({ block, ctx }: BlockRenderProps<'gallery'>) {
   const { title, images } = block.data;
   return (
     <section className="pg-section">
@@ -94,7 +95,7 @@ export function GalleryRender({ block }: BlockRenderProps<'gallery'>) {
       <ul className="pg-gallery" role="list">
         {images.map((img, i) => (
           <li key={i}>
-            <img src={img.url} alt={img.alt} width={320} height={320} loading="lazy" decoding="async" />
+            <PgImage src={img.url} alt={img.alt} width={320} height={320} ctx={ctx} />
           </li>
         ))}
       </ul>

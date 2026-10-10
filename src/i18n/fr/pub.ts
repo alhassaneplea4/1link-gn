@@ -16,6 +16,12 @@ export default {
     disclaimer: 'Paiement hors 1Link : vérifiez le nom du bénéficiaire avant d’envoyer de l’argent. 1Link ne traite aucun paiement.',
     providers: { orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', moov_money: 'Moov Money', wave: 'Wave', bank_transfer: 'Virement bancaire', cash: 'Espèces', other: 'Autre' },
   },
+  lite: {
+    on: 'Mode économe activé',
+    off: 'Activer le mode économe',
+    hint: 'Moins de données : les images s’affichent à la demande.',
+    showImage: 'Afficher l’image',
+  },
   saveContact: 'Enregistrer mon contact',
   learnMore: 'En savoir plus',
   playVideo: 'Lire la vidéo',
