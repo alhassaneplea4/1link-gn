@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, Icon, LinkButton, Logo, Skeleton } from '@/components/ui';
 import { PageRenderer } from '@/features/page-engine/renderer/PageRenderer';
@@ -10,6 +10,7 @@ import type { PublicPageResult } from '@/models/page';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { RESERVED_USERNAMES } from '@/utilities/validation';
+import { ReportDialog } from './ReportDialog';
 import { useLiteMode } from './useLiteMode';
 import './public.css';
 
@@ -73,6 +74,7 @@ export default function PublicProfilePage() {
   const { username = '' } = useParams();
   const t = useT('pub');
   const [lite, toggleLite] = useLiteMode();
+  const [reportOpen, setReportOpen] = useState(false);
   const reserved = RESERVED_USERNAMES.has(username.toLowerCase());
   const res = useResource<PublicPageResult>(() => (reserved ? Promise.resolve({ state: 'not_found' as const }) : api.page.getPublicPage(username)), [username]);
   const page = res.data?.state === 'published' ? res.data.page : null;
@@ -102,8 +104,9 @@ export default function PublicProfilePage() {
     <main id="main">
       <PageRenderer
         page={data.page} pageUrl={pageShareUrl(data.page.username)} fullscreen branding={data.branding} onTrack={onTrack} lite={lite}
-        footer={<button type="button" aria-pressed={lite} onClick={toggleLite} title={t('pub.lite.hint')}>{lite ? t('pub.lite.on') : t('pub.lite.off')}</button>}
+        footer={<><button type="button" aria-pressed={lite} onClick={toggleLite} title={t('pub.lite.hint')}>{lite ? t('pub.lite.on') : t('pub.lite.off')}</button><button type="button" onClick={() => setReportOpen(true)}>{t('pub.report.open')}</button></>}
       />
+      <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} username={data.page.username} />
     </main>
   );
 }

@@ -7,7 +7,7 @@ import type { AdminRole, PlanId } from '@/models/auth';
 import type { CategoryId } from '@/models/category';
 import type { PageDocument } from '@/models/page';
 import type { Subscription } from '@/models/billing';
-import type { ReportStatus } from '@/models/admin';
+import type { Report, ReportStatus } from '@/models/admin';
 import { safeStorage } from '@/utilities/storage';
 import { getSampleDocument } from '@/features/page-engine/samples';
 
@@ -36,6 +36,8 @@ export interface DemoDb {
   sessionExpiresAt: string | null;
   moderation: Record<string, { status: ReportStatus; history: { at: string; event: string; actor: string }[] }>;
   userStatus: Record<string, 'active' | 'suspended'>;
+  /** Signalements envoyés depuis les pages publiques de ce navigateur (démonstration). */
+  reports?: Report[];
 }
 
 const KEY = 'onelink.demo.db.v1';

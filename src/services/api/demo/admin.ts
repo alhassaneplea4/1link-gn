@@ -96,19 +96,19 @@ export const demoAdmin: AdminApi = {
 
   async listReports(q) {
     guard();
-    return delay(listFrom(getSeed().reports.map(withOverrides), q, ['username', 'reporter', 'id']));
+    return delay(listFrom([...(readDb().reports ?? []), ...getSeed().reports].map(withOverrides), q, ['username', 'reporter', 'id']));
   },
 
   async getReport(id) {
     guard();
-    const rep = getSeed().reports.find((r) => r.id === id);
+    const rep = [...(readDb().reports ?? []), ...getSeed().reports].find((r) => r.id === id);
     if (!rep) throw new ApiError('not_found', 'report', { status: 404 });
     return delay(withOverrides(rep));
   },
 
   async applyDecision(reportId, decision, note) {
     const actor = guard().name;
-    const rep = getSeed().reports.find((r) => r.id === reportId);
+    const rep = [...(readDb().reports ?? []), ...getSeed().reports].find((r) => r.id === reportId);
     if (!rep) throw new ApiError('not_found', 'report', { status: 404 });
     await delay(null, 500);
     const labels = { dismiss: 'Signalement classé sans suite', warn: 'Avertissement préparé', suspend: 'Page suspendue', reinstate: 'Page réactivée' } as const;

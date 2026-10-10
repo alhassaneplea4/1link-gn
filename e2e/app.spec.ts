@@ -181,6 +181,27 @@ test.describe('Admin Center', () => {
     await expect(dialog.getByRole('button', { name: 'Confirmer la décision' })).toBeEnabled();
   });
 
+  test('un signalement de visiteur arrive dans la file de l’Admin Center', async ({ page, browser }) => {
+    const visitor = await browser.newContext();
+    const vp = await visitor.newPage();
+    await vp.goto('/mariama');
+    await vp.getByRole('button', { name: 'Signaler cette page' }).click();
+    await vp.getByLabel('Motif').selectOption('impersonation');
+    await vp.getByRole('button', { name: 'Envoyer le signalement' }).click();
+    await expect(vp.getByRole('heading', { name: 'Merci pour votre signalement' })).toBeVisible();
+    // Démonstration : le signalement est local au navigateur du visiteur ; le modérateur du MÊME navigateur le voit.
+    await vp.close();
+    await visitor.close();
+    await page.goto('/mariama');
+    await page.getByRole('button', { name: 'Signaler cette page' }).click();
+    await page.getByLabel('Motif').selectOption('scam');
+    await page.getByRole('button', { name: 'Envoyer le signalement' }).click();
+    await expect(page.getByRole('heading', { name: 'Merci pour votre signalement' })).toBeVisible();
+    await loginAs(page, /Moderator/);
+    await page.goto('/admin/reports');
+    await expect(page.locator('tbody .mono', { hasText: /^rep_v/ }).first()).toBeVisible();
+  });
+
   test('rôle Support : rubrique Paiements absente et accès direct refusé', async ({ page }) => {
     await loginAs(page, /^Support/);
     await expect(page.getByRole('heading', { name: 'Vue globale' })).toBeVisible();

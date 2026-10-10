@@ -1,5 +1,6 @@
 import { ApiError } from '@/models/api';
 import type { PageDocument, PublicPageResult } from '@/models/page';
+import type { Report } from '@/models/admin';
 import { RESERVED_USERNAMES, USERNAME_RE } from '@/utilities/validation';
 import type { PageApi } from '../types';
 import { DEMO_ENTITLEMENTS } from './permissions';
@@ -118,6 +119,26 @@ export const demoPage: PageApi = {
     await delay(null, 200);
     const problem = validateUsername(username, u ?? '');
     return problem ? { available: false, reason: problem } : { available: true };
+  },
+
+  async reportPage(username, input) {
+    await delay(null, 300);
+    const key = username.toLowerCase();
+    if (input.details.length > 500) throw new ApiError('validation', 'details_too_long', { status: 422 });
+    const existing = (readDb().reports ?? []).filter((r) => r.username === key);
+    // Anti-abus (démo) : au plus 3 signalements par page et par navigateur.
+    if (existing.length >= 3) throw new ApiError('rate_limited', 'too_many_reports', { status: 429 });
+    const now = new Date().toISOString();
+    const report: Report = {
+      id: `rep_v${Date.now().toString(36)}`, username: key, reason: input.reason, status: 'open',
+      priority: input.reason === 'scam' || input.reason === 'impersonation' ? 'high' : 'medium', reporter: 'Visiteur anonyme',
+      details: input.details, contentExcerpt: input.details || '—', createdAt: now,
+      history: [{ at: now, event: 'Signalement reçu depuis la page publique', actor: 'Visiteur' }],
+    };
+    writeDb((db) => {
+      db.reports = [report, ...(db.reports ?? [])];
+    });
+    return { mode: 'demo' as const };
   },
 
   async trackEvent() {

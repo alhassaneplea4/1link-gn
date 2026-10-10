@@ -10,7 +10,7 @@ import type { AnalyticsReport, DateRange } from '@/models/analytics';
 import type { ChangePlanResult, Invoice, Subscription } from '@/models/billing';
 import type { AdminRole, Permission, PlanId } from '@/models/auth';
 import type {
-  AdminProfileRow, AdminUserDetail, AdminUserRow, AuditLog, ModerationDecision, MutationOutcome, PaymentRow,
+  AdminProfileRow, AdminUserDetail, AdminUserRow, AuditLog, ModerationDecision, MutationOutcome, ReportReason, PaymentRow,
   PlatformOverview, RealtimeEvent, RealtimeState, Report, SecurityEvent, ServiceStatus, SubscriptionRow, Ticket,
 } from '@/models/admin';
 
@@ -43,6 +43,11 @@ export interface PublishResult {
   mode: 'demo' | 'live';
 }
 
+export interface ReportInput {
+  reason: ReportReason;
+  details: string;
+}
+
 export interface PageApi {
   getMyPage(): Promise<PageDocument | null>;
   saveDraft(doc: PageDocument): Promise<PageDocument>;
@@ -50,6 +55,8 @@ export interface PageApi {
   unpublish(): Promise<PageDocument>;
   getPublicPage(username: string): Promise<PublicPageResult>;
   checkUsername(username: string): Promise<{ available: boolean; reason?: 'taken' | 'reserved' | 'invalid' }>;
+  /** Signalement d'une page publique par un visiteur (anonyme). */
+  reportPage(username: string, input: ReportInput): Promise<{ mode: 'demo' | 'live' }>;
   trackEvent(username: string, event: { type: 'view' } | { type: 'click'; blockId: string }): Promise<void>;
 }
 

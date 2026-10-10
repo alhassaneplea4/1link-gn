@@ -30,6 +30,7 @@ const page: PageApi = {
   unpublish: () => request('POST', '/me/page/unpublish'),
   getPublicPage: (username) => request<PublicPageResult>('GET', `/pages/${encodeURIComponent(username)}`),
   checkUsername: (username) => request('GET', '/usernames/check', { query: { username } }),
+  reportPage: (username, input) => request('POST', `/pages/${encodeURIComponent(username)}/reports`, { body: input }).then(() => ({ mode: 'live' as const })),
   trackEvent: (username, event) => request('POST', `/pages/${encodeURIComponent(username)}/events`, { body: event }),
 };
 
