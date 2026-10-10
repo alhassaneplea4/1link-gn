@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".verify-out",
+    "rootDir": ".",
+    "declaration": false,
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "sourceMap": false
+  },
+  "include": ["api", "server/**/*.ts"],
+  "exclude": ["server/tests", "server/testing"]
+}

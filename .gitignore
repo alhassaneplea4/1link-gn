@@ -4,3 +4,9 @@ dist
 test-results
 playwright-report
 .env
+.data
+.vercel
+.env.local
+.env.*.local
+dist-http-check
+.verify-out
