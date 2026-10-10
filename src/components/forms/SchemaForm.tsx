@@ -70,10 +70,11 @@ export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAl
       case 'text':
       case 'email':
       case 'tel':
+      case 'number':
       case 'url':
         return (
           <Input key={path} id={id} label={label} hint={hint} placeholder={placeholder} required={f.required} optionalLabel={f.required ? undefined : t('common.optional')}
-            type={f.kind === 'text' ? 'text' : f.kind === 'url' ? 'url' : f.kind} inputMode={f.kind === 'tel' ? 'tel' : f.kind === 'url' ? 'url' : undefined} autoComplete="off"
+            type={f.kind === 'text' || f.kind === 'number' ? 'text' : f.kind === 'url' ? 'url' : f.kind} inputMode={f.kind === 'tel' ? 'tel' : f.kind === 'url' ? 'url' : f.kind === 'number' ? 'decimal' : undefined} autoComplete="off"
             value={String(val ?? '')} maxLength={'max' in f && f.max ? f.max + 40 : undefined} error={errorFor(path)}
             onChange={(e) => set({ [f.name]: e.target.value })} onBlur={() => touch(path)} />
         );

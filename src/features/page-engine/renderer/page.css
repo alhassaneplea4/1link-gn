@@ -174,3 +174,24 @@
 @container pg (max-width: 320px) {
   .pg[data-profile='left'] .pg-profile { flex-direction: column; text-align: center; }
 }
+
+/* — Boutique & moyens de paiement — */
+.pg-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--pg-gap); }
+.pg-product { padding: 0 !important; overflow: hidden; display: grid; align-content: start; }
+.pg[data-card='minimal'] .pg-product { background: var(--pg-surface); }
+.pg-product img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--pg-soft); }
+.pg-product__body { padding: 12px; display: grid; gap: 4px; }
+.pg-product h3 { font-size: 0.95em; font-weight: 750; }
+.pg-product p { font-size: 0.82em; color: var(--pg-muted); }
+.pg-product .pg-product__price { color: var(--pg-text); font-size: 1em; font-weight: 800; }
+.pg-btn--order { width: 100%; justify-content: center; margin-top: 6px; }
+.pg-pay { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pg-pay__body { display: grid; flex: 1; min-width: 9rem; }
+.pg-pay__number { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.pg-pay small { color: var(--pg-muted); }
+.pg-copy { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: var(--pg-btn-radius); background: var(--pg-soft); color: var(--pg-text); font-weight: 650; font-size: 0.85em; border: 1.5px solid transparent; }
+.pg-copy:hover { border-color: var(--pg-primary); }
+.pg-copy:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; }
+.pg-note { font-size: 0.85em; color: var(--pg-muted); }
+.pg-note--legal { display: flex; gap: 6px; align-items: flex-start; font-size: 0.78em; text-align: left; }
+.pg-note--legal svg { flex: none; margin-top: 2px; }

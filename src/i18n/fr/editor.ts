@@ -120,6 +120,8 @@ export default {
     display: { icons: 'Icônes', list: 'Liste' },
     target: { page: 'Cette page', custom: 'Autre lien' },
     style: { line: 'Ligne', dots: 'Points', space: 'Espace' },
+    currency: { GNF: 'Franc guinéen (GNF)', XOF: 'Franc CFA UEMOA (XOF)', XAF: 'Franc CFA CEMAC (XAF)', EUR: 'Euro (EUR)', USD: 'Dollar US (USD)' },
+    provider: { orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', moov_money: 'Moov Money', wave: 'Wave', bank_transfer: 'Virement bancaire', cash: 'Espèces', other: 'Autre' },
     kind: { email: 'E-mail', phone: 'Téléphone', whatsapp: 'WhatsApp', address: 'Adresse', website: 'Site web' },
   },
   blocks: {
@@ -143,6 +145,16 @@ export default {
     email: { label: 'E-mail', description: 'Un bouton pour écrire un e-mail.', fields: { label: 'Libellé', email: 'Adresse e-mail', subject: 'Objet pré-rempli' } },
     phone: { label: 'Téléphone', description: 'Un bouton pour appeler.', fields: { label: 'Libellé', phone: 'Numéro de téléphone' }, placeholders: { phone: '+224 6XX XX XX XX' } },
     whatsapp: { label: 'WhatsApp', description: 'Ouvre une discussion WhatsApp.', fields: { label: 'Libellé', phone: 'Numéro WhatsApp', message: 'Message pré-rempli' }, placeholders: { phone: '+224 6XX XX XX XX' } },
+    shop: {
+      label: 'Boutique (commande WhatsApp)', description: 'Un catalogue de produits : le client commande par WhatsApp, sans paiement sur 1Link.',
+      fields: { title: 'Titre', phone: 'Numéro WhatsApp de commande', currency: 'Devise', items: 'Produits', name: 'Nom du produit', description: 'Description', price: 'Prix', imageUrl: 'Photo', note: 'Informations de commande' },
+      hints: { phone: 'Avec l’indicatif pays, ex. +224 6XX XX XX XX.', price: 'Nombre seulement (ex. 150000). Laissez vide pour « sur demande ».', note: 'Ex. livraison à Conakry, délais, horaires.' },
+    },
+    payment: {
+      label: 'Moyens de paiement', description: 'Affiche vos numéros Mobile Money ou bancaires. 1Link ne traite aucun paiement.',
+      fields: { title: 'Titre', methods: 'Moyens', provider: 'Moyen', number: 'Numéro / compte', holder: 'Nom du bénéficiaire', note: 'Instructions' },
+      hints: { holder: 'Affiché pour que le client vérifie avant d’envoyer.', note: 'Ex. envoyez la preuve de paiement sur WhatsApp.' },
+    },
     vcard: {
       label: 'Enregistrer mon contact', description: 'Un bouton qui ajoute vos coordonnées au répertoire du visiteur (fichier vCard).',
       fields: { label: 'Texte du bouton', fullName: 'Nom complet', organization: 'Entreprise ou organisation', jobTitle: 'Fonction', phone: 'Téléphone', email: 'Adresse e-mail', website: 'Site web', address: 'Adresse', note: 'Note' },

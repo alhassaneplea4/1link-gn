@@ -15,7 +15,7 @@ export type FocusId =
   | 'presentation' | 'links' | 'socials' | 'contacts' | 'appearance' | 'share'
   | 'contents' | 'portfolio' | 'distribution' | 'collabs' | 'audience'
   | 'skills' | 'services' | 'experience' | 'certifications' | 'appointments'
-  | 'brand' | 'team' | 'location' | 'multiuser' | 'vcard'
+  | 'brand' | 'team' | 'location' | 'multiuser' | 'vcard' | 'catalog' | 'payments'
   | 'mission' | 'projects' | 'activities' | 'events';
 
 export type FocusAction =
@@ -47,7 +47,7 @@ export interface CategoryConfig {
   /** Raccourcis mis en avant dans le dashboard. */
   focus: readonly FocusItem[];
   /** Clés de recommandations (dashboard.recommendations.*). */
-  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents' | 'addVcard')[];
+  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents' | 'addVcard' | 'addShop' | 'addPayment')[];
   /** Les statistiques d'audience d'autres plateformes ne sont PAS disponibles sans intégration. */
   externalAudienceStats: boolean;
 }
@@ -82,6 +82,7 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'portfolio', icon: 'image', action: { type: 'add-block', block: 'portfolio' } },
       { id: 'distribution', icon: 'megaphone', action: { type: 'add-block', block: 'link' } },
       { id: 'collabs', icon: 'mail', action: { type: 'add-block', block: 'email' } },
+      { id: 'catalog', icon: 'store', action: { type: 'add-block', block: 'shop' } },
       { id: 'audience', icon: 'chart', action: { type: 'goto', to: paths.dashboard.analytics } },
     ],
     recommendations: ['addVideo', 'addPortfolio', 'addContact', 'tryTheme'],
@@ -113,6 +114,8 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'brand', icon: 'palette', action: { type: 'goto', to: paths.dashboard.appearance } },
       { id: 'presentation', icon: 'building', action: { type: 'goto', to: paths.dashboard.page } },
       { id: 'services', icon: 'briefcase', action: { type: 'add-block', block: 'service' } },
+      { id: 'catalog', icon: 'store', action: { type: 'add-block', block: 'shop' } },
+      { id: 'payments', icon: 'wallet', action: { type: 'add-block', block: 'payment' } },
       { id: 'team', icon: 'users', action: { type: 'add-block', block: 'portfolio' } },
       { id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } },
       { id: 'location', icon: 'pin', action: { type: 'add-block', block: 'location' } },
@@ -120,7 +123,7 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'audience', icon: 'chart', action: { type: 'goto', to: paths.dashboard.analytics } },
       { id: 'multiuser', icon: 'user-cog', action: { type: 'soon' } },
     ],
-    recommendations: ['addLocation', 'addServices', 'addContact', 'shareQr'],
+    recommendations: ['addShop', 'addLocation', 'addPayment', 'addServices'],
     externalAudienceStats: false,
   },
   organization: {
@@ -134,6 +137,7 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'activities', icon: 'activity', action: { type: 'add-block', block: 'service' } },
       { id: 'events', icon: 'calendar', action: { type: 'add-block', block: 'text' } },
       { id: 'team', icon: 'users', action: { type: 'add-block', block: 'portfolio' } },
+      { id: 'payments', icon: 'wallet', action: { type: 'add-block', block: 'payment' } },
       { id: 'contacts', icon: 'mail', action: { type: 'add-block', block: 'contact' } },
     ],
     recommendations: ['addEvents', 'addPortfolio', 'addContact', 'addLocation'],

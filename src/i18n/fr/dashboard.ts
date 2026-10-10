@@ -123,6 +123,8 @@ export default {
     team: { title: 'Équipe', text: 'Présentez les personnes derrière la marque.' },
     location: { title: 'Localisation', text: 'Adresse, horaires et itinéraire.' },
     vcard: { title: 'Carte de contact', text: 'Les visiteurs vous ajoutent à leur répertoire en un geste.' },
+    catalog: { title: 'Catalogue de produits', text: 'Vos produits avec prix et bouton « Commander sur WhatsApp ».' },
+    payments: { title: 'Moyens de paiement', text: 'Affichez vos numéros Mobile Money ou bancaires (aucun paiement via 1Link).' },
     multiuser: { title: 'Gestion multi-utilisateur', text: 'Plusieurs collaborateurs sur un même compte.' },
     mission: { title: 'Mission', text: 'Pourquoi vous existez.' },
     projects: { title: 'Projets', text: 'Vos réalisations et actions.' },
@@ -140,6 +142,8 @@ export default {
     addContact: { title: 'Facilitez le contact', text: 'WhatsApp, appel ou e-mail en un clic.' },
     addVideo: { title: 'Ajoutez une vidéo', text: 'Votre dernier contenu, chargé uniquement au clic.' },
     addVcard: { title: 'Ajoutez « Enregistrer mon contact »', text: 'Vos coordonnées dans le répertoire de vos visiteurs, sans carte papier.' },
+    addShop: { title: 'Présentez votre catalogue', text: 'Vos clients commandent en un clic sur WhatsApp, avec le produit déjà indiqué.' },
+    addPayment: { title: 'Indiquez vos moyens de paiement', text: 'Orange Money, MTN MoMo, banque : vos clients savent où payer. Rien n’est encaissé par 1Link.' },
     addEvents: { title: 'Annoncez vos événements', text: 'Un bloc texte pour vos prochains rendez-vous.' },
   },
   content: {

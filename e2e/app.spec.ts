@@ -75,6 +75,20 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     await expect(page.getByText('Modifications non publiées')).toBeVisible();
   });
 
+  test('boutique : produit, commande WhatsApp et aucun paiement sur la plateforme', async ({ page }) => {
+    await page.goto('/dashboard/page');
+    await page.getByRole('button', { name: 'Ajouter un bloc' }).click();
+    await page.getByRole('button', { name: /^Boutique/ }).first().click();
+    await page.getByLabel('Numéro WhatsApp de commande').fill('+224 622 00 00 00');
+    await page.getByLabel('Nom du produit').fill('Sac en cuir');
+    await page.getByLabel(/^Prix/).fill('250000');
+    await page.getByRole('button', { name: 'Prévisualiser' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Sac en cuir')).toBeVisible();
+    await expect(dialog.getByText(/1Link ne traite aucun paiement/)).toBeVisible();
+    await expect(dialog.getByRole('link', { name: /Commander sur WhatsApp/ })).toBeVisible();
+  });
+
   test('prévisualise la page', async ({ page }) => {
     await page.goto('/dashboard/page');
     await page.getByRole('button', { name: 'Prévisualiser' }).click();

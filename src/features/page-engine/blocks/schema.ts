@@ -4,8 +4,9 @@
  * ne demande ni nouveau formulaire ni nouvelle logique de validation.
  */
 import { isEmail, isLink, isPhone, isUrl } from '@/utilities/validation';
+import { parsePrice } from './money';
 
-export type ScalarKind = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'image';
+export type ScalarKind = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'image' | 'number';
 
 export interface ScalarField {
   kind: ScalarKind;
@@ -25,7 +26,7 @@ export interface ListField {
 }
 export type FieldDef = ScalarField | SelectField | ToggleField | ListField;
 
-export type ErrorKey = 'common.validation.required' | 'common.validation.email' | 'common.validation.url' | 'common.validation.phone' | 'common.validation.tooLong';
+export type ErrorKey = 'common.validation.required' | 'common.validation.email' | 'common.validation.url' | 'common.validation.phone' | 'common.validation.tooLong' | 'common.validation.number';
 export type FieldErrors = Record<string, ErrorKey>;
 
 function validateScalar(f: ScalarField | SelectField, value: unknown): ErrorKey | null {
@@ -37,6 +38,7 @@ function validateScalar(f: ScalarField | SelectField, value: unknown): ErrorKey 
   if (f.kind === 'url') return isLink(v) ? null : 'common.validation.url';
   if (f.kind === 'image') return isUrl(v) ? null : 'common.validation.url';
   if (f.kind === 'email') return isEmail(v) ? null : 'common.validation.email';
+  if (f.kind === 'number') return parsePrice(v) === null ? 'common.validation.number' : null;
   if (f.kind === 'tel') return isPhone(v) ? null : 'common.validation.phone';
   return null;
 }

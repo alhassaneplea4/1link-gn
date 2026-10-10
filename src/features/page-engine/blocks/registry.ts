@@ -5,7 +5,7 @@
  *   3. ajouter ses libellés (editor.blocks.<type>.*).
  * L'éditeur (formulaire, validation, liste) et la page publique s'adaptent sans autre modification.
  */
-import { BLOCK_TYPES, SOCIAL_PLATFORMS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
+import { BLOCK_TYPES, CURRENCIES, PAYMENT_PROVIDERS, SOCIAL_PLATFORMS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
 import { uid } from '@/utilities/misc';
 import { validateFields, type FieldDef, type FieldErrors } from './schema';
 import type { BlockDefinition, BlockGroup, BlockRegistry, CreateContext } from './types';
@@ -14,6 +14,7 @@ import { CtaRender, EmailRender, LinkRender, PhoneRender, SocialRender, Whatsapp
 import { DividerRender, GalleryRender, PortfolioRender, ServiceRender, TextRender, VideoRender } from './render/content';
 import { ContactRender, LocationRender, QrRender } from './render/places';
 import { VcardRender } from './render/vcard';
+import { PaymentRender, ShopRender } from './render/commerce';
 
 const platformOptions = ['link', ...SOCIAL_PLATFORMS] as const;
 
@@ -130,6 +131,30 @@ export const blockRegistry: BlockRegistry = {
     create: () => ({ label: '', fullName: '', organization: '', jobTitle: '', phone: '', email: '', website: '', address: '', note: '' }),
     summary: (d) => d.fullName || d.phone || d.email,
     Render: VcardRender,
+  }),
+  shop: def({
+    type: 'shop', group: 'content', icon: 'store',
+    fields: [
+      text('title', { max: 80 }),
+      { kind: 'tel', name: 'phone', required: true },
+      { kind: 'select', name: 'currency', options: CURRENCIES },
+      { kind: 'list', name: 'items', max: 24, defaultItem: { name: '', description: '', price: '', imageUrl: '' }, itemFields: [text('name', { required: true, max: 80 }), area('description', { max: 200 }), { kind: 'number', name: 'price' }, image('imageUrl')] },
+      area('note', { max: 240 }),
+    ],
+    create: () => ({ title: '', phone: '', currency: 'GNF', items: [{ name: '', description: '', price: '', imageUrl: '' }], note: '' }),
+    summary: (d) => d.title || d.items.map((i) => i.name).filter(Boolean).join(', '),
+    Render: ShopRender,
+  }),
+  payment: def({
+    type: 'payment', group: 'contact', icon: 'wallet',
+    fields: [
+      text('title', { max: 80 }),
+      { kind: 'list', name: 'methods', max: 8, defaultItem: { provider: 'orange_money', number: '', holder: '' }, itemFields: [{ kind: 'select', name: 'provider', options: PAYMENT_PROVIDERS }, text('number', { required: true, max: 40 }), text('holder', { max: 80 })] },
+      area('note', { max: 240 }),
+    ],
+    create: () => ({ title: '', note: '', methods: [{ provider: 'orange_money', number: '', holder: '' }] }),
+    summary: (d) => d.title || d.methods.map((m) => m.provider).join(' · '),
+    Render: PaymentRender,
   }),
   location: def({
     type: 'location', group: 'contact', icon: 'pin',

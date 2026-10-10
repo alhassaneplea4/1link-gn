@@ -2,7 +2,7 @@
 
 export const BLOCK_TYPES = [
   'profile', 'text', 'link', 'social', 'service', 'portfolio', 'gallery', 'video',
-  'contact', 'email', 'phone', 'whatsapp', 'vcard', 'location', 'qr', 'divider', 'cta',
+  'contact', 'email', 'phone', 'whatsapp', 'vcard', 'shop', 'payment', 'location', 'qr', 'divider', 'cta',
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
@@ -35,6 +35,16 @@ export interface EmailData { label: string; email: string; subject: string }
 export interface PhoneData { label: string; phone: string }
 export interface WhatsappData { label: string; phone: string; message: string }
 export interface VcardData { label: string; fullName: string; organization: string; jobTitle: string; phone: string; email: string; website: string; address: string; note: string }
+export const CURRENCIES = ['GNF', 'XOF', 'XAF', 'EUR', 'USD'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+export interface ShopItem { name: string; description: string; price: string; imageUrl: string }
+/** Catalogue : la commande part par WhatsApp. Aucune transaction n'est traitée par 1Link. */
+export interface ShopData { title: string; phone: string; currency: Currency; items: ShopItem[]; note: string }
+export const PAYMENT_PROVIDERS = ['orange_money', 'mtn_momo', 'moov_money', 'wave', 'bank_transfer', 'cash', 'other'] as const;
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+export interface PaymentMethod { provider: PaymentProvider; number: string; holder: string }
+/** Affichage d'informations de paiement uniquement : 1Link n'encaisse ni ne transfère d'argent. */
+export interface PaymentData { title: string; note: string; methods: PaymentMethod[] }
 export interface LocationData { label: string; address: string; mapUrl: string; hours: string }
 export interface QrData { label: string; target: 'page' | 'custom'; url: string }
 export interface DividerData { style: 'line' | 'dots' | 'space'; label: string }
@@ -54,6 +64,8 @@ export interface BlockDataMap {
   phone: PhoneData;
   whatsapp: WhatsappData;
   vcard: VcardData;
+  shop: ShopData;
+  payment: PaymentData;
   location: LocationData;
   qr: QrData;
   divider: DividerData;

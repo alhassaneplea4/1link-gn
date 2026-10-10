@@ -67,6 +67,7 @@ export default {
     usernameFormat: '3 à 30 caractères : lettres minuscules, chiffres, tiret ou tiret bas.',
     usernameReserved: 'Ce nom est réservé. Choisissez-en un autre.',
     tooLong: 'Ce texte est trop long.',
+    number: 'Saisissez un nombre (ex. 150000).',
   },
   status: {
     notStarted: 'Non commencé',
