@@ -11,7 +11,8 @@ if (process.argv.includes('--if-enabled') && process.env.MIGRATE_ON_BUILD !== '1
   console.log('[migrate] ignoré (définir MIGRATE_ON_BUILD=1 pour migrer pendant le build).');
   process.exit(0);
 }
-const url = process.env.DATABASE_URL;
+// Neon fournit DATABASE_URL (pooler) et DATABASE_URL_UNPOOLED (directe) : les migrations utilisent la directe (verrou de session).
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!url) {
   console.error('[migrate] DATABASE_URL est obligatoire.');
   process.exit(1);
