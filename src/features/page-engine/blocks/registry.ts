@@ -5,6 +5,7 @@
  *   3. ajouter ses libellés (editor.blocks.<type>.*).
  * L'éditeur (formulaire, validation, liste) et la page publique s'adaptent sans autre modification.
  */
+import { parseRate } from './money';
 import { BLOCK_TYPES, CURRENCIES, PAYMENT_PROVIDERS, SOCIAL_PLATFORMS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
 import { uid } from '@/utilities/misc';
 import { validateFields, type FieldDef, type FieldErrors } from './schema';
@@ -153,10 +154,17 @@ export const blockRegistry: BlockRegistry = {
       text('title', { max: 80 }),
       { kind: 'tel', name: 'phone', required: true },
       { kind: 'select', name: 'currency', options: CURRENCIES },
+      { kind: 'select', name: 'altCurrency', options: ['none', ...CURRENCIES] },
+      { kind: 'number', name: 'altRate' },
       { kind: 'list', name: 'items', max: 24, defaultItem: { name: '', description: '', price: '', imageUrl: '' }, itemFields: [text('name', { required: true, max: 80 }), area('description', { max: 200 }), { kind: 'number', name: 'price' }, image('imageUrl')] },
       area('note', { max: 240 }),
     ],
-    create: () => ({ title: '', phone: '', currency: 'GNF', items: [{ name: '', description: '', price: '', imageUrl: '' }], note: '' }),
+    validate: (d): FieldErrors => {
+      if (!d.altCurrency || d.altCurrency === 'none') return {};
+      if (d.altCurrency === d.currency) return { altCurrency: 'common.validation.sameCurrency' };
+      return parseRate(d.altRate ?? '') === null ? { altRate: 'common.validation.rate' } : {};
+    },
+    create: () => ({ title: '', phone: '', currency: 'GNF', altCurrency: 'none', altRate: '', items: [{ name: '', description: '', price: '', imageUrl: '' }], note: '' }),
     summary: (d) => d.title || d.items.map((i) => i.name).filter(Boolean).join(', '),
     Render: ShopRender,
   }),
@@ -214,6 +222,8 @@ export function createBlock<K extends BlockType>(type: K, ctx: CreateContext, id
 export function validateBlock(block: AnyBlock): FieldErrors {
   const errors = validateFields(blockRegistry[block.type].fields, block.data as unknown as Record<string, unknown>) as Record<string, string>;
   if (scheduleError(block.schedule)) errors.schedule = 'common.validation.schedule';
+  const def = blockRegistry[block.type] as BlockDefinition<BlockType>;
+  Object.assign(errors, def.validate?.(block.data as never) ?? {});
   return errors as FieldErrors;
 }
 

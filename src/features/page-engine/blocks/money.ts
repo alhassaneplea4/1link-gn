@@ -18,3 +18,17 @@ export function formatPrice(raw: string, currency: string): string | null {
   const n = parsePrice(raw);
   return n === null ? null : formatCurrency(n, currency);
 }
+
+/** Taux saisi par le vendeur (> 0). */
+export const parseRate = (raw: string): number | null => {
+  const n = parsePrice(raw);
+  return n !== null && n > 0 ? n : null;
+};
+
+/** Équivalent indicatif dans une autre devise, d'après le taux du vendeur (jamais un taux de marché). */
+export function formatAltPrice(raw: string, rate: string | undefined, altCurrency: string): string | null {
+  const price = parsePrice(raw);
+  const r = rate ? parseRate(rate) : null;
+  if (price === null || r === null) return null;
+  return formatCurrency(price / r, altCurrency);
+}

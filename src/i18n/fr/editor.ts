@@ -129,6 +129,7 @@ export default {
     display: { icons: 'Icônes', list: 'Liste' },
     target: { page: 'Cette page', custom: 'Autre lien' },
     style: { line: 'Ligne', dots: 'Points', space: 'Espace' },
+    altCurrency: { none: 'Aucune', GNF: 'Franc guinéen (GNF)', XOF: 'Franc CFA UEMOA (XOF)', XAF: 'Franc CFA CEMAC (XAF)', EUR: 'Euro (EUR)', USD: 'Dollar US (USD)' },
     currency: { GNF: 'Franc guinéen (GNF)', XOF: 'Franc CFA UEMOA (XOF)', XAF: 'Franc CFA CEMAC (XAF)', EUR: 'Euro (EUR)', USD: 'Dollar US (USD)' },
     provider: { orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', moov_money: 'Moov Money', wave: 'Wave', bank_transfer: 'Virement bancaire', cash: 'Espèces', other: 'Autre' },
     kind: { email: 'E-mail', phone: 'Téléphone', whatsapp: 'WhatsApp', address: 'Adresse', website: 'Site web' },
@@ -161,8 +162,8 @@ export default {
     },
     shop: {
       label: 'Boutique (commande WhatsApp)', description: 'Un catalogue de produits : le client commande par WhatsApp, sans paiement sur 1Link.',
-      fields: { title: 'Titre', phone: 'Numéro WhatsApp de commande', currency: 'Devise', items: 'Produits', name: 'Nom du produit', description: 'Description', price: 'Prix', imageUrl: 'Photo', note: 'Informations de commande' },
-      hints: { phone: 'Avec l’indicatif pays, ex. +224 6XX XX XX XX.', price: 'Nombre seulement (ex. 150000). Laissez vide pour « sur demande ».', note: 'Ex. livraison à Conakry, délais, horaires.' },
+      fields: { title: 'Titre', phone: 'Numéro WhatsApp de commande', currency: 'Devise', altCurrency: 'Afficher aussi l’équivalent en…', altRate: 'Taux : 1 unité de cette devise vaut combien dans votre devise ?', items: 'Produits', name: 'Nom du produit', description: 'Description', price: 'Prix', imageUrl: 'Photo', note: 'Informations de commande' },
+      hints: { altCurrency: 'Utile pour la diaspora (euro, dollar…).', altRate: 'Ex. si 1 € = 10 000 GNF, saisissez 10000. Vous fixez ce taux : il est affiché comme indicatif.', phone: 'Avec l’indicatif pays, ex. +224 6XX XX XX XX.', price: 'Nombre seulement (ex. 150000). Laissez vide pour « sur demande ».', note: 'Ex. livraison à Conakry, délais, horaires.' },
     },
     payment: {
       label: 'Moyens de paiement', description: 'Affiche vos numéros Mobile Money ou bancaires. 1Link ne traite aucun paiement.',

@@ -228,3 +228,4 @@
 .pg-field__err { color: #b91c1c; font-weight: 650; }
 .pg[data-bg='gradient'] .pg-field__err, .pg[data-bg='image'] .pg-field__err { color: #fecaca; }
 .pg-btn--send { justify-content: flex-start; }
+.pg-product .pg-product__alt { color: var(--pg-muted); font-size: 0.8em; font-weight: 650; }

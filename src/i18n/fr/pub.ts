@@ -7,6 +7,7 @@ export default {
     button: 'Commander sur WhatsApp',
     message: 'Bonjour, je souhaite commander : {product}{price}. Pouvez-vous me confirmer la disponibilité ?',
     onRequest: 'Prix sur demande',
+    altNote: 'Équivalent indicatif en {alt}, au taux fixé par le vendeur : 1 {alt} = {rate}.',
     disclaimer: 'Commande par WhatsApp : le prix et le paiement se règlent directement avec le vendeur. 1Link ne traite aucun paiement.',
   },
   payment: {

@@ -42,7 +42,17 @@ export const CURRENCIES = ['GNF', 'XOF', 'XAF', 'EUR', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];
 export interface ShopItem { name: string; description: string; price: string; imageUrl: string }
 /** Catalogue : la commande part par WhatsApp. Aucune transaction n'est traitée par 1Link. */
-export interface ShopData { title: string; phone: string; currency: Currency; items: ShopItem[]; note: string }
+export interface ShopData {
+  title: string;
+  phone: string;
+  currency: Currency;
+  /** Devise d'équivalence affichée aux visiteurs de la diaspora (`none` = aucune). */
+  altCurrency?: Currency | 'none';
+  /** Taux défini PAR LE VENDEUR : combien d'unités de `currency` valent 1 unité de `altCurrency`. */
+  altRate?: string;
+  items: ShopItem[];
+  note: string;
+}
 export const PAYMENT_PROVIDERS = ['orange_money', 'mtn_momo', 'moov_money', 'wave', 'bank_transfer', 'cash', 'other'] as const;
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
 export interface PaymentMethod { provider: PaymentProvider; number: string; holder: string }

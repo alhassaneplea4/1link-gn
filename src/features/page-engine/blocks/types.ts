@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { IconName } from '@/components/ui/Icon';
 import type { Block, BlockDataMap, BlockType } from '@/models/blocks';
 import type { CategoryId } from '@/models/category';
-import type { FieldDef } from './schema';
+import type { FieldDef, FieldErrors } from './schema';
 
 export interface RenderContext {
   username: string;
@@ -35,6 +35,8 @@ export interface BlockDefinition<K extends BlockType = BlockType> {
   /** Le bloc ne peut pas être supprimé (profil). */
   required?: boolean;
   fields: readonly FieldDef[];
+  /** Règles de validation entre champs que le schéma ne peut pas exprimer. Clés = chemins de champs. */
+  validate?(data: BlockDataMap[K]): FieldErrors;
   create(ctx: CreateContext): BlockDataMap[K];
   /** Texte court affiché dans la liste de l'éditeur. */
   summary(data: BlockDataMap[K]): string;

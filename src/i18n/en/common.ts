@@ -68,6 +68,8 @@ export default {
     usernameReserved: 'This name is reserved. Please choose another one.',
     tooLong: 'This text is too long.',
     number: 'Enter a number (e.g. 150000).',
+    sameCurrency: 'Choose a currency different from the main one.',
+    rate: 'Enter a rate greater than 0 (e.g. 10000).',
     schedule: 'The end of the schedule must be after its start.',
   },
   status: {

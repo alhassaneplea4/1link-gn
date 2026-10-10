@@ -129,6 +129,7 @@ export default {
     display: { icons: 'Icons', list: 'List' },
     target: { page: 'This page', custom: 'Another link' },
     style: { line: 'Line', dots: 'Dots', space: 'Space' },
+    altCurrency: { none: 'None', GNF: 'Guinean franc (GNF)', XOF: 'CFA franc UEMOA (XOF)', XAF: 'CFA franc CEMAC (XAF)', EUR: 'Euro (EUR)', USD: 'US dollar (USD)' },
     currency: { GNF: 'Guinean franc (GNF)', XOF: 'CFA franc UEMOA (XOF)', XAF: 'CFA franc CEMAC (XAF)', EUR: 'Euro (EUR)', USD: 'US dollar (USD)' },
     provider: { orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', moov_money: 'Moov Money', wave: 'Wave', bank_transfer: 'Bank transfer', cash: 'Cash', other: 'Other' },
     kind: { email: 'Email', phone: 'Phone', whatsapp: 'WhatsApp', address: 'Address', website: 'Website' },
@@ -161,8 +162,8 @@ export default {
     },
     shop: {
       label: 'Shop (WhatsApp orders)', description: 'A product catalogue: the customer orders on WhatsApp, with no payment on 1Link.',
-      fields: { title: 'Title', phone: 'WhatsApp number for orders', currency: 'Currency', items: 'Products', name: 'Product name', description: 'Description', price: 'Price', imageUrl: 'Photo', note: 'Ordering information' },
-      hints: { phone: 'With country code, e.g. +224 6XX XX XX XX.', price: 'Number only (e.g. 150000). Leave empty for “on request”.', note: 'E.g. delivery in Conakry, lead times, opening hours.' },
+      fields: { title: 'Title', phone: 'WhatsApp number for orders', currency: 'Currency', altCurrency: 'Also show the equivalent in…', altRate: 'Rate: how much is 1 unit of that currency worth in your currency?', items: 'Products', name: 'Product name', description: 'Description', price: 'Price', imageUrl: 'Photo', note: 'Ordering information' },
+      hints: { altCurrency: 'Useful for the diaspora (euro, dollar…).', altRate: 'E.g. if €1 = 10,000 GNF, enter 10000. You set this rate: it is shown as indicative.', phone: 'With country code, e.g. +224 6XX XX XX XX.', price: 'Number only (e.g. 150000). Leave empty for “on request”.', note: 'E.g. delivery in Conakry, lead times, opening hours.' },
     },
     payment: {
       label: 'Payment methods', description: 'Shows your Mobile Money or bank details. 1Link does not process any payment.',

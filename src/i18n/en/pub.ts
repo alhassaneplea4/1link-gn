@@ -7,6 +7,7 @@ export default {
     button: 'Order on WhatsApp',
     message: 'Hello, I would like to order: {product}{price}. Could you confirm availability?',
     onRequest: 'Price on request',
+    altNote: 'Indicative equivalent in {alt}, at the rate set by the seller: 1 {alt} = {rate}.',
     disclaimer: 'Ordering by WhatsApp: price and payment are settled directly with the seller. 1Link does not process any payment.',
   },
   payment: {

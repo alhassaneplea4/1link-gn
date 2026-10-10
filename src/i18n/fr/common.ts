@@ -68,6 +68,8 @@ export default {
     usernameReserved: 'Ce nom est réservé. Choisissez-en un autre.',
     tooLong: 'Ce texte est trop long.',
     number: 'Saisissez un nombre (ex. 150000).',
+    sameCurrency: 'Choisissez une devise différente de la devise principale.',
+    rate: 'Saisissez un taux supérieur à 0 (ex. 10000).',
     schedule: 'La fin de la programmation doit être postérieure au début.',
   },
   status: {

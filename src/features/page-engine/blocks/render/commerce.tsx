@@ -4,7 +4,8 @@ import { useT } from '@/i18n/core';
 import type { PaymentProvider } from '@/models/blocks';
 import { copyToClipboard } from '@/utilities/misc';
 import type { BlockRenderProps } from '../types';
-import { formatPrice } from '../money';
+import { formatAltPrice, formatPrice, parseRate } from '../money';
+import { formatCurrency } from '@/utilities/format';
 import { whatsappHref } from '../urls';
 import { PgLink } from './links';
 import { PgImage } from './image';
@@ -12,7 +13,8 @@ import { PgImage } from './image';
 /** Catalogue : chaque produit ouvre une discussion WhatsApp pré-remplie. Aucun paiement n'est traité. */
 export function ShopRender({ block, ctx }: BlockRenderProps<'shop'>) {
   const t = useT('pub');
-  const { title, phone, currency, items, note } = block.data;
+  const { title, phone, currency, items, note, altCurrency, altRate } = block.data;
+  const alt = altCurrency && altCurrency !== 'none' && parseRate(altRate ?? '') !== null ? altCurrency : null;
   return (
     <section className="pg-section">
       {title && <h2 className="pg-h2">{title}</h2>}
@@ -27,12 +29,14 @@ export function ShopRender({ block, ctx }: BlockRenderProps<'shop'>) {
                 <h3>{it.name}</h3>
                 {it.description && <p>{it.description}</p>}
                 <p className="pg-product__price">{price ?? t('pub.order.onRequest')}</p>
+                {alt && price && <p className="pg-product__alt">≈ {formatAltPrice(it.price, altRate, alt)}</p>}
                 <PgLink href={whatsappHref(phone, message)} blockId={block.id} ctx={ctx} icon="whatsapp" title={t('pub.order.button')} className="pg-btn--inline pg-btn--order" />
               </div>
             </li>
           );
         })}
       </ul>
+      {alt && <p className="pg-note">{t('pub.order.altNote', { alt, rate: formatCurrency(parseRate(altRate ?? '')!, currency) })}</p>}
       {note && <p className="pg-note">{note}</p>}
       <p className="pg-note pg-note--legal"><Icon name="info" size={13} /> {t('pub.order.disclaimer')}</p>
     </section>
