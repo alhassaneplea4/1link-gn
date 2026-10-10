@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      # Vrai PostgreSQL : les tests serveur et d'interface s'exécutent contre lui (une base jetable par fichier de test).
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+      PW_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Types (interface + serveur)
+        run: npm run typecheck
+      - name: Tests unitaires, serveur et interface
+        run: npm test
+      - name: Build de production
+        run: npm run build
+      - name: La fonction Vercel démarre en ESM natif
+        run: npm run verify:vercel
+      - name: Navigateur de test
+        run: npx playwright install --with-deps chromium
+      - name: Tests de bout en bout (PostgreSQL + API + interface)
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

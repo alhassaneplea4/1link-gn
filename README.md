@@ -1,59 +1,71 @@
 # 1Link — Un lien, pour toute votre présence.
 
-Front-end de la plateforme de présence numérique **1Link** : site public, authentification, onboarding par catégorie, dashboard, éditeur de page par blocs, éditeur d'apparence, page publique, analytics et **Admin Center**.
+Plateforme de présence numérique **1Link** : site public, authentification (e-mail ou téléphone), onboarding par catégorie, dashboard, éditeur de page par blocs, éditeur d'apparence, pages publiques, statistiques et **Admin Center** — avec un **vrai backend** et une **vraie base PostgreSQL**.
 
-> **Périmètre : front-end uniquement.** Sans backend, l'application tourne en **mode démonstration** (données locales et fictives, clairement signalées). La connexion à une vraie API se fait en implémentant/validant `src/services/api/http` — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> **Toutes les données viennent de la base de données.** Il n'y a plus de mode démonstration, de stockage local de données ni de jeu d'exemple : la base de production démarre **vide**. Le navigateur ne conserve que des préférences d'affichage (langue, thème, mode économe).
 
-## Démarrer
+```
+React 19 + Vite  ──►  /api (Hono, fonction Vercel Node 24)  ──►  PostgreSQL 17 (Neon)
+   interface              sessions httpOnly · validation zod · Drizzle ORM     migrations SQL versionnées
+```
+
+## Démarrer (une commande)
 
 ```bash
 npm install
-npm run dev            # http://localhost:5173 (mode démonstration)
-npm run build          # typecheck + build de production
-npm run preview        # sert le build
+npm run dev      # PostgreSQL réel embarqué (.data/), API (8787) et interface (http://localhost:5173)
 ```
 
-Variables (voir `.env.example`) : `VITE_API_MODE=demo|http`, `VITE_API_BASE_URL`, `VITE_REALTIME_URL`, `VITE_PUBLIC_DOMAIN`.
+Aucune variable à définir en local. Les e-mails et codes WhatsApp/SMS sont affichés dans le terminal (fournisseur « développement », jamais actif en production).
+Premier administrateur : `npm run admin -- create-admin --email moi@exemple.com --name "Moi"` (avec `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/onelink`).
 
-### Comptes de démonstration
-Écran de connexion → boutons « Comptes d'essai » (aucun mot de passe n'est vérifié) :
+## Déployer sur Vercel
 
-| Compte | Pour voir… |
+Voir **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** : base Neon, variables d'environnement, migrations, premier administrateur, Resend, Twilio, cron, sauvegardes, retour arrière.
+
+## Commandes
+
+| Commande | Rôle |
 |---|---|
-| Créatrice · Pro | Dashboard « créateur », page publiée (`/mariama`), éditeur, analytics |
-| Super Admin / Admin / Moderator / Support / Analyst / Finance | Admin Center adapté aux permissions de chaque rôle |
-| Nouveau compte (`/auth/register`) | Onboarding complet, état « e-mail non vérifié », vérification simulée |
+| `npm run dev` | Base + API + interface en local |
+| `npm run typecheck` | TypeScript strict : interface **et** serveur |
+| `npm test` | Vitest : 66+ tests serveur (SQL réel) et tests d'interface qui parlent au **vrai** serveur |
+| `npm run e2e` | Playwright (desktop + mobile, axe-core) contre PostgreSQL + API + interface réels |
+| `npm run verify:vercel` | Prouve que la fonction Vercel démarre en ESM natif en configuration de production |
+| `npm run db:generate` / `db:migrate` | Génère / applique les migrations SQL (`drizzle/`) |
+| `npm run admin -- …` | `create-admin`, `set-role`, `set-plan` |
 
-Pages publiques d'états : `/mariama` (publiée), `/brouillon-demo`, `/compte-suspendu`, `/indisponible-demo`, `/n-importe-quoi` (introuvable).
+## Ce que contient le dépôt
 
-## Nouveautés orientées marché guinéen / africain
-- Boutique **commande WhatsApp** (sans paiement sur la plateforme) et **moyens de paiement** affichés (Orange Money, MTN MoMo, banque…).
-- **Enregistrer mon contact** (vCard), **mode économe en données**, **signalement** d'une page par un visiteur.
-- Interface en **français et anglais**.
+| Dossier | Contenu |
+|---|---|
+| `src/` | Interface (React, i18n fr/en, éditeur de blocs, Admin Center) |
+| `server/` | API Hono : routes, services, validation zod, schéma Drizzle (`db/schema.ts`), tests serveur |
+| `api/[...path].ts` | Point d'entrée Vercel |
+| `drizzle/` | Migrations SQL versionnées |
+| `e2e/` | Tests de bout en bout |
+| `docs/` | Déploiement, architecture, API, sécurité, limites |
+| `.claude/skills/` | Consignes de travail du projet pour Claude Code (backend, base de données, déploiement, tests) |
 
-## Routes
+## Routes de l'interface
 
 | Espace | Routes |
 |---|---|
 | Public | `/` · `/features` · `/pricing` · `/faq` |
 | Auth | `/auth/login` · `register` · `forgot-password` · `reset-password` · `verify-email` · `sign-out` · `signed-out` · `session-expired` |
 | Onboarding | `/onboarding` |
-| Dashboard | `/dashboard` · `page` · `content` · `appearance` · `analytics` · `subscription` · `settings` · `security` |
+| Dashboard | `/dashboard` · `page` · `content` · `appearance` · `analytics` · `subscription` · `settings` · `security` · `print` |
 | Admin Center | `/admin` · `realtime` · `users` (+ `/:id`) · `profiles` · `analytics` · `subscriptions` · `payments` · `moderation` · `reports` · `support` · `security` · `logs` · `system` · `settings` |
 | Page publique | `/:username` (noms réservés : `RESERVED_USERNAMES`) · `/403` · 404 |
 
-## Qualité
-
-```bash
-npm run typecheck           # TypeScript strict
-npm test                    # Vitest : unitaires, composants, intégration (routeur en mémoire)
-npm run e2e                 # Playwright (Edge) : desktop + mobile, y compris audit axe-core
-npm run verify:http-build   # prouve qu'un build HTTP n'embarque aucun code de démonstration
-```
-
-Couverture : validation (couleurs, contrastes WCAG, liens sûrs, pseudonymes réservés), registre de blocs (rendu + traductions complètes), store de l'éditeur (historique, limites, échec d'enregistrement), composants (focus de modale, onglets, menu, tableau, pagination), onboarding par catégorie, guards et rôles, parcours E2E (navigation publique, inscription → onboarding, édition de blocs, apparence, aperçu, page publique, analytics, abonnement, admin, états d'erreur) sur deux tailles d'écran.
+## Fonctions orientées marché guinéen / africain
+Boutique **commande WhatsApp** (aucune transaction sur la plateforme), moyens de paiement affichés (Orange Money, MTN MoMo…), carte de contact **vCard**, **mode économe en données**,
+connexion par **téléphone** (WhatsApp/SMS), prix multi-devises pour la diaspora, prise de rendez-vous par WhatsApp, programmation de blocs, affiche et cartes imprimables avec liens de suivi par canal, badge **Profil vérifié**, interface en **français et anglais**.
 
 ## Documentation
+- [Déploiement Vercel + PostgreSQL](docs/DEPLOYMENT.md)
 - [Architecture et décisions](docs/ARCHITECTURE.md)
+- [API HTTP](docs/API.md)
+- [Sécurité des données](docs/SECURITY.md)
+- [Limites connues](docs/LIMITS.md)
 - [Audit initial (Phase 0)](docs/AUDIT.md)
-- [Limites connues et mode démonstration](docs/LIMITS.md)
