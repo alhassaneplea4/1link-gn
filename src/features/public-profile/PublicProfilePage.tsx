@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Button, Icon, LinkButton, Logo, Skeleton } from '@/components/ui';
 import { PageRenderer } from '@/features/page-engine/renderer/PageRenderer';
 import { NotFoundPage } from '@/app/routes/errors';
@@ -10,6 +10,7 @@ import type { PublicPageResult } from '@/models/page';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { RESERVED_USERNAMES } from '@/utilities/validation';
+import { sanitizeSource } from '@/utilities/tracking';
 import { ReportDialog } from './ReportDialog';
 import { useLiteMode } from './useLiteMode';
 import './public.css';
@@ -74,9 +75,11 @@ export default function PublicProfilePage() {
   const { username = '' } = useParams();
   const t = useT('pub');
   const [lite, toggleLite] = useLiteMode();
+  const [search] = useSearchParams();
+  const source = sanitizeSource(search.get('src')) ?? undefined;
   const [reportOpen, setReportOpen] = useState(false);
   const reserved = RESERVED_USERNAMES.has(username.toLowerCase());
-  const res = useResource<PublicPageResult>(() => (reserved ? Promise.resolve({ state: 'not_found' as const }) : api.page.getPublicPage(username)), [username]);
+  const res = useResource<PublicPageResult>(() => (reserved ? Promise.resolve({ state: 'not_found' as const }) : api.page.getPublicPage(username)), [username, source]);
   const page = res.data?.state === 'published' ? res.data.page : null;
   const profile = page?.blocks.find((b) => b.type === 'profile');
   const name = profile?.type === 'profile' ? profile.data.displayName : username;
@@ -84,9 +87,9 @@ export default function PublicProfilePage() {
 
   // Une vue est comptabilisée une seule fois par chargement de page publiée.
   useEffect(() => {
-    if (page) void api.page.trackEvent(page.username, { type: 'view' }).catch(() => undefined);
+    if (page) void api.page.trackEvent(page.username, { type: 'view', source }).catch(() => undefined);
   }, [page?.username]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onTrack = useCallback((blockId: string) => void api.page.trackEvent(username, { type: 'click', blockId }).catch(() => undefined), [username]);
+  const onTrack = useCallback((blockId: string) => void api.page.trackEvent(username, { type: 'click', blockId, source }).catch(() => undefined), [username]);
 
   if (reserved) return <NotFoundPage />;
   if (res.status === 'loading') {

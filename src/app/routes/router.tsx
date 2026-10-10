@@ -85,6 +85,7 @@ export const routes: RouteObject[] = [
                   { path: 'subscription', ...page(() => import('@/features/subscriptions/SubscriptionPage'), ['billing', 'marketing', 'dashboard']) },
                   { path: 'settings', ...page(() => import('@/features/settings/SettingsPage'), ['dashboard', 'auth']) },
                   { path: 'security', ...page(() => import('@/features/settings/SecurityPage'), ['dashboard', 'auth']) },
+                  { path: 'print', ...page(() => import('@/features/sharing/PrintPage'), ['dashboard', 'editor']) },
                 ],
               },
             ],

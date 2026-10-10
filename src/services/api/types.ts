@@ -57,7 +57,8 @@ export interface PageApi {
   checkUsername(username: string): Promise<{ available: boolean; reason?: 'taken' | 'reserved' | 'invalid' }>;
   /** Signalement d'une page publique par un visiteur (anonyme). */
   reportPage(username: string, input: ReportInput): Promise<{ mode: 'demo' | 'live' }>;
-  trackEvent(username: string, event: { type: 'view' } | { type: 'click'; blockId: string }): Promise<void>;
+  /** `source` = canal d'origine (paramètre `?src=` sanitisé), pour l'attribution des visites. */
+  trackEvent(username: string, event: { type: 'view'; source?: string } | { type: 'click'; blockId: string; source?: string }): Promise<void>;
 }
 
 export interface AnalyticsApi {

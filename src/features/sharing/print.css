@@ -1,0 +1,35 @@
+.printpage { display: grid; gap: var(--space-4); }
+.print-controls { max-width: 40rem; }
+.print-stage { display: grid; justify-items: center; padding: var(--space-4); background: var(--color-surface-2); border-radius: var(--radius-xl); }
+
+/* La feuille est dessinée en unités de conteneur (cqw) : même rendu à l'écran (aperçu réduit) et à l'impression (210 mm). */
+.print-sheet { container-type: inline-size; width: min(100%, 40rem); aspect-ratio: 210 / 297; background: #fff; color: #111827; box-shadow: var(--shadow-3); overflow: hidden; font-family: var(--font-sans); }
+.print-sheet .pg-qr__svg { width: 100% !important; height: auto !important; padding: 0; border-radius: 0; background: #fff; }
+
+.poster { height: 100%; display: grid; grid-template-rows: auto 1fr auto; border-top: 5cqw solid var(--accent); padding: 6cqw 8cqw 5cqw; }
+.poster__brand { display: flex; align-items: center; gap: 2cqw; font-weight: 800; font-size: 5cqw; letter-spacing: -0.03em; }
+.poster__brand svg { width: 8cqw; height: 8cqw; }
+.poster__body { display: grid; align-content: center; justify-items: center; text-align: center; gap: 2.4cqw; }
+.poster__name { font-size: 9cqw; line-height: 1.05; letter-spacing: -0.03em; font-weight: 800; }
+.poster__headline { font-size: 3.8cqw; color: #4b5563; max-width: 80%; }
+.poster__qr { width: 58cqw; padding: 3cqw; border: 0.7cqw solid var(--accent); border-radius: 4cqw; margin-top: 2cqw; }
+.poster__scan { font-size: 3.6cqw; color: #4b5563; font-weight: 600; }
+.poster__url { font-size: 5cqw; font-weight: 800; color: var(--accent); word-break: break-all; }
+.poster__foot { text-align: center; font-size: 2.6cqw; color: #6b7280; }
+
+.cards { height: 100%; display: grid; grid-template-columns: repeat(2, 40.5cqw); grid-template-rows: repeat(5, 26.2cqw); justify-content: center; align-content: center; }
+.bizcard { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; padding: 2.4cqw 2.6cqw; outline: 0.12cqw dashed #b8bcc6; border-left: 1.6cqw solid var(--accent); overflow: hidden; }
+.bizcard__text { display: grid; gap: 0.6cqw; min-width: 0; }
+.bizcard__text strong { font-size: 2.35cqw; line-height: 1.1; letter-spacing: -0.01em; }
+.bizcard__text span { font-size: 1.55cqw; color: #4b5563; }
+.bizcard__text small { font-size: 1.45cqw; font-weight: 700; color: var(--accent); word-break: break-all; margin-top: 0.8cqw; }
+.bizcard__qr { flex: none; width: 12cqw; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+  .sidebar, .topbar, .bottomnav, .banner, .print-controls, .page-header, .toasts, .skip-link { display: none !important; }
+  .shell, .shell__main, .content, .content__inner, .printpage, .print-stage { display: block !important; padding: 0 !important; margin: 0 !important; background: none !important; max-width: none !important; border-radius: 0 !important; }
+  .print-sheet { width: 210mm; height: 297mm; box-shadow: none; page-break-after: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .route-fade { animation: none !important; }
+}

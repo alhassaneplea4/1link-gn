@@ -19,7 +19,7 @@ test.describe('accessibilité (axe)', () => {
       await audit(page, path);
     });
   }
-  for (const path of ['/dashboard', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings']) {
+  for (const path of ['/dashboard', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings', '/dashboard/print']) {
     test(`dashboard ${path}`, async ({ page }) => {
       await loginAs(page, /Créatrice/);
       await page.goto(path);

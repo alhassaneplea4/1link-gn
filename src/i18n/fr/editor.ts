@@ -85,6 +85,13 @@ export default {
     native: 'Autres applications',
     link: 'Lien de la page',
     qrAlt: 'QR code du lien de votre page',
+    print: 'Imprimer une affiche ou des cartes',
+    tracking: {
+      title: 'Liens de suivi par canal',
+      text: 'Utilisez un lien différent selon l’endroit où vous le partagez : vous saurez d’où viennent vos visiteurs.',
+      note: 'Le canal est transmis avec chaque visite ; le décompte par canal est fourni par le serveur.',
+      sources: { whatsapp: 'WhatsApp', instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube', linkedin: 'LinkedIn', email: 'E-mail', poster: 'Affiche imprimée', card: 'Carte de visite' },
+    },
   },
   publish: {
     title: 'Publier ma page',

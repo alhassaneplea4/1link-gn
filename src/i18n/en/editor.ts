@@ -85,6 +85,13 @@ export default {
     native: 'Other apps',
     link: 'Page link',
     qrAlt: 'QR code for your page link',
+    print: 'Print a poster or business cards',
+    tracking: {
+      title: 'Tracking links per channel',
+      text: 'Use a different link depending on where you share it: you will know where your visitors come from.',
+      note: 'The channel is sent with each visit; the per-channel count is provided by the server.',
+      sources: { whatsapp: 'WhatsApp', instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube', linkedin: 'LinkedIn', email: 'Email', poster: 'Printed poster', card: 'Business card' },
+    },
   },
   publish: {
     title: 'Publish my page',

@@ -109,6 +109,18 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     expect(decodeURIComponent(opened.url())).toContain('Awa Test');
   });
 
+  test('affiche et cartes : QR de suivi, impression et PDF tenant sur une page A4', async ({ page }) => {
+    await page.goto('/dashboard/print');
+    await expect(page.getByRole('heading', { level: 2, name: 'Mariama Bah' })).toBeVisible();
+    await expect(page.locator('.poster__qr svg')).toBeVisible();
+    await expect(page.locator('.poster__url')).toContainText('mariama');
+    const pages = async () => ((await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true })).toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+    expect(await pages()).toBe(1);
+    await page.getByRole('radio', { name: '10 cartes de visite' }).click();
+    await expect(page.locator('.bizcard')).toHaveCount(10);
+    expect(await pages()).toBe(1);
+  });
+
   test('programmation : un bloc futur est signalé en aperçu et refuse une période inversée', async ({ page }) => {
     await page.goto('/dashboard/page');
     await page.getByRole('button', { name: 'Ajouter un bloc' }).click();

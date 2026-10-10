@@ -22,6 +22,7 @@ export const paths = {
     subscription: '/dashboard/subscription',
     settings: '/dashboard/settings',
     security: '/dashboard/security',
+    print: '/dashboard/print',
   },
   admin: {
     root: '/admin',
