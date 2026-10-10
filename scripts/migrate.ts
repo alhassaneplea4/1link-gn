@@ -20,14 +20,30 @@ if (!url) {
   console.error('[migrate] DATABASE_URL est obligatoire.');
   process.exit(1);
 }
-const handle = createDb(url, 1);
-const client = await handle.pool.connect();
-try {
-  await client.query('select pg_advisory_lock(727274)');
-  await runMigrations(handle.db);
-  console.log('[migrate] base à jour.');
-} finally {
-  await client.query('select pg_advisory_unlock(727274)').catch(() => undefined);
-  client.release();
-  await handle.close();
+// Une base serverless (Neon) en veille ou fraîchement créée peut mettre plusieurs secondes à répondre : on patiente et on réessaie.
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+for (let attempt = 1; ; attempt++) {
+  const handle = createDb(url, 2, { connectionTimeoutMs: 45_000 }) // 2 connexions : une garde le verrou, l'autre applique les migrations;
+  try {
+    const client = await handle.pool.connect();
+    try {
+      await client.query('select pg_advisory_lock(727274)');
+      await runMigrations(handle.db);
+      console.log('[migrate] base à jour.');
+    } finally {
+      await client.query('select pg_advisory_unlock(727274)').catch(() => undefined);
+      client.release();
+    }
+    await handle.close();
+    break;
+  } catch (e) {
+    await handle.close().catch(() => undefined);
+    const message = (e as Error).message;
+    if (attempt >= 4 || !/timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|terminating connection|EAI_AGAIN/i.test(message)) {
+      console.error('[migrate] échec :', message);
+      process.exit(1);
+    }
+    console.warn(`[migrate] base injoignable (tentative ${attempt}/4) : ${message} — nouvel essai dans 5 s`);
+    await wait(5_000);
+  }
 }

@@ -17,12 +17,12 @@ export interface DbHandle {
  * Pool de connexions PostgreSQL (compatible Neon, Supabase, RDS, Postgres local).
  * En serverless, garder `max` petit et utiliser l'adresse « pooled » du fournisseur (PgBouncer).
  */
-export function createDb(connectionString: string, max = 5): DbHandle {
+export function createDb(connectionString: string, max = 5, opts: { connectionTimeoutMs?: number } = {}): DbHandle {
   const pool = new pg.Pool({
     connectionString,
     max,
     idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 8_000,
+    connectionTimeoutMillis: opts.connectionTimeoutMs ?? 8_000,
     statement_timeout: 15_000,
     application_name: '1link-api',
   });
