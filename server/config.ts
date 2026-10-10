@@ -3,6 +3,7 @@
  * Toute valeur invalide ou manquante en production fait échouer le démarrage (échec rapide et explicite)
  * plutôt que de laisser tourner un serveur dans un état dangereux.
  */
+import { createHmac } from 'node:crypto';
 import { COUNTRIES } from '../src/utilities/phone.js';
 
 export type AppEnv = 'production' | 'preview' | 'development' | 'test';
@@ -40,6 +41,8 @@ export interface AppConfig {
   rateLimitScale: number;
   retentionDays: { events: number; errors: number };
   commit: string;
+  /** Adresse qui devient super administrateur à la confirmation de son e-mail, tant qu'aucun super administrateur n'existe (amorçage). */
+  bootstrapAdminEmail: string;
 }
 
 type Source = Record<string, string | undefined>;
@@ -59,7 +62,10 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
 
   let secret = trim(env.APP_SECRET);
   if (!secret) {
-    if (hardened) problems.push('APP_SECRET est obligatoire (32 caractères minimum, ex. `openssl rand -base64 48`).');
+    // Sans APP_SECRET explicite, le secret est DÉRIVÉ du mot de passe de la base (HMAC) : il n'a jamais besoin d'être saisi,
+    // reste inconnu de l'extérieur, et ne protège que des valeurs éphémères (codes OTP, empreintes quotidiennes).
+    if (hardened && databaseUrl) secret = createHmac('sha256', databaseUrl).update('1link:app-secret:v1').digest('base64url');
+    else if (hardened) problems.push('APP_SECRET est obligatoire (32 caractères minimum) ou, à défaut, DATABASE_URL pour le dériver.');
     else secret = 'dev-only-secret-do-not-use-in-production-0123456789';
   } else if (secret.length < 32) problems.push('APP_SECRET doit contenir au moins 32 caractères.');
 
@@ -126,6 +132,7 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     devRoutes, rateLimitScale,
     retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90) },
     commit: trim(env.VERCEL_GIT_COMMIT_SHA).slice(0, 7),
+    bootstrapAdminEmail: trim(env.BOOTSTRAP_ADMIN_EMAIL).toLowerCase(),
     ...overrides,
   };
 }

@@ -4,7 +4,7 @@ import type { C, Deps, UserRow } from '../context.js';
 import { authTokens, otpCodes, pages, subscriptions, users } from '../db/schema.js';
 import type { Executor } from '../db/client.js';
 import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, verifyPassword } from '../lib/crypto.js';
-import { activity } from '../lib/audit.js';
+import { activity, audit } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, HttpError, tooMany } from '../lib/errors.js';
 import { enforce, hit, keyFor } from '../lib/ratelimit.js';
 import { pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
@@ -232,6 +232,24 @@ export async function checkOtp(c: C, deps: Deps, phone: string, code: string): P
   if (outcome.ok) return;
   if (outcome.reason === 'too_many_attempts') throw new HttpError(429, 'too_many_attempts', { attemptsLeft: '0' });
   throw new HttpError(422, outcome.reason, { attemptsLeft: String(outcome.left) });
+}
+
+/**
+ * Amorçage : la première personne qui prouve (par e-mail confirmé) posséder BOOTSTRAP_ADMIN_EMAIL devient super administrateur,
+ * uniquement tant qu'aucun super administrateur n'existe. Évite d'avoir à ouvrir la base de production pour créer le premier compte admin.
+ */
+export async function maybeBootstrapAdmin(deps: Deps, userId: string): Promise<void> {
+  const wanted = deps.config.bootstrapAdminEmail;
+  if (!wanted) return;
+  const now = deps.now();
+  await deps.db.transaction(async (tx) => {
+    const [u] = await tx.select().from(users).where(eq(users.id, userId)).for('update').limit(1);
+    if (!u || u.email !== wanted || !u.emailVerifiedAt) return;
+    const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.adminRole, 'super_admin')).limit(1);
+    if (existing) return;
+    await tx.update(users).set({ adminRole: 'super_admin', updatedAt: now }).where(eq(users.id, userId));
+    await audit(tx, { actorId: null, actorLabel: 'Amorçage', action: 'Rôle super_admin attribué (BOOTSTRAP_ADMIN_EMAIL)', target: wanted, ip: null, level: 'warning' }, now);
+  });
 }
 
 export const verifiedMark = (db: Executor, userId: string, patch: Partial<{ emailVerifiedAt: Date; phoneVerifiedAt: Date }>) =>

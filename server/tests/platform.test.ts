@@ -158,13 +158,17 @@ describe('mots de passe et configuration', () => {
 
   it('refuse de démarrer en production avec une configuration dangereuse', () => {
     const prod = { NODE_ENV: 'production', DATABASE_URL: 'postgres://x', APP_URL: 'https://1link.gn' };
-    expect(() => loadConfig({ ...prod })).toThrow(/APP_SECRET/);
+    const derived = loadConfig({ ...prod });
+    expect(derived.secret.length).toBeGreaterThanOrEqual(32); // dérivé de DATABASE_URL
+    expect(loadConfig({ ...prod }).secret).toBe(derived.secret); // stable d'un démarrage à l'autre
+    expect(loadConfig({ ...prod, DATABASE_URL: 'postgres://autre' }).secret).not.toBe(derived.secret);
     expect(() => loadConfig({ ...prod, APP_SECRET: 'court' })).toThrow(/32 caractères/);
     expect(() => loadConfig({ ...prod, APP_SECRET: 'a'.repeat(40), MAIL_PROVIDER: 'dev' })).toThrow(/MAIL_PROVIDER=dev/);
     expect(() => loadConfig({ ...prod, APP_SECRET: 'a'.repeat(40), OTP_PROVIDER: 'dev' })).toThrow(/OTP_PROVIDER=dev/);
     expect(() => loadConfig({ ...prod, APP_SECRET: 'a'.repeat(40), ENABLE_DEV_ROUTES: '1' })).toThrow(/ENABLE_DEV_ROUTES/);
     expect(() => loadConfig({ ...prod, APP_SECRET: 'a'.repeat(40), RATE_LIMIT_SCALE: '100' })).toThrow(/RATE_LIMIT_SCALE/);
     expect(() => loadConfig({ NODE_ENV: 'production', APP_SECRET: 'a'.repeat(40) })).toThrow(/DATABASE_URL/);
+    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/DATABASE_URL/);
     const ok = loadConfig({ ...prod, APP_SECRET: 'a'.repeat(40) });
     expect(ok).toMatchObject({ hardened: true, cookieSecure: true, mail: { provider: 'none' }, otp: { provider: 'none' }, devRoutes: false, rateLimitScale: 1 });
     expect(loadConfig({ VERCEL_ENV: 'preview', DATABASE_URL: 'postgres://x', APP_SECRET: 'a'.repeat(40) }).hardened).toBe(true);
@@ -182,4 +186,36 @@ describe('mots de passe et configuration', () => {
       await strict.close();
     }
   });
+});
+
+describe('amorçage du premier administrateur', () => {
+  it('attribue super_admin à l’adresse prévue, une fois son e-mail confirmé, et seulement si aucun super administrateur n’existe', async () => {
+    const app = await createTestApp();
+    try {
+      app.deps.config.bootstrapAdminEmail = 'chef@exemple.test';
+      const verify = async (email: string, ip: string) => {
+        const c = app.client({ 'x-real-ip': ip });
+        await c.post('/api/auth/sign-up', { name: 'Chef', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+        await new Promise((r) => setTimeout(r, 40));
+        const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === email).at(-1)!.text)![1]!);
+        await c.post('/api/auth/email/verify', { token });
+        return (await c.get('/api/auth/session')).body.user;
+      };
+      expect((await verify('autre@exemple.test', '198.18.5.1')).adminRole).toBeNull(); // adresse différente
+      const chef = await app.client({ 'x-real-ip': '198.18.5.2' }).post('/api/auth/sign-up', { name: 'Chef', email: 'chef@exemple.test', password: 'MotDePasse-Solide-1', acceptTerms: true });
+      expect(chef.body.user.adminRole).toBeNull(); // l'inscription seule ne suffit pas : il faut prouver la possession de l'adresse
+      await new Promise((r) => setTimeout(r, 40));
+      const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === 'chef@exemple.test').at(-1)!.text)![1]!);
+      const c = app.client({ 'x-real-ip': '198.18.5.3' });
+      await c.post('/api/auth/sign-in', { email: 'chef@exemple.test', password: 'MotDePasse-Solide-1' });
+      const after = await c.post('/api/auth/email/verify', { token });
+      expect(after.body.user.adminRole).toBe('super_admin');
+      expect(after.body.permissions).toContain('users:write');
+      // un second compte portant l'adresse prévue n'obtient rien : un super administrateur existe déjà
+      app.deps.config.bootstrapAdminEmail = 'troisieme@exemple.test';
+      expect((await verify('troisieme@exemple.test', '198.18.5.4')).adminRole).toBeNull();
+    } finally {
+      await app.close();
+    }
+  }, 90_000);
 });

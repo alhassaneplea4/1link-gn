@@ -9,7 +9,7 @@ import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { optionalAuth, requireAuth } from '../middleware.js';
 import {
-  assertCanSignIn, assertStrongPassword, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, findUserByEmail, findUserByPhone, issueOtp,
+  assertCanSignIn, assertStrongPassword, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, findUserByEmail, findUserByPhone, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
 import { passwordChangedMessage } from '../lib/emails.js';
@@ -142,6 +142,7 @@ authRoutes.post('/email/verify', optionalAuth, async (c) => {
   const userId = await consumeAuthToken(deps, body.token, 'email_verify');
   const now = deps.now();
   await deps.db.update(users).set({ emailVerifiedAt: now, updatedAt: now }).where(eq(users.id, userId));
+  await maybeBootstrapAdmin(deps, userId);
   await audit(deps.db, { actorId: userId, actorLabel: 'Système', action: 'E-mail vérifié', target: userId, ip: c.get('ip') }, now);
   const auth = c.get('auth');
   return c.json(auth && auth.user.id === userId ? await buildSession(deps, userId, auth.expiresAt) : null);

@@ -7,8 +7,11 @@
 import { createDb } from '../server/db/client.js';
 import { runMigrations } from '../server/db/migrate.js';
 
-if (process.argv.includes('--if-enabled') && process.env.MIGRATE_ON_BUILD !== '1') {
-  console.log('[migrate] ignoré (définir MIGRATE_ON_BUILD=1 pour migrer pendant le build).');
+// Au build : migre automatiquement en PRODUCTION (la nouvelle version ne part en ligne que si le schéma est à jour) ;
+// ailleurs seulement si MIGRATE_ON_BUILD=1 ; MIGRATE_ON_BUILD=0 désactive tout.
+const auto = process.env.MIGRATE_ON_BUILD === '1' || (process.env.VERCEL_ENV === 'production' && process.env.MIGRATE_ON_BUILD !== '0');
+if (process.argv.includes('--if-enabled') && !auto) {
+  console.log('[migrate] ignoré (build hors production ; définir MIGRATE_ON_BUILD=1 pour migrer).');
   process.exit(0);
 }
 // Neon fournit DATABASE_URL (pooler) et DATABASE_URL_UNPOOLED (directe) : les migrations utilisent la directe (verrou de session).
