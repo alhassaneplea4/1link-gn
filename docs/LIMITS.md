@@ -11,8 +11,8 @@ Ce document est volontairement sans fard : il distingue ce qui **fonctionne rée
 - Sécurité, intégrité et rétention : voir [SECURITY.md](SECURITY.md). Tests : serveur sur PostgreSQL réel, interface contre le vrai serveur, e2e, axe-core.
 
 ## Nécessite vos comptes fournisseurs (le code est prêt, rien n'est simulé)
-- **E-mails** (vérification, réinitialisation, avertissement) : clé Resend + domaine vérifié. Sans cela l'API répond `mail_unavailable`.
-- **Codes WhatsApp / SMS** : compte Twilio, expéditeur WhatsApp Business et **modèle « Authentication » approuvé** ; couverture SMS en Guinée à valider avec l'opérateur. Sans cela : `otp_unavailable`.
+- **E-mails** (accueil, vérification, réinitialisation, notifications) : SMTP (Gmail : ~500 e-mails/jour, expéditeur = adresse du compte) ou Resend. Sans fournisseur l'API répond `mail_unavailable`.
+- **Codes par SMS** : SMS8.io (téléphone Android appairé, crédits SMS8, téléphone à garder en ligne ; pas de WhatsApp) ou Twilio (WhatsApp + SMS, modèle « Authentication » approuvé). Sans fournisseur : `otp_unavailable` et l'interface masque la connexion par téléphone.
 
 ## Choix produit : volontairement non fournis
 - **Aucune transaction financière sur la plateforme.** Paiements d'abonnement : `unavailable / payments_not_connected` ; les offres payantes s'attribuent manuellement (`npm run admin -- set-plan`).

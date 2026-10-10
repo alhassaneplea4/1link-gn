@@ -57,6 +57,8 @@ export const users = pgTable(
     /** Badge « Profil vérifié » : accordé uniquement par la modération. */
     verified: boolean('verified').notNull().default(false),
     country: text('country'),
+    /** Langue de l'interface du compte (fr | en) : langue des e-mails envoyés. */
+    locale: text('locale').notNull().default('fr'),
     termsAcceptedAt: ts('terms_accepted_at'),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
@@ -70,6 +72,7 @@ export const users = pgTable(
     check('users_contact_ck', sql`${t.email} is not null or ${t.phone} is not null`),
     check('users_email_lower_ck', sql`${t.email} is null or ${t.email} = lower(${t.email})`),
     check('users_status_ck', sql`${t.status} in (${list(USER_STATUSES)})`),
+    check('users_locale_ck', sql`${t.locale} in ('fr', 'en')`),
     check('users_category_ck', sql`${t.category} is null or ${t.category} in (${list(CATEGORIES)})`),
     check('users_admin_role_ck', sql`${t.adminRole} is null or ${t.adminRole} in (${list(ADMIN_ROLE_VALUES)})`),
   ],

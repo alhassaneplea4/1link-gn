@@ -4,6 +4,8 @@ import type { AuthContext, Deps } from '../context.js';
 import { pages, users, subscriptions, type PageContent } from '../db/schema.js';
 import { newId } from '../lib/crypto.js';
 import { activity } from '../lib/audit.js';
+import { pageLiveMessage } from '../lib/emails.js';
+import { notify } from './notifications.js';
 import { conflict, forbidden, HttpError, badRequest } from '../lib/errors.js';
 import { entitlementsFor } from '../lib/access.js';
 import { MAX_DOC_BYTES, type PageInput } from '../validation/page.js';
@@ -76,6 +78,7 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
   const blocks = stamp(withVerified(input.blocks as AnyBlock[], verified), nowIso);
   const content: PageContent = { blocks, appearance: input.appearance, share: input.share, category: input.category };
 
+  let firstPublication = false;
   try {
     const row = await deps.db.transaction(async (tx) => {
       const [existing] = await tx.select().from(pages).where(eq(pages.userId, auth.user.id)).for('update').limit(1);
@@ -102,9 +105,13 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
         if (!saved) throw conflict('version_conflict');
       }
       await tx.update(users).set({ category: input.category, ...(opts.publish ? { onboardingDone: true } : {}), updatedAt: now }).where(eq(users.id, auth.user.id));
-      if (opts.publish) await activity(tx, 'publish', username ?? auth.user.name, now);
+      if (opts.publish) {
+        firstPublication = !existing?.publishedAt;
+        await activity(tx, 'publish', username ?? auth.user.name, now);
+      }
       return saved!;
     });
+    if (firstPublication && row.username) notify(deps, auth.user, (to, name, locale) => pageLiveMessage(to, name, `${deps.config.publicUrl}/${row.username}`, locale));
     return ownerDocument(row, verified);
   } catch (e) {
     const constraint = uniqueViolation(e);

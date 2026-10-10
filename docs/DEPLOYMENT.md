@@ -46,8 +46,8 @@ Le test `server/tests/imports.test.ts` et la commande `npm run verify:vercel` ga
 | `APP_SECRET` | oui | 32+ caractères (`openssl rand -base64 48`). Les codes OTP et empreintes de visiteurs en dépendent : **ne pas la changer** sans conséquence (codes en cours invalidés) |
 | `APP_URL` | recommandé | URL publique (liens des e-mails). Déduite de Vercel sinon |
 | `CRON_SECRET` | oui | Autorise la tâche de maintenance quotidienne |
-| `MAIL_PROVIDER=resend` + `RESEND_API_KEY` + `MAIL_FROM` | pour les e-mails | Vérification d'adresse, mot de passe oublié |
-| `OTP_PROVIDER=twilio` + `TWILIO_*` | pour le téléphone | Codes WhatsApp / SMS |
+| `SMTP_USER` + `SMTP_PASS` + `MAIL_FROM` (ou `RESEND_API_KEY`) | pour les e-mails | Accueil, vérification d'adresse, mot de passe oublié, page en ligne, décisions de modération |
+| `SMS8_API_KEY` (ou `TWILIO_*`) | pour le téléphone | Codes de connexion par SMS (WhatsApp avec Twilio) |
 | `MIGRATE_ON_BUILD=1` | **Production uniquement** | Applique les migrations pendant le build |
 
 Sans fournisseur configuré, l'API **refuse honnêtement** (`mail_unavailable`, `otp_unavailable`) au lieu de simuler un envoi.
@@ -76,7 +76,11 @@ Vérifications après déploiement :
 
 ## 4. Fournisseurs
 
-**Resend (e-mails)** : ajouter et vérifier votre domaine (enregistrements SPF et DKIM), créer une clé API, renseigner `MAIL_FROM` avec une adresse de ce domaine.
+**SMTP / Gmail (e-mails)** : activer la validation en 2 étapes du compte Google, créer un *mot de passe d'application*, renseigner `SMTP_USER` (l'adresse Gmail), `SMTP_PASS` (le mot de passe de 16 caractères, espaces ignorés) et `MAIL_FROM` (nom affiché). Gmail impose l'adresse du compte comme expéditeur et limite à ~500 e-mails/jour : suffisant au démarrage, à remplacer par un domaine dédié (Resend, SES…) ensuite. Les e-mails envoyés : accueil + confirmation, mot de passe oublié / modifié, première publication, décision de vérification, suspension/réactivation de compte ou de page, avertissement de modération (français ou anglais selon la langue du compte).
+
+**SMS8.io (SMS)** : la clé se trouve dans app.sms8.io → *Developers → API* ; `SMS8_API_KEY` suffit (le fournisseur est choisi automatiquement). Les SMS partent du téléphone Android appairé : il doit rester allumé, connecté et avec du crédit/forfait SMS, et chaque envoi consomme un crédit SMS8 (offre d'essai limitée). Le serveur génère et vérifie lui-même les codes (stockés hachés) : SMS8 ne sert que de transport. WhatsApp n'est pas disponible avec SMS8 : l'interface n'affiche alors que « SMS ». Test : `npm run sms:test -- +224…` (votre numéro), `npm run mail:test -- vous@exemple.com`.
+
+**Resend (e-mails, alternative)** : ajouter et vérifier votre domaine (enregistrements SPF et DKIM), créer une clé API, renseigner `MAIL_FROM` avec une adresse de ce domaine.
 
 **Twilio (WhatsApp / SMS)** :
 - *SMS* : numéro ou *Messaging Service* adapté aux pays visés (la couverture en Guinée dépend des opérateurs — tester avant d'ouvrir).

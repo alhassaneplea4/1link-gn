@@ -6,8 +6,8 @@
 import { COUNTRIES } from '../src/utilities/phone.js';
 
 export type AppEnv = 'production' | 'preview' | 'development' | 'test';
-export type MailProvider = 'resend' | 'dev' | 'none';
-export type OtpProvider = 'twilio' | 'dev' | 'none';
+export type MailProvider = 'smtp' | 'resend' | 'dev' | 'none';
+export type OtpProvider = 'sms8' | 'twilio' | 'dev' | 'none';
 
 export interface AppConfig {
   appEnv: AppEnv;
@@ -25,10 +25,12 @@ export interface AppConfig {
   adminSessionHours: number;
   /** Coût scrypt (log2 de N). */
   scryptLog2N: number;
-  mail: { provider: MailProvider; from: string; resendKey: string };
+  mail: { provider: MailProvider; from: string; resendKey: string; smtp: { host: string; port: number; secure: boolean; user: string; pass: string } };
   otp: {
     provider: OtpProvider;
     allowedDialCodes: string[];
+    /** Passerelle SMS8.io : les SMS partent depuis un téléphone Android appairé (SMS uniquement, pas de WhatsApp). */
+    sms8: { apiKey: string; baseUrl: string; devices: string; option: number };
     twilio: { sid: string; token: string; smsFrom: string; whatsappFrom: string; whatsappContentSid: string; messagingServiceSid: string };
   };
   cronSecret: string;
@@ -68,8 +70,12 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
   if (trim(env.VERCEL_BRANCH_URL)) allowedOrigins.push(`https://${trim(env.VERCEL_BRANCH_URL)}`);
 
   const resendKey = trim(env.RESEND_API_KEY);
-  const mailChoice = trim(env.MAIL_PROVIDER) || (resendKey ? 'resend' : hardened ? 'none' : 'dev');
-  if (!['resend', 'dev', 'none'].includes(mailChoice)) problems.push('MAIL_PROVIDER doit valoir resend, dev ou none.');
+  const smtpUser = trim(env.SMTP_USER);
+  const smtpPass = trim(env.SMTP_PASS).replace(/\s+/g, ''); // les mots de passe d'application Google s'affichent en groupes séparés par des espaces
+  const smtpPort = Number(trim(env.SMTP_PORT) || 465);
+  const mailChoice = trim(env.MAIL_PROVIDER) || (smtpUser && smtpPass ? 'smtp' : resendKey ? 'resend' : hardened ? 'none' : 'dev');
+  if (!['smtp', 'resend', 'dev', 'none'].includes(mailChoice)) problems.push('MAIL_PROVIDER doit valoir smtp, resend, dev ou none.');
+  if (mailChoice === 'smtp' && !(smtpUser && smtpPass)) problems.push('SMTP_USER et SMTP_PASS sont requis quand MAIL_PROVIDER=smtp.');
   if (mailChoice === 'resend' && !resendKey) problems.push('RESEND_API_KEY est requis quand MAIL_PROVIDER=resend.');
   if (mailChoice === 'dev' && hardened) problems.push('MAIL_PROVIDER=dev est interdit en production et prévisualisation.');
 
@@ -77,8 +83,11 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     sid: trim(env.TWILIO_ACCOUNT_SID), token: trim(env.TWILIO_AUTH_TOKEN), smsFrom: trim(env.TWILIO_SMS_FROM),
     whatsappFrom: trim(env.TWILIO_WHATSAPP_FROM), whatsappContentSid: trim(env.TWILIO_WHATSAPP_CONTENT_SID), messagingServiceSid: trim(env.TWILIO_MESSAGING_SERVICE_SID),
   };
-  const otpChoice = trim(env.OTP_PROVIDER) || (tw.sid && tw.token ? 'twilio' : hardened ? 'none' : 'dev');
-  if (!['twilio', 'dev', 'none'].includes(otpChoice)) problems.push('OTP_PROVIDER doit valoir twilio, dev ou none.');
+  const sms8 = { apiKey: trim(env.SMS8_API_KEY), baseUrl: (trim(env.SMS8_BASE_URL) || 'https://app.sms8.io').replace(/\/+$/, ''), devices: trim(env.SMS8_DEVICES), option: Number(trim(env.SMS8_OPTION) || 0) };
+  const otpChoice = trim(env.OTP_PROVIDER) || (sms8.apiKey ? 'sms8' : tw.sid && tw.token ? 'twilio' : hardened ? 'none' : 'dev');
+  if (!['sms8', 'twilio', 'dev', 'none'].includes(otpChoice)) problems.push('OTP_PROVIDER doit valoir sms8, twilio, dev ou none.');
+  if (otpChoice === 'sms8' && !sms8.apiKey) problems.push('SMS8_API_KEY est requis quand OTP_PROVIDER=sms8.');
+  if (otpChoice === 'sms8' && !sms8.baseUrl.startsWith('https://')) problems.push('SMS8_BASE_URL doit être en https.');
   if (otpChoice === 'twilio' && !(tw.sid && tw.token)) problems.push('TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN sont requis quand OTP_PROVIDER=twilio.');
   if (otpChoice === 'dev' && hardened) problems.push('OTP_PROVIDER=dev est interdit en production et prévisualisation.');
 
@@ -105,8 +114,14 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     sessionDays: num(env.SESSION_DAYS, 30),
     adminSessionHours: num(env.ADMIN_SESSION_HOURS, 12),
     scryptLog2N: num(env.SCRYPT_LOG2_N, appEnv === 'test' ? 10 : 15),
-    mail: { provider: mailChoice as MailProvider, from: trim(env.MAIL_FROM) || '1Link <no-reply@1link.gn>', resendKey },
-    otp: { provider: otpChoice as OtpProvider, allowedDialCodes, twilio: tw },
+    mail: {
+      provider: mailChoice as MailProvider,
+      // Gmail impose l'adresse authentifiée comme expéditeur : on n'y met que le nom affiché.
+      from: trim(env.MAIL_FROM) || (mailChoice === 'smtp' ? '1Link <' + smtpUser + '>' : '1Link <no-reply@1link.gn>'),
+      resendKey,
+      smtp: { host: trim(env.SMTP_HOST) || 'smtp.gmail.com', port: smtpPort, secure: trim(env.SMTP_SECURE) ? trim(env.SMTP_SECURE) !== '0' : smtpPort === 465, user: smtpUser, pass: smtpPass },
+    },
+    otp: { provider: otpChoice as OtpProvider, allowedDialCodes, sms8, twilio: tw },
     cronSecret: trim(env.CRON_SECRET),
     devRoutes, rateLimitScale,
     retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90) },

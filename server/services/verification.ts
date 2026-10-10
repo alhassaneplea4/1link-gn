@@ -6,6 +6,8 @@ import { pages, users, verifications } from '../db/schema.js';
 import { newId } from '../lib/crypto.js';
 import { audit } from '../lib/audit.js';
 import { badRequest, conflict, notFound } from '../lib/errors.js';
+import { verificationDecisionMessage } from '../lib/emails.js';
+import { notifyById } from './notifications.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
 import { isUrl } from '../../src/utilities/validation.js';
 import { VERIFICATION_KINDS, type VerificationDecision, type VerificationRequest, type VerificationState } from '../../src/models/verification.js';
@@ -57,13 +59,16 @@ export async function decideVerification(deps: Deps, actor: AuthContext, id: str
   const now = deps.now();
   const trimmed = note.trim().slice(0, 500);
   if (decision === 'reject' && trimmed.length < 5) throw badRequest('note_required');
+  let ownerId = '';
   await deps.db.transaction(async (tx) => {
     const [row] = await tx.select().from(verifications).where(eq(verifications.id, id)).for('update').limit(1);
     if (!row) throw notFound('verification');
     if (row.status !== 'pending') throw conflict('already_decided');
+    ownerId = row.userId;
     await tx.update(verifications).set({ status: decision === 'approve' ? 'approved' : 'rejected', decidedAt: now, decisionNote: trimmed || null, decidedBy: actor.user.id }).where(eq(verifications.id, id));
     if (decision === 'approve') await tx.update(users).set({ verified: true, updatedAt: now }).where(eq(users.id, row.userId));
     const [page] = await tx.select({ username: pages.username }).from(pages).where(eq(pages.userId, row.userId)).limit(1);
     await audit(tx, { actorId: actor.user.id, actorLabel: actor.user.name, action: decision === 'approve' ? 'Profil vérifié' : 'Vérification refusée', target: page?.username ?? row.userId, ip: null }, now);
   });
+  await notifyById(deps, ownerId, (to, name, locale) => verificationDecisionMessage(to, name, decision === 'approve', trimmed, locale));
 }

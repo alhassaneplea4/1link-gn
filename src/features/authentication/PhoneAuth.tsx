@@ -27,6 +27,21 @@ export function PhoneAuth({ mode, onDone }: Props) {
   const [dial, setDial] = useState(DEFAULT_DIAL);
   const [national, setNational] = useState('');
   const [channel, setChannel] = useState<OtpChannel>('whatsapp');
+  // Canaux réellement disponibles côté serveur (inconnu pendant le chargement : on propose les deux).
+  const [channels, setChannels] = useState<OtpChannel[] | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api.auth.getCapabilities().then(
+      (caps) => {
+        if (!live) return;
+        setChannels(caps.otpChannels);
+        setChannel((cur) => (caps.otpChannels.includes(cur) ? cur : (caps.otpChannels[0] ?? cur)));
+      },
+      () => undefined,
+    );
+    return () => { live = false; };
+  }, []);
   const [name, setName] = useState('');
   const [terms, setTerms] = useState(false);
   const [code, setCode] = useState('');
@@ -57,6 +72,8 @@ export function PhoneAuth({ mode, onDone }: Props) {
     if (msg === 'no_account') return { text: t('auth.phone.errors.noAccount'), action: 'register' };
     if (msg === 'phone_taken') return { text: t('auth.phone.errors.phoneTaken'), action: 'login' };
     if (msg === 'account_suspended') return { text: t('auth.errors.suspended') };
+    if (msg === 'otp_unavailable') return { text: t('auth.phone.errors.unavailable') };
+    if (msg === 'country_not_supported') return { text: t('auth.phone.errors.country') };
     return { text: t('auth.phone.errors.generic') };
   };
 
@@ -163,12 +180,15 @@ export function PhoneAuth({ mode, onDone }: Props) {
         </Select>
         <Input label={t('auth.phone.number')} type="tel" name="tel-national" inputMode="tel" autoComplete="tel-national" placeholder="6XX XX XX XX" value={national} onChange={(e) => setNational(e.target.value)} error={errors.phone} hint={t('auth.phone.numberHint')} required prefix={`+${dial}`} />
       </div>
-      <RadioGroup legend={t('auth.phone.channel')} name={`otp-channel-${mode}`} value={channel} onChange={(v) => setChannel(v as OtpChannel)} inline>
-        <Radio value="whatsapp" label={t('auth.phone.channels.whatsapp')} />
-        <Radio value="sms" label={t('auth.phone.channels.sms')} />
-      </RadioGroup>
+      {channels && channels.length === 0 && <Alert tone="warning">{t('auth.phone.errors.unavailable')}</Alert>}
+      {(!channels || channels.length > 1) && (
+        <RadioGroup legend={t('auth.phone.channel')} name={`otp-channel-${mode}`} value={channel} onChange={(v) => setChannel(v as OtpChannel)} inline>
+          <Radio value="whatsapp" label={t('auth.phone.channels.whatsapp')} />
+          <Radio value="sms" label={t('auth.phone.channels.sms')} />
+        </RadioGroup>
+      )}
       {mode === 'sign_up' && <Checkbox label={t('auth.register.terms')} checked={terms} onChange={(e) => setTerms(e.target.checked)} error={errors.terms} />}
-      <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} iconLeft="send">{t('auth.phone.send')}</Button>
+      <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} disabled={channels?.length === 0} iconLeft="send">{t('auth.phone.send')}</Button>
       <p className="subtle auth-form__note"><Icon name="info" size={13} /> {t('auth.phone.privacy')}</p>
     </form>
   );

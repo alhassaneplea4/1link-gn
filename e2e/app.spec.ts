@@ -61,7 +61,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     const email = uniqueEmail('fanta');
     await registerNew(page, 'Fanta Pub', email);
     const mail = await latestMail(request, email);
-    expect(mail.subject).toMatch(/Confirmez/);
+    expect(mail.subject).toMatch(/Bienvenue sur 1Link/); // accueil + confirmation dans un seul message
     await page.goto(`/auth/verify-email?token=${encodeURIComponent(tokenFrom(mail))}`);
     await expect(page.getByRole('heading', { name: /Adresse e-mail vérifiée/ })).toBeVisible();
     await page.goto('/onboarding');

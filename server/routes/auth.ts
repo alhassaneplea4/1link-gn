@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
-import type { HonoEnv } from '../context.js';
+import type { C, Deps, HonoEnv, UserRow } from '../context.js';
 import { users } from '../db/schema.js';
 import { hashPassword, needsRehash, verifyPassword } from '../lib/crypto.js';
 import { badRequest, conflict, HttpError, unauthorized } from '../lib/errors.js';
@@ -12,10 +12,18 @@ import {
   assertCanSignIn, assertStrongPassword, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, findUserByEmail, findUserByPhone, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
+import { passwordChangedMessage } from '../lib/emails.js';
+import { notify } from '../services/notifications.js';
 import { clearSessionCookie, endSession, endUserSessions, loadSession, startSession } from '../services/sessions.js';
 import { forgotBody, otpRequestBody, otpVerifyBody, resetBody, signInBody, signUpBody, verifyEmailBody } from '../validation/auth.js';
 
 export const authRoutes = new Hono<HonoEnv>();
+
+/** La langue du compte suit celle de l'interface à la connexion (les e-mails suivent la langue choisie par l'utilisateur). */
+async function syncLocale(c: C, deps: Deps, user: UserRow) {
+  const locale = c.get('locale');
+  if (c.req.header('accept-language') && user.locale !== locale) await deps.db.update(users).set({ locale }).where(eq(users.id, user.id));
+}
 
 const country = (c: { req: { header(n: string): string | undefined } }) => c.req.header('x-vercel-ip-country')?.toUpperCase().slice(0, 2) ?? null;
 
@@ -46,6 +54,7 @@ authRoutes.post('/sign-in', async (c) => {
   if (user.passwordHash && needsRehash(user.passwordHash, deps.config.scryptLog2N)) {
     await deps.db.update(users).set({ passwordHash: await hashPassword(body.password, deps.config.scryptLog2N) }).where(eq(users.id, user.id));
   }
+  await syncLocale(c, deps, user);
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
 });
@@ -55,8 +64,8 @@ authRoutes.post('/sign-up', async (c) => {
   const body = await readJson(c, signUpBody);
   await enforce(deps.db, keyFor('signup-ip', c.get('ip')), 10, 3600, deps.now());
   assertStrongPassword(body.password, [body.email, body.email.split('@')[0] ?? '']);
-  const user = await createAccount(deps, { name: body.name, email: body.email, password: body.password, country: country(c) });
-  await sendVerificationEmail(c, deps, user);
+  const user = await createAccount(deps, { name: body.name, email: body.email, password: body.password, country: country(c), locale: c.get('locale') });
+  await sendVerificationEmail(c, deps, user, true);
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
 });
@@ -93,7 +102,7 @@ authRoutes.post('/otp/verify', async (c) => {
 
   if (await findUserByPhone(deps.db, body.phone)) throw conflict('phone_taken');
   if (!body.name?.trim() || body.acceptTerms !== true) throw badRequest('invalid');
-  const user = await createAccount(deps, { name: body.name, phone: body.phone, phoneVerified: true, country: country(c) });
+  const user = await createAccount(deps, { name: body.name, phone: body.phone, phoneVerified: true, country: country(c), locale: c.get('locale') });
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
 });
@@ -118,6 +127,7 @@ authRoutes.post('/password/reset', async (c) => {
   const userId = await consumeAuthToken(deps, body.token, 'password_reset');
   const now = deps.now();
   const [user] = await deps.db.update(users).set({ passwordHash: await hashPassword(body.password, deps.config.scryptLog2N), updatedAt: now }).where(eq(users.id, userId)).returning();
+  if (user) notify(deps, user, passwordChangedMessage);
   await endUserSessions(deps, userId); // toute session ouverte avec l'ancien mot de passe est révoquée
   await securityEvent(deps.db, { kind: 'password_reset', subject: user?.email ?? userId, userId, ip: c.get('ip') }, now);
   return c.body(null, 204);

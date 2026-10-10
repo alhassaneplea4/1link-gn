@@ -54,6 +54,8 @@ export default {
       resendTooSoon: 'Patientez {s} s avant de redemander un code.',
       tooManyRequests: 'Trop de demandes. Réessayez dans {min} min.',
       noAccount: 'Aucun compte n’est associé à ce numéro.',
+      unavailable: 'L’envoi de codes par téléphone n’est pas disponible pour le moment. Utilisez votre adresse e-mail.',
+      country: 'Les codes ne sont pas encore disponibles pour ce pays.',
       phoneTaken: 'Un compte existe déjà avec ce numéro.',
       generic: 'Une erreur est survenue. Réessayez dans un instant.',
     },

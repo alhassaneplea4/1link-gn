@@ -1,5 +1,6 @@
 /**
  * Envoi des codes à usage unique par WhatsApp ou SMS.
+ *  - `sms8` : passerelle SMS8.io (SMS envoyés par un téléphone Android appairé ; pas de WhatsApp) ;
  *  - `twilio` : API REST Twilio (WhatsApp et SMS) ;
  *  - `dev` : n'envoie rien, mémorise le message (développement et tests UNIQUEMENT — la route renvoie alors `devCode`) ;
  *  - `none` : aucun fournisseur → la demande de code échoue honnêtement (`otp_unavailable`).
@@ -18,8 +19,9 @@ export interface OtpDelivery {
 }
 
 export interface OtpSender {
-  readonly provider: 'twilio' | 'dev' | 'none';
-  send(d: OtpDelivery): Promise<void>;
+  readonly provider: 'sms8' | 'twilio' | 'dev' | 'none';
+  /** Retourne le canal RÉELLEMENT utilisé quand il diffère de la demande (ex. WhatsApp demandé, SMS envoyé). */
+  send(d: OtpDelivery): Promise<{ channel: OtpChannel } | void>;
 }
 
 export interface DevOtpSender extends OtpSender {
@@ -28,6 +30,36 @@ export interface DevOtpSender extends OtpSender {
 }
 
 export function createOtpSender(config: AppConfig): OtpSender {
+  if (config.otp.provider === 'sms8') {
+    const { apiKey, baseUrl, devices, option } = config.otp.sms8;
+    return {
+      provider: 'sms8',
+      async send(d) {
+        const form = new URLSearchParams();
+        form.set('key', apiKey);
+        form.set('messages', JSON.stringify([{ number: d.phone, message: otpMessage(d.code, d.ttlMinutes, d.locale), type: 'sms' }]));
+        form.set('option', String(option));
+        if (devices) form.set('devices', devices);
+        form.set('prioritize', '1'); // un code ne doit pas attendre derrière une campagne
+        const res = await fetch(`${baseUrl}/api/v1/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+          body: form,
+          signal: AbortSignal.timeout(15_000),
+        });
+        const text = await res.text();
+        let body = {} as { success?: boolean; error?: unknown };
+        try {
+          body = (JSON.parse(text) ?? {}) as typeof body;
+        } catch {
+          /* réponse non JSON : on se fie au statut HTTP */
+        }
+        if (!res.ok || body.success === false || body.error) throw new Error(`sms8 ${res.status}`);
+        // SMS8 n'envoie que des SMS : si WhatsApp était demandé, l'interface doit annoncer « SMS ».
+        return d.channel === 'sms' ? undefined : { channel: 'sms' as const };
+      },
+    };
+  }
   if (config.otp.provider === 'twilio') {
     const tw = config.otp.twilio;
     const auth = `Basic ${Buffer.from(`${tw.sid}:${tw.token}`).toString('base64')}`;

@@ -20,6 +20,17 @@ systemRoutes.get('/health', async (c) => {
 });
 
 /**
+ * Capacités réellement disponibles (aucun secret) : l'interface n'affiche que les canaux qui fonctionnent
+ * (ex. pas de WhatsApp quand la passerelle SMS ne sait envoyer que des SMS).
+ */
+systemRoutes.get('/capabilities', (c) => {
+  const { otp } = c.get('deps').config;
+  const channels =
+    otp.provider === 'sms8' ? ['sms'] : otp.provider === 'twilio' ? [...(otp.twilio.whatsappFrom || otp.twilio.messagingServiceSid ? ['whatsapp'] : []), ...(otp.twilio.smsFrom || otp.twilio.messagingServiceSid ? ['sms'] : [])] : otp.provider === 'dev' ? ['whatsapp', 'sms'] : [];
+  return c.json({ otpChannels: channels, emailSending: c.get('deps').config.mail.provider !== 'none' });
+});
+
+/**
  * Maintenance planifiée (Vercel Cron) : purge ce qui n'a plus de raison d'être conservé (sessions et jetons expirés, codes,
  * compteurs de débit, événements d'audience au-delà de la rétention). Vercel envoie `Authorization: Bearer $CRON_SECRET`.
  */

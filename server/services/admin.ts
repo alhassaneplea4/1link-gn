@@ -5,7 +5,8 @@ import { auditLogs, pages, reports, users } from '../db/schema.js';
 import { audit } from '../lib/audit.js';
 import { conflict, forbidden, notFound } from '../lib/errors.js';
 import { runList, type ListSpec } from '../lib/lists.js';
-import { moderationWarningMessage } from '../lib/emails.js';
+import { accountNoticeMessage, moderationWarningMessage } from '../lib/emails.js';
+import { notify, notifyById } from './notifications.js';
 import { endUserSessions } from './sessions.js';
 import { toRequest } from './verification.js';
 import type { ListQuery, Paged } from '../../src/models/api.js';
@@ -82,6 +83,7 @@ export async function setUserStatus(c: C, deps: Deps, actor: AuthContext, userId
   if (target.adminRole && actor.user.adminRole !== 'super_admin' && (ROLE_RANK[target.adminRole] ?? 0) >= (ROLE_RANK[actor.user.adminRole ?? ''] ?? 0)) throw forbidden('insufficient_role');
   await deps.db.update(users).set({ status, updatedAt: now }).where(eq(users.id, userId));
   if (status === 'suspended') await endUserSessions(deps, userId);
+  notify(deps, target, (to, name, locale) => accountNoticeMessage(to, name, status === 'suspended' ? 'account_suspended' : 'account_reinstated', locale));
   await audit(deps.db, { actorId: actor.user.id, actorLabel: actor.user.name, action: status === 'suspended' ? 'Compte suspendu' : 'Compte réactivé', target: userId, ip: c.get('ip'), level: status === 'suspended' ? 'warning' : 'info' }, now);
 }
 
@@ -141,7 +143,8 @@ const LABELS: Record<ModerationDecision, string> = { dismiss: 'Signalement class
 export async function applyDecision(c: C, deps: Deps, actor: AuthContext, reportId: string, decision: ModerationDecision, note: string): Promise<void> {
   const now = deps.now();
   const trimmed = note.trim().slice(0, 500);
-  let warn: { email: string; name: string } | null = null;
+  let warn: { email: string; name: string; locale: string } | null = null;
+  let notice: { userId: string; kind: 'page_suspended' | 'page_reinstated' } | null = null;
   await deps.db.transaction(async (tx) => {
     const [rep] = await tx.select().from(reports).where(eq(reports.id, reportId)).for('update').limit(1);
     if (!rep) throw notFound('report');
@@ -149,18 +152,24 @@ export async function applyDecision(c: C, deps: Deps, actor: AuthContext, report
     const history = [...rep.history, { at: now.toISOString(), event: `${LABELS[decision]}${trimmed ? ` — ${trimmed}` : ''}`, actor: actor.user.name }];
     await tx.update(reports).set({ status: decision === 'dismiss' ? 'dismissed' : 'resolved', history, updatedAt: now }).where(eq(reports.id, reportId));
     const [page] = rep.pageId ? await tx.select().from(pages).where(eq(pages.id, rep.pageId)).limit(1) : [];
-    if (page && decision === 'suspend') await tx.update(pages).set({ status: 'suspended', updatedAt: now }).where(eq(pages.id, page.id));
-    if (page && decision === 'reinstate') await tx.update(pages).set({ status: page.published ? 'published' : 'draft', updatedAt: now }).where(eq(pages.id, page.id));
+    if (page && decision === 'suspend') {
+      await tx.update(pages).set({ status: 'suspended', updatedAt: now }).where(eq(pages.id, page.id));
+      notice = { userId: page.userId, kind: 'page_suspended' };
+    }
+    if (page && decision === 'reinstate') {
+      await tx.update(pages).set({ status: page.published ? 'published' : 'draft', updatedAt: now }).where(eq(pages.id, page.id));
+      notice = { userId: page.userId, kind: 'page_reinstated' };
+    }
     if (page && decision === 'warn') {
-      const [owner] = await tx.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, page.userId)).limit(1);
-      if (owner?.email) warn = { email: owner.email, name: owner.name };
+      const [owner] = await tx.select({ email: users.email, name: users.name, locale: users.locale }).from(users).where(eq(users.id, page.userId)).limit(1);
+      if (owner?.email) warn = { email: owner.email, name: owner.name, locale: owner.locale };
     }
     await audit(tx, { actorId: actor.user.id, actorLabel: actor.user.name, action: `${LABELS[decision]} (${reportId})`, target: rep.username, ip: c.get('ip'), level: decision === 'suspend' ? 'warning' : 'info' }, now);
   });
-  if (warn) {
-    const w: { email: string; name: string } = warn;
-    deps.defer(deps.mailer.send(moderationWarningMessage(w.email, w.name, trimmed)).catch((e) => console.error('[mail] avertissement :', (e as Error).message)));
-  }
+  const w = warn as { email: string; name: string; locale: string } | null;
+  if (w) notify(deps, w, (to, name, locale) => moderationWarningMessage(to, name, trimmed, locale));
+  const n = notice as { userId: string; kind: 'page_suspended' | 'page_reinstated' } | null;
+  if (n) await notifyById(deps, n.userId, (to, name, locale) => accountNoticeMessage(to, name, n.kind, locale));
 }
 
 // — Vérifications —

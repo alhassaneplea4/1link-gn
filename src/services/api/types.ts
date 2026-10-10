@@ -15,7 +15,14 @@ import type {
   PlatformOverview, RealtimeEvent, RealtimeState, Report, SecurityEvent, ServiceStatus, SubscriptionRow, Ticket,
 } from '@/models/admin';
 
+/** Ce que le serveur sait réellement faire (selon les fournisseurs configurés). */
+export interface Capabilities {
+  otpChannels: OtpChannel[];
+  emailSending: boolean;
+}
+
 export interface AuthApi {
+  getCapabilities(): Promise<Capabilities>;
   /** `null` quand personne n'est connecté. */
   getSession(): Promise<Session | null>;
   signIn(email: string, password: string): Promise<Session>;

@@ -7,7 +7,8 @@ import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, ver
 import { activity } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, HttpError, tooMany } from '../lib/errors.js';
 import { enforce, hit, keyFor } from '../lib/ratelimit.js';
-import { pickLocale, resetPasswordMessage, verifyEmailMessage } from '../lib/emails.js';
+import { pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
+import { asLocale } from './notifications.js';
 import { toSession } from './sessions.js';
 import type { PlanId, Session, SessionUser } from '../../src/models/auth.js';
 import type { OtpChannel } from '../../src/models/auth.js';
@@ -61,6 +62,7 @@ export interface NewAccount {
   password?: string;
   phoneVerified?: boolean;
   country?: string | null;
+  locale?: 'fr' | 'en';
 }
 
 /** Crée l'utilisateur et son abonnement gratuit de façon atomique. */
@@ -73,7 +75,7 @@ export async function createAccount(deps: Deps, input: NewAccount): Promise<User
         .insert(users)
         .values({
           id: newId('usr'), email: input.email?.trim().toLowerCase() ?? null, phone: input.phone ?? null, passwordHash, name: input.name.trim(),
-          phoneVerifiedAt: input.phoneVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now,
+          phoneVerifiedAt: input.phoneVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now, locale: input.locale ?? 'fr',
         })
         .returning();
       await tx.insert(subscriptions).values({ id: newId('sub'), userId: user!.id, planId: 'free', status: 'active', startedAt: now, updatedAt: now });
@@ -133,12 +135,14 @@ export async function consumeAuthToken(deps: Deps, token: string, kind: 'email_v
   return result.userId;
 }
 
-export async function sendVerificationEmail(c: C, deps: Deps, user: UserRow): Promise<boolean> {
+/** `welcome` : premier envoi après l'inscription (accueil + confirmation dans un seul message). */
+export async function sendVerificationEmail(_c: C, deps: Deps, user: UserRow, welcome = false): Promise<boolean> {
   if (!user.email || user.emailVerifiedAt) return false;
   const token = await issueAuthToken(deps.db, user.id, 'email_verify', deps.now());
   const link = `${deps.config.publicUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
   try {
-    await deps.mailer.send(verifyEmailMessage(user.email, user.name, link, pickLocale(c.req.header('accept-language'))));
+    const locale = asLocale(user.locale);
+    await deps.mailer.send(welcome ? welcomeMessage(user.email, user.name, link, locale) : verifyEmailMessage(user.email, user.name, link, locale));
     return true;
   } catch (e) {
     console.error('[mail] échec de l’envoi de la vérification :', (e as Error).message);
@@ -146,12 +150,12 @@ export async function sendVerificationEmail(c: C, deps: Deps, user: UserRow): Pr
   }
 }
 
-export async function sendPasswordReset(c: C, deps: Deps, user: UserRow): Promise<void> {
+export async function sendPasswordReset(_c: C, deps: Deps, user: UserRow): Promise<void> {
   if (!user.email) return;
   const token = await issueAuthToken(deps.db, user.id, 'password_reset', deps.now());
   const link = `${deps.config.publicUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
   try {
-    await deps.mailer.send(resetPasswordMessage(user.email, user.name, link, pickLocale(c.req.header('accept-language'))));
+    await deps.mailer.send(resetPasswordMessage(user.email, user.name, link, asLocale(user.locale)));
   } catch (e) {
     console.error('[mail] échec de l’envoi de la réinitialisation :', (e as Error).message);
   }
@@ -187,14 +191,16 @@ export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChan
     await tx.update(otpCodes).set({ consumedAt: now }).where(and(eq(otpCodes.phone, phone), isNull(otpCodes.consumedAt)));
     await tx.insert(otpCodes).values({ id, phone, codeHash: codeHash(deps, phone, code), channel, expiresAt: new Date(now.getTime() + OTP_TTL_SEC * 1000), ip, createdAt: now });
   });
+  let delivered: OtpChannel = channel;
   try {
-    await deps.otp.send({ phone, channel, code, ttlMinutes: OTP_TTL_SEC / 60, locale: pickLocale(c.req.header('accept-language')) });
+    const actual = await deps.otp.send({ phone, channel, code, ttlMinutes: OTP_TTL_SEC / 60, locale: pickLocale(c.req.header('accept-language')) });
+    if (actual) delivered = actual.channel;
   } catch (e) {
     await deps.db.delete(otpCodes).where(eq(otpCodes.id, id));
     console.error('[otp] échec de l’envoi :', (e as Error).message);
     throw new HttpError(503, 'otp_unavailable');
   }
-  const issued: OtpIssued = { channel, expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC };
+  const issued: OtpIssued = { channel: delivered, expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC };
   if (deps.otp.provider === 'dev') issued.devCode = code;
   return issued;
 }

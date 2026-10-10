@@ -44,6 +44,8 @@ export default {
       resendTooSoon: 'Please wait {s} s before requesting another code.',
       tooManyRequests: 'Too many requests. Try again in {min} min.',
       noAccount: 'No account is linked to this number.',
+      unavailable: 'Sending codes by phone is not available right now. Please use your email address.',
+      country: 'Codes are not available for this country yet.',
       phoneTaken: 'An account already exists with this number.',
       generic: 'Something went wrong. Please try again shortly.',
     },

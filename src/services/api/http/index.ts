@@ -13,6 +13,7 @@ const q = (l: ListQuery) => ({ page: l.page, pageSize: l.pageSize, search: l.sea
 const seg = encodeURIComponent;
 
 const auth: AuthApi = {
+  getCapabilities: () => request('GET', '/capabilities'),
   getSession: () => request<Session | null>('GET', '/auth/session'),
   signIn: (email, password) => request('POST', '/auth/sign-in', { body: { email, password } }),
   signUp: (input) => request('POST', '/auth/sign-up', { body: input }),
