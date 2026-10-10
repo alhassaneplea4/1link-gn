@@ -26,7 +26,7 @@ export interface ListField {
 }
 export type FieldDef = ScalarField | SelectField | ToggleField | ListField;
 
-export type ErrorKey = 'common.validation.required' | 'common.validation.email' | 'common.validation.url' | 'common.validation.phone' | 'common.validation.tooLong' | 'common.validation.number';
+export type ErrorKey = 'common.validation.required' | 'common.validation.email' | 'common.validation.url' | 'common.validation.phone' | 'common.validation.tooLong' | 'common.validation.number' | 'common.validation.schedule';
 export type FieldErrors = Record<string, ErrorKey>;
 
 function validateScalar(f: ScalarField | SelectField, value: unknown): ErrorKey | null {

@@ -54,6 +54,15 @@ export default {
     addItem: 'Ajouter un élément',
     maxItems: 'Maximum atteint ({max}).',
   },
+  schedule: {
+    title: 'Programmation',
+    hint: 'Affichez ce bloc seulement pendant une période (promotion, événement). Heure locale de votre appareil.',
+    from: 'Afficher à partir du',
+    until: 'Masquer à partir du',
+    clear: 'Retirer la programmation',
+    errors: { invalid_range: 'La fin doit être postérieure au début.', invalid_date: 'Date invalide.' },
+    state: { upcoming: 'Programmé', active: 'En cours', expired: 'Terminé' },
+  },
   picker: {
     title: 'Ajouter un bloc',
     description: 'Choisissez le type de contenu à ajouter à votre page.',

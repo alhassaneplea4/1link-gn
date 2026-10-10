@@ -36,6 +36,7 @@ export default {
     hint: 'Less data: images load on demand.',
     showImage: 'Show image',
   },
+  scheduled: { upcoming: 'Scheduled: not visible yet', active: 'Scheduled: visible', expired: 'Ended: no longer visible' },
   saveContact: 'Save my contact',
   learnMore: 'Learn more',
   playVideo: 'Play video',

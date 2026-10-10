@@ -36,6 +36,7 @@ export default {
     hint: 'Moins de données : les images s’affichent à la demande.',
     showImage: 'Afficher l’image',
   },
+  scheduled: { upcoming: 'Programmé : pas encore visible', active: 'Programmé : visible', expired: 'Terminé : n’est plus visible' },
   saveContact: 'Enregistrer mon contact',
   learnMore: 'En savoir plus',
   playVideo: 'Lire la vidéo',

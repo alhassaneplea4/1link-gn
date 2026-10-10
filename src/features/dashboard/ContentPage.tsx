@@ -10,6 +10,7 @@ import { useT } from '@/i18n/core';
 import type { AnyBlock } from '@/models/blocks';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { formatRelative } from '@/utilities/format';
+import { scheduleState } from '@/features/page-engine/schedule';
 import './dashboard.css';
 
 /** Vue « liste » de tous les contenus de la page (liens, services, contacts…) : filtre, recherche, accès direct à l'édition. */
@@ -43,6 +44,7 @@ export default function ContentPage() {
     { key: 'status', header: t('dashboard.content.status'), cell: (b) => (
       <span className="cell-badges">
         <Badge tone={b.visible ? 'success' : 'neutral'} dot>{b.visible ? t('dashboard.content.visible') : t('editor.list.hidden')}</Badge>
+        {scheduleState(b.schedule, Date.now()) !== 'none' && <Badge tone="info" icon="calendar">{t(`editor.schedule.state.${scheduleState(b.schedule, Date.now()) as 'upcoming'}`)}</Badge>}
         {!isBlockComplete(b) && <Badge tone="warning" icon="alert">{t('editor.list.incomplete')}</Badge>}
       </span>
     ) },

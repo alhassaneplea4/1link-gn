@@ -8,6 +8,7 @@
 import { BLOCK_TYPES, CURRENCIES, PAYMENT_PROVIDERS, SOCIAL_PLATFORMS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
 import { uid } from '@/utilities/misc';
 import { validateFields, type FieldDef, type FieldErrors } from './schema';
+import { scheduleError } from '../schedule';
 import type { BlockDefinition, BlockGroup, BlockRegistry, CreateContext } from './types';
 import { ProfileRender } from './render/profile';
 import { CtaRender, EmailRender, LinkRender, PhoneRender, SocialRender, WhatsappRender } from './render/links';
@@ -197,7 +198,9 @@ export function createBlock<K extends BlockType>(type: K, ctx: CreateContext, id
 
 /** Valide un bloc d'après son schéma. */
 export function validateBlock(block: AnyBlock): FieldErrors {
-  return validateFields(blockRegistry[block.type].fields, block.data as unknown as Record<string, unknown>);
+  const errors = validateFields(blockRegistry[block.type].fields, block.data as unknown as Record<string, unknown>) as Record<string, string>;
+  if (scheduleError(block.schedule)) errors.schedule = 'common.validation.schedule';
+  return errors as FieldErrors;
 }
 
 export const isBlockComplete = (block: AnyBlock) => Object.keys(validateBlock(block)).length === 0;

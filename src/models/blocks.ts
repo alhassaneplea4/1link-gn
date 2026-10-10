@@ -72,6 +72,9 @@ export interface BlockDataMap {
   cta: CtaData;
 }
 
+/** Fenêtre d'affichage d'un bloc (ISO UTC). `null` = pas de borne. */
+export interface BlockSchedule { from: string | null; until: string | null }
+
 export interface Block<T extends BlockType = BlockType> {
   id: string;
   type: T;
@@ -79,6 +82,8 @@ export interface Block<T extends BlockType = BlockType> {
   data: BlockDataMap[T];
   /** Dernière modification (ISO), renseignée par l'éditeur. */
   updatedAt?: string;
+  /** Programmation : le bloc n'est visible publiquement que dans cette fenêtre. */
+  schedule?: BlockSchedule;
 }
 /** Union discriminante : `block.type` affine `block.data`. */
 export type AnyBlock = { [K in BlockType]: Block<K> }[BlockType];

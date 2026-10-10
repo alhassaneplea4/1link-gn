@@ -89,6 +89,21 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     await expect(dialog.getByRole('link', { name: /Commander sur WhatsApp/ })).toBeVisible();
   });
 
+  test('programmation : un bloc futur est signalé en aperçu et refuse une période inversée', async ({ page }) => {
+    await page.goto('/dashboard/page');
+    await page.getByRole('button', { name: 'Ajouter un bloc' }).click();
+    await page.getByRole('button', { name: /^Texte/ }).first().click();
+    await page.getByRole('textbox', { name: /^Texte/ }).first().fill('Offre de la Tabaski');
+    await page.getByLabel('Afficher à partir du').fill('2030-01-01T10:00');
+    await page.getByLabel('Masquer à partir du').fill('2029-01-01T10:00');
+    await expect(page.getByText('La fin doit être postérieure au début.').first()).toBeVisible();
+    await page.getByLabel('Masquer à partir du').fill('2030-02-01T10:00');
+    await page.getByRole('button', { name: 'Prévisualiser' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Offre de la Tabaski')).toBeVisible();
+    await expect(dialog.getByText(/pas encore visible/)).toBeVisible();
+  });
+
   test('prévisualise la page', async ({ page }) => {
     await page.goto('/dashboard/page');
     await page.getByRole('button', { name: 'Prévisualiser' }).click();

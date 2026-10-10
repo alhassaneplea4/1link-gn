@@ -10,7 +10,7 @@
 import { create } from 'zustand';
 import { api } from '@/services/api';
 import { isApiError } from '@/models/api';
-import type { AnyBlock, BlockDataMap, BlockType } from '@/models/blocks';
+import type { AnyBlock, BlockDataMap, BlockSchedule, BlockType } from '@/models/blocks';
 import type { PageDocument } from '@/models/page';
 import type { AppearanceConfig, ThemeId } from '@/models/appearance';
 import { createBlock, getBlockDefinition } from '@/features/page-engine/blocks/registry';
@@ -48,6 +48,7 @@ interface EditorState {
   updateBlock<K extends BlockType>(id: string, type: K, data: Partial<BlockDataMap[K]>): void;
   replaceBlockData(id: string, data: unknown): void;
   removeBlock(id: string): void;
+  setBlockSchedule(id: string, schedule: BlockSchedule | undefined): void;
   duplicateBlock(id: string): string | null;
   moveBlock(from: number, to: number): void;
   toggleVisible(id: string): void;
@@ -144,6 +145,12 @@ export const useEditor = create<EditorState>((set, get) => {
       const { doc } = get();
       if (!doc) return;
       withBlocks(doc.blocks.map((b) => (b.id === id ? ({ ...b, data, updatedAt: new Date().toISOString() } as AnyBlock) : b)), `block:${id}`);
+    },
+
+    setBlockSchedule(id, schedule) {
+      const { doc } = get();
+      if (!doc) return;
+      withBlocks(doc.blocks.map((b) => (b.id === id ? ({ ...b, schedule, updatedAt: new Date().toISOString() } as AnyBlock) : b)), `schedule:${id}`);
     },
 
     removeBlock(id) {

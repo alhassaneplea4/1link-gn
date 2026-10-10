@@ -68,6 +68,7 @@ export default {
     usernameReserved: 'This name is reserved. Please choose another one.',
     tooLong: 'This text is too long.',
     number: 'Enter a number (e.g. 150000).',
+    schedule: 'The end of the schedule must be after its start.',
   },
   status: {
     notStarted: 'Not started',

@@ -68,6 +68,7 @@ export default {
     usernameReserved: 'Ce nom est réservé. Choisissez-en un autre.',
     tooLong: 'Ce texte est trop long.',
     number: 'Saisissez un nombre (ex. 150000).',
+    schedule: 'La fin de la programmation doit être postérieure au début.',
   },
   status: {
     notStarted: 'Non commencé',

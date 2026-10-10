@@ -207,3 +207,9 @@
 .pg-footer button { color: inherit; text-decoration: underline; text-underline-offset: 3px; min-height: 36px; padding: 0 4px; font-weight: 600; }
 .pg-footer button:hover { color: var(--pg-text); }
 .pg-footer button:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* — Étiquette de programmation (aperçu de l'éditeur uniquement) — */
+.pg-block { position: relative; }
+.pg-sched { position: absolute; z-index: 2; top: -8px; right: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; font-size: 0.7em; font-weight: 700; background: #1d4ed8; color: #fff; }
+.pg-sched[data-state='expired'] { background: #6b7280; }
+.pg-sched[data-state='active'] { background: #047857; }

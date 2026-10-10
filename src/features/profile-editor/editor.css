@@ -92,3 +92,8 @@
   }
   .etoolbar__preview, .etoolbar__save { padding-inline: 0.7rem; }
 }
+
+.schedule { border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-top: var(--space-4); display: grid; gap: var(--space-3); }
+.schedule legend { display: flex; align-items: center; gap: 0.4rem; padding-inline: 0.4rem; }
+.schedule__row { display: grid; gap: var(--space-3); }
+@media (min-width: 640px) { .schedule__row { grid-template-columns: 1fr 1fr; } }

@@ -54,6 +54,15 @@ export default {
     addItem: 'Add an item',
     maxItems: 'Maximum reached ({max}).',
   },
+  schedule: {
+    title: 'Scheduling',
+    hint: 'Show this block only during a period (promotion, event). Your device’s local time.',
+    from: 'Show from',
+    until: 'Hide from',
+    clear: 'Remove scheduling',
+    errors: { invalid_range: 'The end must be after the start.', invalid_date: 'Invalid date.' },
+    state: { upcoming: 'Scheduled', active: 'Live', expired: 'Ended' },
+  },
   picker: {
     title: 'Add a block',
     description: 'Choose the type of content to add to your page.',

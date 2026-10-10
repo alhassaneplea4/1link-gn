@@ -7,6 +7,8 @@ import type { AnyBlock } from '@/models/blocks';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { cx } from '@/utilities/misc';
 import { useFlip } from './useFlip';
+import { ScheduleFields } from './ScheduleFields';
+import { scheduleState } from '@/features/page-engine/schedule';
 
 interface BlockCardProps {
   block: AnyBlock;
@@ -25,7 +27,8 @@ interface BlockCardProps {
 function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onToggle, onRequestDelete, onDragStartIndex, onDropIndex, onDragOverIndex }: BlockCardProps) {
   const t = useT('editor');
   const def = blockRegistry[block.type];
-  const { moveBlock, toggleVisible, duplicateBlock, replaceBlockData } = useEditor.getState();
+  const { moveBlock, toggleVisible, duplicateBlock, replaceBlockData, setBlockSchedule } = useEditor.getState();
+  const sched = scheduleState(block.schedule, Date.now());
   const errors = validateBlock(block);
   const incomplete = Object.keys(errors).length > 0;
   const [dragAllowed, setDragAllowed] = useState(false);
@@ -60,6 +63,7 @@ function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onTog
           </span>
           {incomplete && <Badge tone="warning" icon="alert">{t('editor.list.incomplete')}</Badge>}
           {!block.visible && <Badge tone="neutral" icon="eye-off">{t('editor.list.hidden')}</Badge>}
+          {sched !== 'none' && <Badge tone={sched === 'active' ? 'success' : 'info'} icon="calendar">{t(`editor.schedule.state.${sched}`)}</Badge>}
           <Icon name="chevron-down" size={18} className="bcard__chev" />
         </button>
         <div className="bcard__tools" role="toolbar" aria-label={t('editor.list.actionsFor', { name: t(`editor.blocks.${block.type}.label`) })}>
@@ -81,6 +85,7 @@ function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onTog
             showAllErrors={forceErrors}
             onChange={(patch) => replaceBlockData(block.id, { ...(block.data as object), ...patch })}
           />
+          <ScheduleFields schedule={block.schedule} onChange={(sch) => setBlockSchedule(block.id, sch)} />
         </div>
       )}
     </li>
