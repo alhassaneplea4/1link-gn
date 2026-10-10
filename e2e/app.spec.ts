@@ -198,8 +198,10 @@ test.describe('Admin Center', () => {
     await page.getByRole('button', { name: 'Envoyer le signalement' }).click();
     await expect(page.getByRole('heading', { name: 'Merci pour votre signalement' })).toBeVisible();
     await loginAs(page, /Moderator/);
-    await page.goto('/admin/reports');
-    await expect(page.locator('tbody .mono', { hasText: /^rep_v/ }).first()).toBeVisible();
+    await page.goto('/admin/reports?q=mariama');
+    const row = page.locator('tbody tr').filter({ has: page.getByText('@mariama', { exact: true }) }).first();
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('Arnaque');
   });
 
   test('rôle Support : rubrique Paiements absente et accès direct refusé', async ({ page }) => {

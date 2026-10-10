@@ -52,6 +52,22 @@ test.describe('navigation publique', () => {
   });
 });
 
+test.describe('langues : français et anglais', () => {
+  test('bascule en anglais et mémorise le choix, sur le site, la connexion et la page publique', async ({ page }) => {
+    await page.goto('/auth/login');
+    await page.getByLabel('Langue').selectOption('en');
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.goto('/');
+    await expect(page.locator('h1#hero-title')).toContainText('One link, for your whole presence.');
+    await page.goto('/mariama');
+    await expect(page.getByRole('button', { name: 'Report this page' })).toBeVisible();
+    await page.evaluate(() => localStorage.setItem('onelink.locale', 'fr'));
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Signaler cette page' })).toBeVisible();
+  });
+});
+
 test.describe('page publique d’un utilisateur', () => {
   test('affiche une page publiée avec son rendu', async ({ page }) => {
     await page.goto('/mariama');

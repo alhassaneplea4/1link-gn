@@ -26,6 +26,11 @@ Variables (voir `.env.example`) : `VITE_API_MODE=demo|http`, `VITE_API_BASE_URL`
 
 Pages publiques d'états : `/mariama` (publiée), `/brouillon-demo`, `/compte-suspendu`, `/indisponible-demo`, `/n-importe-quoi` (introuvable).
 
+## Nouveautés orientées marché guinéen / africain
+- Boutique **commande WhatsApp** (sans paiement sur la plateforme) et **moyens de paiement** affichés (Orange Money, MTN MoMo, banque…).
+- **Enregistrer mon contact** (vCard), **mode économe en données**, **signalement** d'une page par un visiteur.
+- Interface en **français et anglais**.
+
 ## Routes
 
 | Espace | Routes |

@@ -173,7 +173,7 @@ export default {
     categoryFailed: 'Impossible de changer la catégorie',
     address: 'Adresse de votre page',
     addressHint: 'Modifiable au moment de la publication.',
-    languageHint: 'L’interface anglaise est partielle : le français est utilisé en repli.',
+    languageHint: 'L’interface est disponible en français et en anglais.',
     emailNotifs: 'Notifications par e-mail',
     soonHint: 'Bientôt disponible.',
     dangerZone: 'Zone sensible',

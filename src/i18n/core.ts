@@ -13,7 +13,7 @@ const STORAGE_KEY = 'onelink.locale';
 /**
  * Chargeurs de dictionnaires, par langue et par espace de noms.
  * Chaque espace est un chunk séparé : l'Admin Center n'alourdit pas le site public.
- * L'anglais est volontairement partiel : toute clé absente retombe sur le français.
+ * L'anglais couvre toute l'interface utilisateur (l'Admin Center reste en français) ; toute clé absente retombe sur le français.
  */
 const loaders: Record<Locale, Partial<Record<NamespaceName, () => Promise<{ default: Dict }>>>> = {
   fr: {
@@ -33,6 +33,14 @@ const loaders: Record<Locale, Partial<Record<NamespaceName, () => Promise<{ defa
     common: () => import('./en/common'),
     marketing: () => import('./en/marketing'),
     auth: () => import('./en/auth'),
+    onboarding: () => import('./en/onboarding'),
+    dashboard: () => import('./en/dashboard'),
+    editor: () => import('./en/editor'),
+    appearance: () => import('./en/appearance'),
+    analytics: () => import('./en/analytics'),
+    billing: () => import('./en/billing'),
+    pub: () => import('./en/pub'),
+    // L'Admin Center (outil interne du personnel) n'est volontairement disponible qu'en français : repli automatique.
   },
 };
 

@@ -1,0 +1,58 @@
+import type { Dict } from '../types';
+
+/** Public page texts (visitors) and its states. */
+export default {
+  verified: 'Verified profile',
+  order: {
+    button: 'Order on WhatsApp',
+    message: 'Hello, I would like to order: {product}{price}. Could you confirm availability?',
+    onRequest: 'Price on request',
+    disclaimer: 'Ordering by WhatsApp: price and payment are settled directly with the seller. 1Link does not process any payment.',
+  },
+  payment: {
+    copy: 'Copy number',
+    copied: 'Number copied',
+    holder: 'Beneficiary',
+    disclaimer: 'Payment outside 1Link: check the beneficiary’s name before sending money. 1Link does not process any payment.',
+    providers: { orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', moov_money: 'Moov Money', wave: 'Wave', bank_transfer: 'Bank transfer', cash: 'Cash', other: 'Other' },
+  },
+  report: {
+    open: 'Report this page',
+    title: 'Report this page',
+    description: 'Tell us why this page is a problem. Your report is anonymous.',
+    reason: 'Reason',
+    details: 'Details',
+    detailsHint: 'Optional — describe what you saw (500 characters max).',
+    submit: 'Send report',
+    sentTitle: 'Thank you for your report',
+    sentText: 'It will be reviewed by the moderation team.',
+    demoNote: 'Demo mode: the report is stored only in this browser (visible in the demo Admin Center).',
+    errors: { rate_limited: 'You have already reported this page several times. Please wait.', network: 'Could not send: check your connection.', generic: 'The report could not be sent. Please try again.' },
+    reasons: { spam: 'Spam or abusive advertising', impersonation: 'Impersonation', inappropriate: 'Inappropriate content', scam: 'Scam or fraud', copyright: 'Copyright', other: 'Other reason' },
+  },
+  lite: {
+    on: 'Data saver on',
+    off: 'Turn on data saver',
+    hint: 'Less data: images load on demand.',
+    showImage: 'Show image',
+  },
+  saveContact: 'Save my contact',
+  learnMore: 'Learn more',
+  playVideo: 'Play video',
+  video: 'Video',
+  whatsapp: 'WhatsApp',
+  location: 'Location',
+  directions: 'Directions',
+  scanQr: 'Scan to open this page',
+  qrAlt: 'Page QR code',
+  madeWith: 'Made with',
+  incomplete: 'Block to complete',
+  states: {
+    notFound: { title: 'This page does not exist', text: 'The link may be wrong, or the page has not been created yet.', cta: 'Create my 1Link' },
+    draft: { title: 'This page is not published yet', text: 'Its owner is still preparing the content. Come back soon.' },
+    suspended: { title: 'This page is suspended', text: 'It is no longer available following a moderation decision.' },
+    unavailable: { title: 'Page temporarily unavailable', text: 'We are having trouble displaying this page. Try again in a few moments.', retry: 'Try again' },
+    loading: 'Loading page…',
+    home: 'Discover 1Link',
+  },
+} satisfies Dict;

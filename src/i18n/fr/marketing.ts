@@ -110,7 +110,10 @@ export default {
       categories: { title: 'Adapté à votre profil', text: 'Particulier, créateur, professionnel, entreprise ou organisation : champs et raccourcis sur mesure.' },
       fast: { title: 'Rapide et léger', text: 'Pages mobiles optimisées pour les visiteurs venus de WhatsApp, TikTok ou Instagram.' },
       access: { title: 'Accessible', text: 'Navigation au clavier, contrastes vérifiés, respect de la réduction des animations.' },
-      languages: { title: 'Prêt pour plusieurs langues', text: 'Interface en français, anglais en cours, formats et devises localisables.' },
+      languages: { title: 'En français et en anglais', text: 'Interface bilingue, avec formats de dates, nombres et devises localisés.' },
+      order: { title: 'Commandes sur WhatsApp', text: 'Un catalogue de produits : le client commande en un geste, message déjà rempli. Aucun paiement ne passe par 1Link.' },
+      vcard: { title: 'Enregistrer mon contact', text: 'Vos visiteurs ajoutent vos coordonnées à leur répertoire en un geste : fini les cartes de visite papier.' },
+      lite: { title: 'Mode économe en données', text: 'Images à la demande, effets lourds désactivés : adapté aux forfaits data limités et aux téléphones d’entrée de gamme.' },
     },
   },
   analytics: {

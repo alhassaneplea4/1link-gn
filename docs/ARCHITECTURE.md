@@ -80,7 +80,7 @@ Layout séparé (`AdminLayout`, barre latérale sombre), navigation pilotée par
 Routes et dictionnaires chargés à la demande, polices à la demande, QR à la demande, aucune bibliothèque de graphiques. Animations : `transform`/`opacity`, respect de `prefers-reduced-motion`.
 
 ### 8. i18n
-`t('ns.chemin.clé')` typé sur le français ; l'anglais est **partiel** (repli sur le français). Dates/nombres/devises via `Intl` (`utilities/format.ts`), fuseau d'affichage par défaut `Africa/Conakry`, devise et tarifs dans `app/configuration/plans.ts`.
+`t('ns.chemin.clé')` typé sur le français ; l'anglais couvre toute l'interface utilisateur (l'Admin Center reste en français, repli automatique). `src/i18n/i18n.test.ts` impose la parité des clés et des variables. Dates/nombres/devises via `Intl` (`utilities/format.ts`), fuseau d'affichage par défaut `Africa/Conakry`, devise et tarifs dans `app/configuration/plans.ts`.
 
 ## Ajouter…
 - **un type de bloc** : `models/blocks.ts` → définition dans `registry.ts` → libellés `editor.blocks.<type>.*` (un test vérifie la traduction de chaque champ).

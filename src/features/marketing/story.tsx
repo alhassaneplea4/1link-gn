@@ -153,7 +153,8 @@ export function AudiencesSection() {
 const FEATURES: { k: string; icon: IconName }[] = [
   { k: 'blocks', icon: 'layers' }, { k: 'themes', icon: 'palette' }, { k: 'qr', icon: 'qr' },
   { k: 'contact', icon: 'chat' }, { k: 'analytics', icon: 'chart' }, { k: 'categories', icon: 'users' },
-  { k: 'fast', icon: 'zap' }, { k: 'access', icon: 'eye' }, { k: 'languages', icon: 'languages' },
+  { k: 'order', icon: 'whatsapp' }, { k: 'vcard', icon: 'user-check' }, { k: 'lite', icon: 'zap' },
+  { k: 'fast', icon: 'gauge' }, { k: 'access', icon: 'eye' }, { k: 'languages', icon: 'languages' },
 ];
 
 export function FeaturesSection({ headingLevel = 2 }: { headingLevel?: 1 | 2 }) {
