@@ -1,4 +1,4 @@
-import { ChartCard, DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { ChartCard, DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { DonutChart } from '@/components/charts/charts';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
@@ -24,8 +24,8 @@ export default function SubscriptionsPage() {
   ];
   return (
     <div className="adm-stack">
-      <PageHeader title={t('admin.nav.subscriptions')} description={t('admin.subs.description')} badge={<DemoBadge />} />
-      <ChartCard title={t('admin.subs.distribution')} loading={ov.status === 'loading'} error={ov.status === 'error' ? ov.error : null} onRetry={ov.reload} demo>
+      <PageHeader title={t('admin.nav.subscriptions')} description={t('admin.subs.description')} />
+      <ChartCard title={t('admin.subs.distribution')} loading={ov.status === 'loading'} error={ov.status === 'error' ? ov.error : null} onRetry={ov.reload}>
         {ov.data && <DonutChart label={t('admin.subs.distribution')} centerLabel={t('admin.kpi.accounts')} items={ov.data.plans.map((p) => ({ label: t(`common.plans.${p.name as 'free'}`), value: p.value }))} />}
       </ChartCard>
       <div>

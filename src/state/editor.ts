@@ -60,7 +60,7 @@ interface EditorState {
   undo(): void;
   redo(): void;
   saveDraft(): Promise<boolean>;
-  publish(): Promise<{ ok: boolean; mode?: 'demo' | 'live'; error?: string }>;
+  publish(): Promise<{ ok: boolean; error?: string }>;
   unpublish(): Promise<boolean>;
   reset(): void;
 }
@@ -255,11 +255,11 @@ export const useEditor = create<EditorState>((set, get) => {
       if (!doc) return { ok: false, error: 'not_ready' };
       set({ save: { state: 'saving', error: null, fieldError: null, at: null } });
       try {
-        const res = await api.page.publish(doc);
-        set({ doc: res.page, saved: res.page, dirty: false, save: { state: 'saved', error: null, fieldError: null, at: Date.now() } });
+        const page = await api.page.publish(doc);
+        set({ doc: page, saved: page, dirty: false, save: { state: 'saved', error: null, fieldError: null, at: Date.now() } });
         const { session, setSession } = useSession.getState();
-        if (session) setSession({ ...session, user: { ...session.user, onboardingDone: true, username: res.page.username, category: res.page.category } });
-        return { ok: true, mode: res.mode };
+        if (session) setSession({ ...session, user: { ...session.user, onboardingDone: true, username: page.username, category: page.category } });
+        return { ok: true };
       } catch (e) {
         const err = isApiError(e) ? e : null;
         set({ save: { state: 'error', error: err?.message ?? err?.code ?? 'unknown', fieldError: null, at: null } });

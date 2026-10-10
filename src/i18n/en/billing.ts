@@ -44,7 +44,6 @@ export default {
     cancelText: 'Your plan stays active until the end of the current period, then returns to Free. You can resume before that date.',
     canceled: 'Cancellation scheduled',
     resumed: 'Subscription resumed',
-    demoLocal: 'Demo mode: saved locally only.',
     changePlan: 'Change plan',
     yourPlan: 'Your plan',
     upgradeTo: 'Upgrade to',

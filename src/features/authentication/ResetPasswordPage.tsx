@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, Icon, LinkButton } from '@/components/ui';
 import { api } from '@/services/api';
-import { env } from '@/app/configuration/env';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -34,7 +33,6 @@ export default function ResetPasswordPage() {
       <div className="auth-state">
         <span className="auth-state__icon auth-state__icon--ok"><Icon name="check-circle" size={28} /></span>
         <AuthHeading title={t('auth.reset.doneTitle')} subtitle={t('auth.reset.doneText')} />
-        {env.isDemo && <Alert tone="warning">{t('auth.reset.demoNote')}</Alert>}
         <LinkButton to={paths.login} variant="gradient">{t('auth.login.submit')}</LinkButton>
       </div>
     );

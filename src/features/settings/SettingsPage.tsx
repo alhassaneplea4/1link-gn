@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Card, ConfirmDialog, Input, PageHeader, Segmented
 import { LOCALES, useLocale, useT } from '@/i18n/core';
 import { CATEGORY_IDS, type CategoryId } from '@/models/category';
 import { useDocumentTitle } from '@/hooks/dom';
-import { env, publicUrl } from '@/app/configuration/env';
+import { publicUrl } from '@/app/configuration/env';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { useUi, type ThemePreference } from '@/state/ui';
@@ -50,7 +50,7 @@ export default function SettingsPage() {
       <div className="settings__grid">
         <Card padding="lg" className="settings__card">
           <h2>{t('dashboard.settings.account')}</h2>
-          <Input label={t('auth.fields.name')} value={user.name} readOnly hint={env.isDemo ? t('dashboard.settings.notConnected') : undefined} />
+          <Input label={t('auth.fields.name')} value={user.name} readOnly hint={t('dashboard.settings.notConnected')} />
           {user.email && <Input label={t('auth.fields.email')} value={user.email} readOnly suffix={<Badge tone={user.emailVerified ? 'success' : 'warning'} dot>{user.emailVerified ? t('dashboard.settings.verified') : t('dashboard.settings.unverified')}</Badge>} />}
           {user.phone && <Input label={t('auth.fields.phone')} value={formatInternational(user.phone)} readOnly suffix={<Badge tone={user.phoneVerified ? 'success' : 'warning'} dot>{user.phoneVerified ? t('dashboard.settings.verified') : t('dashboard.settings.unverified')}</Badge>} />}
           <Select label={t('dashboard.settings.category')} hint={t('dashboard.settings.categoryHint')} value={doc?.category ?? user.category ?? 'individual'} onChange={(e) => setPendingCategory(e.target.value as CategoryId)} disabled={!doc}>

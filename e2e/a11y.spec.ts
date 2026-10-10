@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
-import { loginAs } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, signIn, test } from './fixtures';
 
-/** Audit axe-core (WCAG 2.1 A/AA) des écrans principaux. Les violations « serious » et « critical » font échouer le test. */
-async function audit(page: import('@playwright/test').Page, name: string) {
+/** Audit axe-core (WCAG 2.1 A/AA) des écrans principaux, rendus avec des données réelles. Les violations « serious » et « critical » font échouer le test. */
+async function audit(page: Page, name: string) {
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(600);
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -13,12 +13,19 @@ async function audit(page: import('@playwright/test').Page, name: string) {
 }
 
 test.describe('accessibilité (axe)', () => {
-  for (const path of ['/', '/pricing', '/faq', '/auth/login', '/auth/register', '/mariama']) {
+  for (const path of ['/', '/pricing', '/faq', '/auth/login', '/auth/register']) {
     test(`public ${path}`, async ({ page }) => {
       await page.goto(path);
       await audit(page, path);
     });
   }
+
+  test('page publique d’un utilisateur', async ({ page, seed }) => {
+    const mariama = await seed.creator();
+    await page.goto(`/${mariama.username}`);
+    await audit(page, 'page publique');
+  });
+
   for (const path of ['/auth/login', '/auth/register']) {
     test(`public ${path} (onglet téléphone, étape du code)`, async ({ page }) => {
       await page.goto(path);
@@ -34,16 +41,22 @@ test.describe('accessibilité (axe)', () => {
       await audit(page, `${path} code`);
     });
   }
+
   for (const path of ['/dashboard', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings', '/dashboard/print']) {
-    test(`dashboard ${path}`, async ({ page }) => {
-      await loginAs(page, /Créatrice/);
+    test(`dashboard ${path}`, async ({ page, seed }) => {
+      const mariama = await seed.creator();
+      await seed.views(mariama, 20, 6);
+      await signIn(page, mariama);
       await page.goto(path);
       await audit(page, path);
     });
   }
+
   for (const path of ['/admin', '/admin/users', '/admin/moderation', '/admin/security', '/admin/profiles']) {
-    test(`admin ${path}`, async ({ page }) => {
-      await loginAs(page, /Super Admin/);
+    test(`admin ${path}`, async ({ page, seed }) => {
+      const owner = await seed.creator();
+      await seed.report(owner, 'scam');
+      await signIn(page, await seed.admin('super_admin'));
       await page.goto(path);
       await audit(page, path);
     });

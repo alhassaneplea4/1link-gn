@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Alert, Badge, Button, Input } from '@/components/ui';
-import { api } from '@/services/api';
+import { Alert, Button, Input } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -45,22 +44,6 @@ export default function LoginPage() {
   return (
     <>
       <AuthHeading title={t('auth.login.title')} subtitle={t('auth.login.subtitle')} />
-      {api.auth.demoAccounts && (
-        <section className="demo-box" aria-labelledby="demo-accounts">
-          <div className="demo-box__head"><Badge tone="warning" icon="flask">{t('auth.demo.title')}</Badge></div>
-          <p>{t('auth.demo.text')}</p>
-          <h2 id="demo-accounts" className="sr-only">{t('auth.demo.accounts')}</h2>
-          <ul role="list" className="demo-box__list">
-            {api.auth.demoAccounts.map((a) => (
-              <li key={a.id}>
-                <button type="button" className="demo-chip" onClick={() => { setEmail(a.email); setPassword('demo-password'); setErrors({}); }} title={a.description}>
-                  <strong>{a.label}</strong><small>{a.email}</small>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
       <MethodSwitch value={method} onChange={setMethod} />
       {method === 'phone' ? <PhoneAuth mode="sign_in" onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} /> : (
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">

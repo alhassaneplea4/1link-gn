@@ -41,8 +41,6 @@ export interface Session {
   permissions: Permission[];
   entitlements: Entitlements;
   expiresAt: string;
-  /** Vrai quand la session provient d'un adaptateur de démonstration. */
-  demo: boolean;
 }
 
 export interface SignUpInput {
@@ -64,8 +62,8 @@ export interface OtpRequestResult {
   channel: OtpChannel;
   expiresInSec: number;
   resendInSec: number;
-  /** UNIQUEMENT en mode démonstration (aucun message n'est envoyé) : le code est révélé à l'écran, de façon explicite. */
-  demoCode?: string;
+  /** UNIQUEMENT en développement local (fournisseur de test, jamais en production) : le code est révélé car aucun message n'est envoyé. */
+  devCode?: string;
 }
 
 export interface OtpVerifyInput {

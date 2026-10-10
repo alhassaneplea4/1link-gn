@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Checkbox, Icon, Input, RadioGroup, Radio, Select } from '@/components/ui';
-import { env } from '@/app/configuration/env';
 import { paths } from '@/app/configuration/paths';
 import { api } from '@/services/api';
 import { intlLocale, useT } from '@/i18n/core';
@@ -133,9 +132,9 @@ export function PhoneAuth({ mode, onDone }: Props) {
     return (
       <form onSubmit={(e) => void verify(e)} noValidate className="auth-form" aria-label={t('auth.phone.verifyTitle')}>
         <p className="muted">{t('auth.phone.codeHint', { channel: t(`auth.phone.channels.${otp?.channel ?? channel}`), phone: maskPhone(e164) })}</p>
-        {env.isDemo && otp?.demoCode && (
-          <Alert tone="warning" title={t('auth.demo.title')} action={<Button size="sm" variant="secondary" onClick={() => setCode(otp.demoCode!)}>{t('auth.phone.demo.fill')}</Button>}>
-            {t('auth.phone.demo.text')} <strong className="mono" aria-label={t('auth.phone.demo.codeLabel')}>{otp.demoCode}</strong>
+        {otp?.devCode && (
+          <Alert tone="warning" title={t('auth.dev.title')} action={<Button size="sm" variant="secondary" onClick={() => setCode(otp.devCode!)}>{t('auth.phone.dev.fill')}</Button>}>
+            {t('auth.phone.dev.text')} <strong className="mono" aria-label={t('auth.phone.dev.codeLabel')}>{otp.devCode}</strong>
           </Alert>
         )}
         {alert}

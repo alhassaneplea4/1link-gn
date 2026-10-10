@@ -1,4 +1,4 @@
-import { Alert, Badge, DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { Alert, Badge, DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -21,7 +21,7 @@ export default function PaymentsPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.payments')} description={t('admin.payments.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.payments')} description={t('admin.payments.description')} />
       <Alert tone="warning" title={t('admin.payments.notConnectedTitle')} className="adm-alert">{t('admin.payments.notConnected')}</Alert>
       <div className="adm-filters" style={{ marginTop: 'var(--space-4)' }}>
         <SearchBar label={t('common.search')} onSearch={setSearch} />

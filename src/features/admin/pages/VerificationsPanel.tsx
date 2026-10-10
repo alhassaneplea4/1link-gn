@@ -22,8 +22,8 @@ export default function VerificationsPanel() {
     if (!selected || !decision) return;
     setBusy(true);
     try {
-      const out = await api.admin.decideVerification(selected.id, decision, note.trim());
-      toast.push({ tone: out.mode === 'demo' ? 'warning' : 'success', title: t(`admin.verification.done.${decision}`), description: out.mode === 'demo' ? t('admin.demoLocalOnly') : undefined });
+      await api.admin.decideVerification(selected.id, decision, note.trim());
+      toast.push({ tone: 'success', title: t(`admin.verification.done.${decision}`) });
       close();
       res.reload();
     } catch {
@@ -87,7 +87,6 @@ export default function VerificationsPanel() {
       >
         <Textarea label={t('admin.verification.note')} hint={decision === 'reject' ? t('admin.verification.noteRequired') : t('admin.verification.noteOptional')} value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={300} showCount />
         {decision === 'reject' && note.trim().length < 5 && <p className="field__hint">{t('admin.verification.noteRequired')}</p>}
-        <Alert tone="warning" className="adm-alert">{t('admin.demoLocalOnly')}</Alert>
       </ConfirmDialog>
     </div>
   );

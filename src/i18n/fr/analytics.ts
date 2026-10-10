@@ -24,10 +24,6 @@ export default {
     future: 'La date ne peut pas être dans le futur.',
     tooLong: 'La période ne peut pas dépasser un an.',
   },
-  demo: {
-    title: 'Données de démonstration',
-    text: 'Ces statistiques sont fictives, générées localement. Elles n’indiquent rien sur votre audience réelle.',
-  },
   planLimit: {
     text: 'Votre offre conserve {days} jours d’historique : au-delà, certaines données peuvent être indisponibles.',
     cta: 'Voir les offres',

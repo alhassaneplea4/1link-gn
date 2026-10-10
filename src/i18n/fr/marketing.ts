@@ -117,6 +117,7 @@ export default {
     },
   },
   analytics: {
+    illustration: 'Illustration',
     eyebrow: 'Analytics',
     title: 'Comprenez ce qui fonctionne',
     subtitle: 'Suivez les vues, les clics et les sources de trafic de votre page, et repérez les liens qui performent.',

@@ -3,6 +3,7 @@ import type { Dict } from '../types';
 export default {
   brand: '1Link Admin Center',
   live: 'Connecté au serveur',
+  categoryNone: 'Non renseignée',
   mySpace: 'Mon espace',
   yourRole: 'Votre rôle',
   permissionsCount_one: '{count} permission',
@@ -10,9 +11,6 @@ export default {
   seeRights: 'Voir mes droits',
   readOnly: 'Lecture seule',
   period: 'Période',
-  demoDataTitle: 'Données de démonstration',
-  demoDataText: 'Tous les chiffres, montants et listes de cet espace sont fictifs. Ils ne reflètent aucune activité réelle.',
-  demoLocalOnly: 'Mode démonstration : cette action est enregistrée localement uniquement. Rien n’est transmis à un serveur.',
   actionFailed: 'L’action a échoué. Rien n’a été modifié.',
   groups: { pilot: 'Pilotage', community: 'Communauté', revenue: 'Revenus', trust: 'Confiance', platform: 'Plateforme' },
   nav: {
@@ -43,14 +41,11 @@ export default {
   realtime: {
     description: 'Visiteurs actifs et événements au fil de l’eau.',
     state: { disconnected: 'Non connecté', connecting: 'Connexion…', connected: 'Connecté', error: 'Erreur de connexion' },
-    source: { sse: 'Flux SSE du serveur', websocket: 'Flux WebSocket du serveur', demo: 'Générateur de démonstration (événements fictifs)', none: 'Aucune source' },
+    source: { sse: 'Flux temps réel du serveur (base de données)', none: 'Aucune source' },
     noSource: 'Aucune source de données temps réel n’est configurée.',
     notConnected: 'Source non configurée',
     stop: 'Arrêter',
-    startDemo: 'Lancer un flux de démonstration',
     connect: 'Se connecter au flux',
-    demoTitle: 'Flux de démonstration',
-    demoText: 'Les événements ci-dessous sont générés localement à titre d’illustration. Ils ne représentent aucune activité réelle.',
     setupTitle: 'Brancher une source',
     setupText: 'Renseignez VITE_REALTIME_URL (endpoint SSE) ou fournissez un adaptateur WebSocket respectant l’interface RealtimeAdapter : cette page l’exploitera sans modification.',
     feed: 'Activité récente',
@@ -101,7 +96,7 @@ export default {
   payments: {
     description: 'Transactions et leur état de confirmation.',
     notConnectedTitle: 'Passerelle de paiement non connectée',
-    notConnected: 'Les paiements affichés sont des exemples. Aucun montant n’est réellement encaissé ni remboursé depuis cette interface.',
+    notConnected: 'Aucune passerelle de paiement n’est connectée : cette liste reste vide tant que les paiements directs ne sont pas ouverts. Aucun montant n’est encaissé ni remboursé depuis cette interface.',
     method: 'Moyen',
     methods: { mobile_money: 'Mobile Money', card: 'Carte', bank: 'Virement' },
     pendingHint: 'Un paiement « en attente » n’est pas un paiement réussi.',
@@ -147,13 +142,11 @@ export default {
   levels: { info: 'Info', warning: 'Alerte', critical: 'Critique' },
   system: {
     description: 'État des services et de la configuration de l’application.',
-    demoTitle: 'Aucun backend connecté',
-    demoText: 'Les services listés sont des exemples. L’état réel s’affichera quand l’API de supervision sera connectée.',
     status: { operational: 'Opérationnel', degraded: 'Dégradé', down: 'Hors service', unknown: 'Non connecté' },
     latency: 'Latence : {ms} ms',
     noMeasure: 'Aucune mesure',
     frontend: 'Configuration de l’interface',
-    apiMode: 'Mode des données', apiBase: 'URL de l’API', realtime: 'Adaptateur temps réel', domain: 'Domaine public',
+    apiBase: 'URL de l’API', realtime: 'Adaptateur temps réel', domain: 'Domaine public',
   },
   settings: {
     description: 'Configuration de la plateforme.',

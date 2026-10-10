@@ -80,7 +80,7 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
           footer={<><Button variant="secondary" onClick={onClose}>{t('common.close')}</Button><Button iconLeft="share" onClick={() => setShareOpen(true)}>{t('editor.publish.share')}</Button></>}>
           <div className="publish-done">
             <p className="mono publish-done__url">{publicUrl(doc.username)}</p>
-            {result.mode === 'demo' ? <Alert tone="warning" title={t('editor.publish.demoTitle')}>{t('editor.publish.demoText')}</Alert> : <Alert tone="success">{t('editor.publish.liveText')}</Alert>}
+            <Alert tone="success">{t('editor.publish.liveText')}</Alert>
             <a className="btn btn--secondary btn--md" href={`/${doc.username}`} target="_blank" rel="noopener noreferrer"><span className="btn__label">{t('editor.publish.viewPage')}</span><Icon name="external" size={16} /></a>
           </div>
         </Modal>
@@ -93,7 +93,6 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
     <Modal open={open} onClose={onClose} size="lg" title={doc.status === 'published' ? t('editor.publish.titleUpdate') : t('editor.publish.title')} description={t('editor.publish.description')}
       footer={<><Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button><Button variant="gradient" iconLeft="rocket" disabled={!canPublish} loading={saving} onClick={() => void submit()}>{doc.status === 'published' ? t('editor.publish.confirmUpdate') : t('editor.publish.confirm')}</Button></>}>
       <div className="publish">
-        {env.isDemo && <Alert tone="info" title={t('editor.publish.demoTitle')}>{t('editor.publish.demoBefore')}</Alert>}
         {!verified && (
           <Alert tone="warning" title={t('editor.publish.unverifiedTitle')} action={<Link className="btn btn--secondary btn--sm" to={paths.verifyEmail}><span className="btn__label">{t('editor.publish.verifyNow')}</span></Link>}>
             {t('editor.publish.unverifiedText')}

@@ -47,6 +47,10 @@ export function SaveIndicator() {
   const dirty = useEditor((s) => s.dirty);
   const save = useEditor((s) => s.save);
   const saveDraft = useEditor((s) => s.saveDraft);
+  const load = useEditor((s) => s.load);
+  if (save.state === 'error' && save.fieldError === 'version_conflict') {
+    return <span className="savestate is-error" role="alert"><Icon name="alert" size={16} /> {t('editor.toolbar.conflict')} <button type="button" className="linklike" onClick={() => void load({ force: true })}>{t('editor.toolbar.reload')}</button></span>;
+  }
   if (save.state === 'saving') return <span className="savestate" role="status"><span className="spinner" style={{ width: 14, height: 14 }} /> {t('editor.toolbar.saving')}</span>;
   if (save.state === 'error') return <span className="savestate is-error" role="alert"><Icon name="alert" size={16} /> {t('editor.toolbar.saveError')} <button type="button" className="linklike" onClick={() => void saveDraft()}>{t('common.retry')}</button></span>;
   if (dirty) return <span className="savestate is-dirty" role="status"><Icon name="dot" size={14} /> {t('editor.toolbar.unsaved')}</span>;

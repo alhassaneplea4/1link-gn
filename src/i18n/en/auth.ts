@@ -33,7 +33,7 @@ export default {
     change: 'Change number',
     resend: 'Resend code',
     resendIn: 'Resend in {s} s',
-    demo: { text: 'No message is actually sent. Your demo code:', codeLabel: 'Demo code', fill: 'Fill in' },
+    dev: { text: 'No message is actually sent (test provider). Code:', codeLabel: 'Development code', fill: 'Fill in' },
     errors: {
       invalidPhone: 'Invalid number. Check the country and the number of digits.',
       codeFormat: 'The code has 6 digits.',
@@ -48,12 +48,7 @@ export default {
       generic: 'Something went wrong. Please try again shortly.',
     },
   },
-  demo: {
-    title: 'Demo mode',
-    text: 'No server is connected. No password is checked or stored: use a sample account below or create your own.',
-    accounts: 'Sample accounts',
-    use: 'Use',
-  },
+  dev: { title: 'Development mode' },
   login: {
     title: 'Welcome back',
     subtitle: 'Sign in to manage your digital presence.',
@@ -80,8 +75,6 @@ export default {
     back: 'Back to sign in',
     sentTitle: 'Check your inbox',
     sentText: 'If an account exists for {email}, a reset link has just been sent.',
-    demoNote: 'Demo mode: no email is actually sent.',
-    demoLink: 'Open the reset screen (demo)',
   },
   reset: {
     title: 'New password',
@@ -92,7 +85,6 @@ export default {
     requestNew: 'Request a new link',
     doneTitle: 'Password updated',
     doneText: 'You can now sign in with your new password.',
-    demoNote: 'Demo mode: the password is not actually changed.',
   },
   verify: {
     title: 'Verify your email address',
@@ -101,8 +93,6 @@ export default {
     resend: 'Resend email',
     resendIn: 'Resend in {s} s',
     resent: 'Email sent again.',
-    demoNote: 'Demo mode: no email is sent. Simulate receiving the link below.',
-    demoSimulate: 'Simulate clicking the link (demo)',
     checking: 'Verifying…',
     doneTitle: 'Email address verified',
     doneText: 'Thank you! You can now publish your page.',

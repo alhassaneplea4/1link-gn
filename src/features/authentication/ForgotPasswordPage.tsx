@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Icon, Input, LinkButton } from '@/components/ui';
 import { api } from '@/services/api';
-import { env } from '@/app/configuration/env';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -40,9 +39,6 @@ export default function ForgotPasswordPage() {
       <div className="auth-state">
         <span className="auth-state__icon"><Icon name="mail" size={28} /></span>
         <AuthHeading title={t('auth.forgot.sentTitle')} subtitle={t('auth.forgot.sentText', { email })} />
-        {env.isDemo && (
-          <Alert tone="warning" title={t('auth.demo.title')} action={<LinkButton size="sm" variant="secondary" to={`${paths.resetPassword}?token=demo`}>{t('auth.forgot.demoLink')}</LinkButton>}>{t('auth.forgot.demoNote')}</Alert>
-        )}
         <LinkButton to={paths.login} variant="ghost" iconLeft="arrow-left">{t('auth.forgot.back')}</LinkButton>
       </div>
     );

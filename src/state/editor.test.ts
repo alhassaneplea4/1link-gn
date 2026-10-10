@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useEditor } from './editor';
 import { useSession } from './session';
 import { getSampleDocument } from '@/features/page-engine/samples';
-import { resetDemoDb } from '@/services/api/demo/db';
 import { ApiError } from '@/models/api';
 import { api } from '@/services/api';
 import { vi } from 'vitest';
@@ -14,7 +13,6 @@ const load = () => {
 const types = () => useEditor.getState().doc!.blocks.map((b) => b.type);
 
 beforeEach(() => {
-  resetDemoDb();
   useEditor.getState().reset();
   useSession.setState({ status: 'anonymous', session: null });
   load();
@@ -42,7 +40,7 @@ describe('store de l’éditeur', () => {
   });
 
   it('respecte la limite de blocs fournie par la session (autorité serveur)', () => {
-    useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: types().length, removeBranding: false, analyticsDays: 7, teamSeats: 1 }, expiresAt: '', demo: true } });
+    useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: types().length, removeBranding: false, analyticsDays: 7, teamSeats: 1 }, expiresAt: '' } });
     expect(useEditor.getState().addBlock('text')).toEqual({ ok: false, reason: 'plan_limit' });
   });
 
@@ -87,6 +85,16 @@ describe('store de l’éditeur', () => {
     useEditor.getState().resetAppearance();
     expect(useEditor.getState().doc!.appearance.themeId).toBe('minimal');
     expect(JSON.stringify(useEditor.getState().doc!.blocks)).toBe(before);
+  });
+
+  it('signale un conflit de version (page modifiée sur un autre appareil) sans rien écraser', async () => {
+    useEditor.getState().addBlock('text');
+    const spy = vi.spyOn(api.page, 'saveDraft').mockRejectedValueOnce(new ApiError('conflict', 'version_conflict', { status: 409, fields: { version: '7' } }));
+    expect(await useEditor.getState().saveDraft()).toBe(false);
+    spy.mockRestore();
+    expect(useEditor.getState().save).toMatchObject({ state: 'error', fieldError: 'version_conflict' });
+    expect(useEditor.getState().dirty).toBe(true);
+    expect(types()).toContain('text');
   });
 
   it('conserve la copie de travail et expose l’erreur quand l’enregistrement échoue', async () => {

@@ -1,7 +1,7 @@
 /**
  * Contrat de la couche d'accès aux données.
- * Les composants ne dépendent QUE de ces interfaces : brancher la vraie API revient à fournir
- * l'implémentation HTTP (services/api/http) à la place de l'implémentation de démonstration.
+ * Les composants ne dépendent QUE de ces interfaces ; l'unique implémentation (services/api/http) parle à l'API du serveur
+ * (dossier `server/`), qui lit et écrit dans PostgreSQL. Aucune donnée n'est conservée ni inventée côté navigateur.
  */
 import type { Paged, ListQuery } from '@/models/api';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
@@ -15,14 +15,8 @@ import type {
   PlatformOverview, RealtimeEvent, RealtimeState, Report, SecurityEvent, ServiceStatus, SubscriptionRow, Ticket,
 } from '@/models/admin';
 
-export interface DemoAccount {
-  id: string;
-  label: string;
-  email: string;
-  description: string;
-}
-
 export interface AuthApi {
+  /** `null` quand personne n'est connecté. */
   getSession(): Promise<Session | null>;
   signIn(email: string, password: string): Promise<Session>;
   signUp(input: SignUpInput): Promise<Session>;
@@ -33,19 +27,9 @@ export interface AuthApi {
   verifyOtp(input: OtpVerifyInput): Promise<Session>;
   requestPasswordReset(email: string): Promise<void>;
   resetPassword(token: string, password: string): Promise<void>;
-  /** Vérifie l'e-mail à partir du jeton reçu par courriel. */
-  verifyEmail(token: string): Promise<Session>;
+  /** Valide l'e-mail avec le jeton du lien. Retourne la session mise à jour si le lien est ouvert dans la session du même compte, sinon `null`. */
+  verifyEmail(token: string): Promise<Session | null>;
   resendVerification(): Promise<void>;
-  /** Uniquement présent en mode démonstration. */
-  demoAccounts?: DemoAccount[];
-  /** Uniquement présent en mode démonstration : le courriel n'existant pas, permet de valider le compte. */
-  demoVerifyCurrentUser?(): Promise<Session>;
-}
-
-export interface PublishResult {
-  page: PageDocument;
-  /** `demo` : enregistré localement dans ce navigateur uniquement. */
-  mode: 'demo' | 'live';
 }
 
 export interface ReportInput {
@@ -56,16 +40,19 @@ export interface ReportInput {
 export interface PageApi {
   getMyPage(): Promise<PageDocument | null>;
   saveDraft(doc: PageDocument): Promise<PageDocument>;
-  publish(doc: PageDocument): Promise<PublishResult>;
+  publish(doc: PageDocument): Promise<PageDocument>;
   unpublish(): Promise<PageDocument>;
   getPublicPage(username: string): Promise<PublicPageResult>;
   checkUsername(username: string): Promise<{ available: boolean; reason?: 'taken' | 'reserved' | 'invalid' }>;
   getVerification(): Promise<VerificationState>;
   requestVerification(input: VerificationInput): Promise<VerificationState>;
   /** Signalement d'une page publique par un visiteur (anonyme). */
-  reportPage(username: string, input: ReportInput): Promise<{ mode: 'demo' | 'live' }>;
+  reportPage(username: string, input: ReportInput): Promise<void>;
   /** `source` = canal d'origine (paramètre `?src=` sanitisé), pour l'attribution des visites. */
   trackEvent(username: string, event: { type: 'view'; source?: string } | { type: 'click'; blockId: string; source?: string }): Promise<void>;
+  /** Brouillon de l'assistant de configuration, conservé côté serveur (reprise sur n'importe quel appareil). */
+  getOnboardingState(): Promise<Record<string, unknown> | null>;
+  saveOnboardingState(state: Record<string, unknown> | null): Promise<void>;
 }
 
 export interface AnalyticsApi {
@@ -97,20 +84,19 @@ export interface AdminApi {
   listAuditLogs(q: ListQuery): Promise<Paged<AuditLog>>;
   listSecurityEvents(q: ListQuery): Promise<Paged<SecurityEvent>>;
   getSystemStatus(): Promise<ServiceStatus[]>;
-  /** Référence rôle → permissions (lecture seule, fournie par le backend). */
+  /** Référence rôle → permissions (lecture seule, fournie par le serveur). */
   getRoleMatrix(): Promise<Record<AdminRole, Permission[]>>;
 }
 
-/** Adaptateur de flux temps réel (SSE / WebSocket côté http, générateur manuel côté démo). */
+/** Flux temps réel de l'Admin Center (SSE). */
 export interface RealtimeAdapter {
-  readonly kind: 'sse' | 'websocket' | 'demo' | 'none';
+  readonly kind: 'sse' | 'none';
   /** Vrai si une source de données est configurée. */
   readonly available: boolean;
   connect(handlers: { onEvent(e: RealtimeEvent): void; onState(s: RealtimeState): void; onActiveVisitors?(n: number): void }): () => void;
 }
 
 export interface Api {
-  mode: 'demo' | 'http';
   auth: AuthApi;
   page: PageApi;
   analytics: AnalyticsApi;

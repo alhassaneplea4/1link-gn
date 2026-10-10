@@ -17,7 +17,6 @@ export default {
     future: 'The date cannot be in the future.',
     tooLong: 'The period cannot exceed one year.',
   },
-  demo: { title: 'Demo data', text: 'These statistics are fictional, generated locally. They say nothing about your real audience.' },
   planLimit: { text: 'Your plan keeps {days} days of history: beyond that, some data may be unavailable.', cta: 'See plans' },
   empty: { title: 'No activity in this period', text: 'No view or click was recorded. Share your page or pick another period.' },
   evolution: 'Evolution over time',

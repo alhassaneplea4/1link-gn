@@ -40,8 +40,6 @@ export default {
   noResultsHint: 'Change your search or filters.',
   increase: 'Increase',
   decrease: 'Decrease',
-  demo: 'Demo',
-  demoNotice: 'Demo data — fictional and stored only in this browser.',
   language: 'Language',
   theme: { label: 'Theme', light: 'Light', dark: 'Dark', system: 'System' },
   errors: {

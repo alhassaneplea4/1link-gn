@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Avatar, DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { Avatar, DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { paths } from '@/app/configuration/paths';
@@ -15,8 +15,8 @@ export default function UsersPage() {
   const navigate = useNavigate();
   const { q, res, setSearch, setFilter, setPage, setSort } = useAdminList((query) => api.admin.listUsers(query), { sort: 'createdAt', dir: 'desc' });
   const cols: Column<AdminUserRow>[] = [
-    { key: 'name', header: t('admin.users.user'), sortable: true, primary: true, cell: (u) => <span className="cell-type"><Avatar name={u.name} size={32} /><span><strong>{u.name}</strong><br /><small className="subtle">{u.email}</small></span></span> },
-    { key: 'category', header: t('admin.users.category'), sortable: true, cell: (u) => t(`common.categories.${u.category}.label`) },
+    { key: 'name', header: t('admin.users.user'), sortable: true, primary: true, cell: (u) => <span className="cell-type"><Avatar name={u.name} size={32} /><span><strong>{u.name}</strong><br /><small className="subtle">{u.email ?? u.phone ?? '—'}</small></span></span> },
+    { key: 'category', header: t('admin.users.category'), sortable: true, cell: (u) => (u.category ? t(`common.categories.${u.category}.label`) : t('admin.categoryNone')) },
     { key: 'plan', header: t('admin.users.plan'), sortable: true, cell: (u) => t(`common.plans.${u.plan}`) },
     { key: 'status', header: t('admin.users.status'), sortable: true, cell: (u) => <StatusBadge value={u.status} label={t(`common.status.${u.status}`)} /> },
     { key: 'createdAt', header: t('admin.users.joined'), sortable: true, hideOnMobile: true, cell: (u) => formatDate(u.createdAt) },
@@ -24,7 +24,7 @@ export default function UsersPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.users')} description={t('admin.users.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.users')} description={t('admin.users.description')} />
       <div className="adm-filters">
         <SearchBar label={t('common.search')} placeholder={t('admin.users.searchPlaceholder')} onSearch={setSearch} />
         <FilterSelect label={t('admin.users.category')} value={q.filters?.category} onChange={(v) => setFilter('category', v)} options={CATEGORY_IDS.map((c) => ({ value: c, label: t(`common.categories.${c}.label`) }))} />

@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { paths } from '@/app/configuration/paths';
@@ -28,7 +28,7 @@ export default function ReportsPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.reports')} description={t('admin.reports.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.reports')} description={t('admin.reports.description')} />
       <div className="adm-filters">
         <SearchBar label={t('common.search')} placeholder={t('admin.reports.searchPlaceholder')} onSearch={setSearch} defaultValue={initialSearch} />
         <FilterSelect label={t('admin.users.status')} value={q.filters?.status} onChange={(v) => setFilter('status', v)} options={REPORT_STATUSES.map((s) => ({ value: s, label: t(`admin.reportStatus.${s}`) }))} />

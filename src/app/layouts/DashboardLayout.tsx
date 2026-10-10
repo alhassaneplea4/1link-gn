@@ -11,7 +11,7 @@ import { useT } from '@/i18n/core';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { AppShell, ThemeToggle, type NavEntry } from './AppShell';
-import { AccountMenu, DemoBanner, Notifications, VerifyBanner } from './header-parts';
+import { AccountMenu, Notifications, VerifyBanner } from './header-parts';
 
 /** Recherche globale : sections du dashboard et blocs de la page (les données viennent du store, pas d'un index fictif). */
 function GlobalSearch({ nav }: { nav: NavEntry[] }) {
@@ -82,7 +82,7 @@ export default function DashboardLayout() {
     <AppShell
       variant="user"
       nav={nav}
-      banners={<><DemoBanner /><VerifyBanner /></>}
+      banners={<VerifyBanner />}
       header={
         <>
           <GlobalSearch nav={nav} />

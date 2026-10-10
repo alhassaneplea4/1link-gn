@@ -6,6 +6,8 @@
 import { isEmail, isLink, isPhone, isUrl } from '@/utilities/validation';
 import { parsePrice } from './money';
 
+const MEDIA_PATH = /^\/api\/media\/med_[a-f0-9]{20}$/;
+
 export type ScalarKind = 'text' | 'textarea' | 'url' | 'email' | 'tel' | 'image' | 'number';
 
 export interface ScalarField {
@@ -34,9 +36,9 @@ function validateScalar(f: ScalarField | SelectField, value: unknown): ErrorKey 
   if (!v) return f.required ? 'common.validation.required' : null;
   if (f.kind === 'select') return null;
   if (f.max && v.length > f.max) return 'common.validation.tooLong';
-  if (f.kind === 'image' && v.startsWith('data:image/')) return null;
   if (f.kind === 'url') return isLink(v) ? null : 'common.validation.url';
-  if (f.kind === 'image') return isUrl(v) ? null : 'common.validation.url';
+  // Image : adresse https ou image téléversée sur le serveur (/api/media/<id>) ; jamais d'URL de données.
+  if (f.kind === 'image') return isUrl(v) || MEDIA_PATH.test(v) ? null : 'common.validation.url';
   if (f.kind === 'email') return isEmail(v) ? null : 'common.validation.email';
   if (f.kind === 'number') return parsePrice(v) === null ? 'common.validation.number' : null;
   if (f.kind === 'tel') return isPhone(v) ? null : 'common.validation.phone';

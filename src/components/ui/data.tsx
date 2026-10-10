@@ -4,11 +4,11 @@ import { cx } from '@/utilities/misc';
 import { formatPercent } from '@/utilities/format';
 import type { SortDir } from '@/models/api';
 import { Sparkline } from '@/components/charts/charts';
-import { DemoBadge, EmptyState, ErrorState, Pagination, Skeleton, Card } from './display';
+import { EmptyState, ErrorState, Pagination, Skeleton, Card } from './display';
 import { Icon, type IconName } from './Icon';
 
 /* — StatCard — */
-export function StatCard({ label, value, delta, icon, hint, loading, demo, spark, className }: { label: string; value: ReactNode; delta?: number | null; icon?: IconName; hint?: ReactNode; loading?: boolean; demo?: boolean; spark?: number[]; className?: string }) {
+export function StatCard({ label, value, delta, icon, hint, loading, spark, className }: { label: string; value: ReactNode; delta?: number | null; icon?: IconName; hint?: ReactNode; loading?: boolean; spark?: number[]; className?: string }) {
   const t = useT('common');
   return (
     <Card className={cx('stat', className)} padding="md">
@@ -30,7 +30,7 @@ export function StatCard({ label, value, delta, icon, hint, loading, demo, spark
           </span>
         )}
         {hint && <span className="stat__hint">{hint}</span>}
-        {demo && <DemoBadge />}
+        
         {spark && !loading && <span className="stat__spark"><Sparkline values={spark} label={label} /></span>}
       </div>
     </Card>
@@ -38,7 +38,7 @@ export function StatCard({ label, value, delta, icon, hint, loading, demo, spark
 }
 
 /* — ChartCard : cadre homogène pour tout graphique (états chargement / erreur / vide inclus) — */
-export function ChartCard({ title, description, actions, children, loading, error, onRetry, empty, emptyLabel, demo, footer, className }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; loading?: boolean; error?: string | null; onRetry?: () => void; empty?: boolean; emptyLabel?: string; demo?: boolean; footer?: ReactNode; className?: string }) {
+export function ChartCard({ title, description, actions, children, loading, error, onRetry, empty, emptyLabel, footer, className }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; loading?: boolean; error?: string | null; onRetry?: () => void; empty?: boolean; emptyLabel?: string; footer?: ReactNode; className?: string }) {
   const t = useT('common');
   return (
     <Card className={cx('chartcard', className)} padding="md">
@@ -47,7 +47,7 @@ export function ChartCard({ title, description, actions, children, loading, erro
           <h3 className="chartcard__title">{title}</h3>
           {description && <p className="chartcard__desc">{description}</p>}
         </div>
-        <div className="chartcard__actions">{demo && <DemoBadge />}{actions}</div>
+        <div className="chartcard__actions">{actions}</div>
       </header>
       <div className="chartcard__body">
         {error ? <ErrorState code={error} onRetry={onRetry} compact /> : loading ? <div className="chartcard__loading" aria-busy="true" aria-label={t('common.loading')}><Skeleton height={180} radius={12} /></div> : empty ? <EmptyState icon="chart" compact title={emptyLabel ?? t('common.noData')} /> : children}
@@ -87,7 +87,7 @@ export interface DataTableProps<T> {
   pagination?: { page: number; pageSize: number; total: number; onChange: (p: number) => void };
   onRowClick?: (row: T) => void;
   selectedId?: string | null;
-  demo?: boolean;
+ 
 }
 
 export function DataTable<T>({ columns, rows, getRowId, caption, sort, onSort, loading, error, onRetry, empty, pagination, onRowClick, selectedId }: DataTableProps<T>) {

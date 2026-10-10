@@ -1,22 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { routes } from '@/app/routes/router';
 import { api } from '@/services/api';
-import { resetDemoDb } from '@/services/api/demo/db';
-import { useSession } from '@/state/session';
-import { useEditor } from '@/state/editor';
+import { loginThroughForm, useBackend } from '@/test/backend';
+import { createUser } from '../../../server/testing/fixtures';
 import { ToastProvider } from '@/components/ui';
 import { sanitizeSource, trackedUrl, TRACKING_SOURCES } from '@/utilities/tracking';
 import { ShareDialog } from './ShareDialog';
 import { printAccent } from './PrintPage';
 
-beforeEach(() => {
-  resetDemoDb();
-  useSession.setState({ status: 'loading', session: null });
-  useEditor.getState().reset();
-});
+const backend = useBackend();
+const creator = () => createUser(backend.app.db, { name: 'Mariama Bah', plan: 'pro', page: { username: 'mariama', published: true } });
 
 describe('liens de suivi — utilitaires', () => {
   it('assainit le paramètre src reçu de l’URL', () => {
@@ -57,7 +53,8 @@ describe('boîte de partage', () => {
 });
 
 describe('attribution des visites par canal', () => {
-  it('transmet le canal assaini avec la vue et les clics', async () => {
+  it('transmet le canal assaini avec la vue et les clics, et le serveur les enregistre', async () => {
+    await creator();
     const track = vi.spyOn(api.page, 'trackEvent');
     render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: ['/mariama?src=TikTok'] })} />);
     await screen.findByRole('heading', { level: 1, name: /Mariama/ });
@@ -71,10 +68,10 @@ describe('attribution des visites par canal', () => {
 
 describe('affiche et cartes de visite', () => {
   const open = async () => {
+    const u = await creator();
     const router = createMemoryRouter(routes, { initialEntries: ['/auth/login'] });
     render(<RouterProvider router={router} />);
-    await userEvent.click(await screen.findByRole('button', { name: /Créatrice/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    await loginThroughForm(u.email!, u.password);
     await screen.findByRole('heading', { name: /Bonjour, Mariama/ });
     await router.navigate('/dashboard/print');
     return router;

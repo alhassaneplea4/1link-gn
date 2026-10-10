@@ -48,7 +48,6 @@ export default {
     submit: 'Send report',
     sentTitle: 'Thank you for your report',
     sentText: 'It will be reviewed by the moderation team.',
-    demoNote: 'Demo mode: the report is stored only in this browser (visible in the demo Admin Center).',
     errors: { rate_limited: 'You have already reported this page several times. Please wait.', network: 'Could not send: check your connection.', generic: 'The report could not be sent. Please try again.' },
     reasons: { spam: 'Spam or abusive advertising', impersonation: 'Impersonation', inappropriate: 'Inappropriate content', scam: 'Scam or fraud', copyright: 'Copyright', other: 'Other reason' },
   },

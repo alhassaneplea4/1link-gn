@@ -7,14 +7,11 @@ export interface DateRange {
   to: string;
 }
 
-export type DataSourceKind = 'demo' | 'live';
-
 export interface SeriesPoint { date: string; views: number; visitors: number; clicks: number }
 export interface TopLink { blockId: string; label: string; clicks: number; ctr: number }
 export interface Share { name: string; value: number }
 
 export interface AnalyticsReport {
-  source: DataSourceKind;
   range: DateRange;
   totals: { views: number; visitors: number; clicks: number; ctr: number };
   /** Variation par rapport à la période précédente (ratio, ex. 0.12 = +12 %). null si non calculable. */

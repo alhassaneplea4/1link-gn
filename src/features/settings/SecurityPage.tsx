@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, Card, Icon, Input, LinkButton, PageHeader } from '@/components/ui';
-import { env } from '@/app/configuration/env';
+import { Badge, Button, Card, Icon, Input, LinkButton, PageHeader } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -34,7 +33,6 @@ export default function SecurityPage() {
 
         <Card padding="lg" className="settings__card">
           <h2><Icon name="key" size={18} /> {t('dashboard.security.passwordTitle')}</h2>
-          {env.isDemo && <Alert tone="warning" title={t('auth.demo.title')}>{t('dashboard.security.passwordDemo')}</Alert>}
           <Input label={t('auth.fields.password')} type="password" value="" placeholder="••••••••" disabled readOnly />
           <Button variant="secondary" disabled>{t('dashboard.security.changePassword')}</Button>
           <Link to={paths.forgotPassword} className="subtle">{t('auth.login.forgot')}</Link>
@@ -44,7 +42,7 @@ export default function SecurityPage() {
           <h2><Icon name="monitor" size={18} /> {t('dashboard.security.sessionTitle')}</h2>
           <dl className="kv">
             <div><dt>{t('dashboard.security.sessionEnds')}</dt><dd>{formatDateTime(session.expiresAt)}</dd></div>
-            <div><dt>{t('dashboard.security.sessionSource')}</dt><dd>{session.demo ? t('common.demo') : t('dashboard.security.live')}</dd></div>
+            <div><dt>{t('dashboard.security.sessionSource')}</dt><dd>{t('dashboard.security.live')}</dd></div>
           </dl>
           <LinkButton to={paths.signOut} variant="secondary" iconLeft="logout">{t('dashboard.shell.signOut')}</LinkButton>
         </Card>

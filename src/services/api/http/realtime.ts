@@ -3,7 +3,7 @@ import type { RealtimeEvent } from '@/models/admin';
 import type { RealtimeAdapter } from '../types';
 
 /**
- * Adaptateur SSE (EventSource). Messages attendus :
+ * Adaptateur SSE (EventSource) branché sur GET /admin/realtime (le serveur borne chaque connexion à ~50 s, EventSource se reconnecte seul). Messages :
  *   event: activity  → data: RealtimeEvent
  *   event: visitors  → data: { count: number }
  * Un adaptateur WebSocket respectant la même interface pourra le remplacer sans toucher à l'UI.

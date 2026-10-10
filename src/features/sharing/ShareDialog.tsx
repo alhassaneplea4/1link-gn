@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Icon, Modal, useToast } from '@/components/ui';
 import { QrCode } from '@/features/page-engine/blocks/render/places';
-import { pageShareUrl, publicUrl, env } from '@/app/configuration/env';
+import { pageShareUrl, publicUrl } from '@/app/configuration/env';
 import { paths } from '@/app/configuration/paths';
 import { useT } from '@/i18n/core';
 import type { MessageKey } from '@/i18n/types';
@@ -26,7 +26,6 @@ export function ShareDialog({ open, onClose, username, published }: { open: bool
   return (
     <Modal open={open} onClose={onClose} title={t('editor.share.title')} description={t('editor.share.description')}>
       {!published && <Alert tone="warning" title={t('editor.share.notPublishedTitle')} className="share__alert">{t('editor.share.notPublished')}</Alert>}
-      {env.isDemo && published && <Alert tone="info" className="share__alert">{t('editor.share.demoNote')}</Alert>}
       <div className="share">
         <div className="share__qr"><QrCode value={url} size={176} label={t('editor.share.qrAlt')} /></div>
         <div className="share__side">

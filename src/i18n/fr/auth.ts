@@ -43,7 +43,7 @@ export default {
     change: 'Modifier le numéro',
     resend: 'Renvoyer le code',
     resendIn: 'Renvoyer dans {s} s',
-    demo: { text: 'Aucun message n’est réellement envoyé. Votre code de démonstration :', codeLabel: 'Code de démonstration', fill: 'Remplir' },
+    dev: { text: 'Aucun message n’est réellement envoyé (fournisseur de test). Code :', codeLabel: 'Code de développement', fill: 'Remplir' },
     errors: {
       invalidPhone: 'Numéro invalide. Vérifiez le pays et le nombre de chiffres.',
       codeFormat: 'Le code comporte 6 chiffres.',
@@ -58,12 +58,7 @@ export default {
       generic: 'Une erreur est survenue. Réessayez dans un instant.',
     },
   },
-  demo: {
-    title: 'Mode démonstration',
-    text: 'Aucun serveur n’est connecté. Aucun mot de passe n’est vérifié ni enregistré : utilisez un compte d’essai ci-dessous ou créez le vôtre.',
-    accounts: 'Comptes d’essai',
-    use: 'Utiliser',
-  },
+  dev: { title: 'Mode développement' },
   login: {
     title: 'Bon retour parmi nous',
     subtitle: 'Connectez-vous pour gérer votre présence numérique.',
@@ -90,8 +85,6 @@ export default {
     back: 'Retour à la connexion',
     sentTitle: 'Vérifiez votre boîte mail',
     sentText: 'Si un compte existe avec l’adresse {email}, un lien de réinitialisation vient d’être envoyé.',
-    demoNote: 'Mode démonstration : aucun e-mail n’est réellement envoyé.',
-    demoLink: 'Ouvrir l’écran de réinitialisation (démo)',
   },
   reset: {
     title: 'Nouveau mot de passe',
@@ -102,7 +95,6 @@ export default {
     requestNew: 'Demander un nouveau lien',
     doneTitle: 'Mot de passe mis à jour',
     doneText: 'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
-    demoNote: 'Mode démonstration : le mot de passe n’est pas réellement modifié.',
   },
   verify: {
     title: 'Vérifiez votre adresse e-mail',
@@ -111,8 +103,6 @@ export default {
     resend: 'Renvoyer l’e-mail',
     resendIn: 'Renvoyer dans {s} s',
     resent: 'E-mail renvoyé.',
-    demoNote: 'Mode démonstration : aucun e-mail n’est envoyé. Simulez la réception du lien ci-dessous.',
-    demoSimulate: 'Simuler le clic sur le lien (démo)',
     checking: 'Vérification en cours…',
     doneTitle: 'Adresse e-mail vérifiée',
     doneText: 'Merci ! Vous pouvez publier votre page.',

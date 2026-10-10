@@ -1,4 +1,4 @@
-import { DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -20,7 +20,7 @@ export default function LogsPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.logs')} description={t('admin.logs.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.logs')} description={t('admin.logs.description')} />
       <div className="adm-filters">
         <SearchBar label={t('common.search')} placeholder={t('admin.logs.searchPlaceholder')} onSearch={setSearch} />
         <FilterSelect label={t('admin.logs.level')} value={q.filters?.level} onChange={(v) => setFilter('level', v)} options={(['info', 'warning', 'critical'] as const).map((l) => ({ value: l, label: t(`admin.levels.${l}`) }))} />

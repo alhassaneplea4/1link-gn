@@ -40,7 +40,7 @@ export function AnalyticsPreview() {
           </ul>
         </div>
         <div className="reveal anprev">
-          <ChartCard title={t('marketing.analytics.chartTitle')} demo
+          <ChartCard title={t('marketing.analytics.chartTitle')} actions={<Badge tone="neutral">{t('marketing.analytics.illustration')}</Badge>}
             description={t('marketing.analytics.illustrativeNote')}
             footer={<ChartLegend items={[{ label: t('marketing.analytics.views') }, { label: t('marketing.analytics.clicks') }]} />}>
             <TimeChart label={t('marketing.analytics.chartTitle')} x={x} height={220} series={[{ id: 'v', label: t('marketing.analytics.views'), values: s.views }, { id: 'c', label: t('marketing.analytics.clicks'), values: s.clicks }]} />

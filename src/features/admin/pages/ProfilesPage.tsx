@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Badge, DataTable, DemoBadge, PageHeader, SearchBar, Tabs, type Column } from '@/components/ui';
+import { Badge, DataTable, PageHeader, SearchBar, Tabs, type Column } from '@/components/ui';
 import VerificationsPanel from './VerificationsPanel';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -47,7 +47,7 @@ export default function ProfilesPage() {
   useDocumentTitle(`${t('admin.nav.profiles')} · Admin Center`);
   return (
     <div>
-      <PageHeader title={t('admin.nav.profiles')} description={t('admin.profiles.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.profiles')} description={t('admin.profiles.description')} />
       <Tabs variant="pills" label={t('admin.nav.profiles')} items={[
         { id: 'pages', label: t('admin.verification.pagesTab'), icon: 'file', panel: <PagesPanel /> },
         { id: 'verifications', label: t('admin.verification.tab'), icon: 'shield-check', panel: <VerificationsPanel /> },

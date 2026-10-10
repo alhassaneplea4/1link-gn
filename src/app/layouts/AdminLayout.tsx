@@ -2,12 +2,11 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, Icon, LinkButton } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
-import { env } from '@/app/configuration/env';
 import { useT } from '@/i18n/core';
 import type { AdminSection, Permission } from '@/models/auth';
 import { useSession } from '@/state/session';
 import { AppShell, ThemeToggle, type NavEntry } from './AppShell';
-import { AccountMenu, DemoBanner } from './header-parts';
+import { AccountMenu } from './header-parts';
 
 type NavDef = { section: AdminSection; to: string; icon: NavEntry['icon']; group: 'pilot' | 'community' | 'revenue' | 'trust' | 'platform'; primaryMobile?: boolean; end?: boolean };
 
@@ -46,12 +45,11 @@ export default function AdminLayout() {
       variant="admin"
       brandLabel="Admin"
       nav={nav}
-      banners={<DemoBanner />}
       header={
         <>
           <div className="topbar__grow adm-title">
             <strong>{t('admin.brand')}</strong>
-            {env.isDemo ? <Badge tone="warning" icon="flask">{t('common.demo')}</Badge> : <Badge tone="success" dot>{t('admin.live')}</Badge>}
+            <Badge tone="success" dot>{t('admin.live')}</Badge>
           </div>
           <div className="topbar__actions">
             {session?.user.onboardingDone && <Link to={paths.dashboard.root} className="btn btn--ghost btn--sm"><Icon name="home" size={16} /><span className="btn__label">{t('admin.mySpace')}</span></Link>}

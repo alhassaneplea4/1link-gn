@@ -85,7 +85,7 @@
 .pg-btn__icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: min(var(--pg-btn-radius), 12px); background: rgb(255 255 255 / 0.14); }
 .pg-btn__body { flex: 1; min-width: 0; display: grid; }
 .pg-btn__title { overflow-wrap: anywhere; }
-.pg-btn__desc { font-size: 0.82em; font-weight: 450; opacity: 0.8; overflow-wrap: anywhere; }
+.pg-btn__desc { font-size: 0.82em; font-weight: 450; opacity: 0.95; overflow-wrap: anywhere; }
 .pg-btn__arrow { flex: none; opacity: 0.55; transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-base); }
 .pg-btn:hover .pg-btn__arrow { opacity: 1; transform: translate(2px, -2px); }
 .pg-btn.is-highlight { box-shadow: 0 10px 26px -10px var(--pg-shadow); }

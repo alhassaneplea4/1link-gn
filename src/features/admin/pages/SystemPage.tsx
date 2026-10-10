@@ -1,4 +1,4 @@
-import { Alert, Card, DemoBadge, ErrorState, PageHeader, Skeleton } from '@/components/ui';
+import { Card, ErrorState, PageHeader, Skeleton } from '@/components/ui';
 import { api } from '@/services/api';
 import { env } from '@/app/configuration/env';
 import { useResource } from '@/hooks/useResource';
@@ -12,8 +12,7 @@ export default function SystemPage() {
   const res = useResource(() => api.admin.getSystemStatus(), []);
   return (
     <div className="adm-stack">
-      <PageHeader title={t('admin.nav.system')} description={t('admin.system.description')} badge={env.isDemo ? <DemoBadge /> : undefined} />
-      {env.isDemo && <Alert tone="warning" title={t('admin.system.demoTitle')}>{t('admin.system.demoText')}</Alert>}
+      <PageHeader title={t('admin.nav.system')} description={t('admin.system.description')} />
       {res.status === 'loading' ? <Skeleton height={200} radius={12} /> : res.status === 'error' ? <ErrorState code={res.error} onRetry={res.reload} /> : (
         <ul role="list" className="svc">
           {res.data?.map((s) => (
@@ -28,10 +27,9 @@ export default function SystemPage() {
       <Card padding="lg">
         <h2 className="adm-section-title">{t('admin.system.frontend')}</h2>
         <dl className="kv">
-          <div><dt>{t('admin.system.apiMode')}</dt><dd>{env.apiMode}</dd></div>
-          <div><dt>{t('admin.system.apiBase')}</dt><dd className="mono">{env.apiMode === 'http' ? env.apiBaseUrl : '—'}</dd></div>
+          <div><dt>{t('admin.system.apiBase')}</dt><dd className="mono">{env.apiBaseUrl}</dd></div>
           <div><dt>{t('admin.system.realtime')}</dt><dd>{api.realtime.kind}</dd></div>
-          <div><dt>{t('admin.system.domain')}</dt><dd className="mono">{env.publicDomain}</dd></div>
+          <div><dt>{t('admin.system.domain')}</dt><dd className="mono">{env.publicDomain || window.location.host}</dd></div>
         </dl>
       </Card>
     </div>

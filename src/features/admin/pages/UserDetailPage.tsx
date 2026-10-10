@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Alert, Avatar, Badge, Breadcrumb, Button, Card, ConfirmDialog, DemoBadge, ErrorState, PageHeader, Skeleton, useToast } from '@/components/ui';
+import { Avatar, Badge, Breadcrumb, Button, Card, ConfirmDialog, ErrorState, PageHeader, Skeleton, useToast } from '@/components/ui';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -24,8 +24,8 @@ export default function UserDetailPage() {
     if (!confirm) return;
     setBusy(true);
     try {
-      const out = await api.admin.setUserStatus(id, confirm === 'suspend' ? 'suspended' : 'active');
-      toast.push({ tone: out.mode === 'demo' ? 'warning' : 'success', title: confirm === 'suspend' ? t('admin.userDetail.suspended') : t('admin.userDetail.reinstated'), description: out.mode === 'demo' ? t('admin.demoLocalOnly') : undefined });
+      await api.admin.setUserStatus(id, confirm === 'suspend' ? 'suspended' : 'active');
+      toast.push({ tone: 'success', title: confirm === 'suspend' ? t('admin.userDetail.suspended') : t('admin.userDetail.reinstated') });
       res.reload();
     } catch {
       toast.push({ tone: 'error', title: t('admin.actionFailed') });
@@ -41,15 +41,15 @@ export default function UserDetailPage() {
     <div>
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: t('admin.nav.users'), to: paths.admin.users }, { label: u.name }]} />}
-        title={<span className="cell-type"><Avatar name={u.name} size={44} />{u.name}</span>} badge={<><StatusBadge value={u.status} label={t(`common.status.${u.status}`)} /><DemoBadge /></>}
-        description={u.email}
+        title={<span className="cell-type"><Avatar name={u.name} size={44} />{u.name}</span>} badge={<><StatusBadge value={u.status} label={t(`common.status.${u.status}`)} /></>}
+        description={u.email ?? u.phone ?? ''}
         actions={canWrite ? (u.status === 'suspended' ? <Button variant="secondary" iconLeft="user-check" onClick={() => setConfirm('reinstate')}>{t('admin.userDetail.reinstate')}</Button> : <Button variant="danger" iconLeft="ban" onClick={() => setConfirm('suspend')}>{t('admin.userDetail.suspend')}</Button>) : <Badge tone="neutral" icon="lock">{t('admin.readOnly')}</Badge>}
       />
       <div className="adm-detail">
         <Card padding="lg">
           <h2 className="adm-section-title">{t('admin.userDetail.info')}</h2>
           <dl className="kv">
-            <div><dt>{t('admin.users.category')}</dt><dd>{t(`common.categories.${u.category}.label`)}</dd></div>
+            <div><dt>{t('admin.users.category')}</dt><dd>{(u.category ? t(`common.categories.${u.category}.label`) : t('admin.categoryNone'))}</dd></div>
             <div><dt>{t('admin.users.plan')}</dt><dd>{t(`common.plans.${u.plan}`)}</dd></div>
             <div><dt>{t('admin.users.joined')}</dt><dd>{formatDate(u.createdAt)}</dd></div>
             <div><dt>{t('admin.users.activity')}</dt><dd>{formatDateTime(u.lastActiveAt)}</dd></div>
@@ -73,7 +73,6 @@ export default function UserDetailPage() {
         description={confirm === 'suspend' ? t('admin.userDetail.suspendText') : t('admin.userDetail.reinstateText')}
         confirmLabel={confirm === 'suspend' ? t('admin.userDetail.suspend') : t('admin.userDetail.reinstate')}
       >
-        <Alert tone="warning">{t('admin.demoLocalOnly')}</Alert>
       </ConfirmDialog>
     </div>
   );

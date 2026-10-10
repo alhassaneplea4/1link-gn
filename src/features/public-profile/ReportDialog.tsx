@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Alert, Button, Modal, Select, Textarea } from '@/components/ui';
-import { env } from '@/app/configuration/env';
 import { api } from '@/services/api';
 import { useT } from '@/i18n/core';
 import { isApiError } from '@/models/api';
@@ -52,7 +51,6 @@ export function ReportDialog({ open, onClose, username }: { open: boolean; onClo
       {sent ? (
         <div className="report-done">
           <p>{t('pub.report.sentText')}</p>
-          {env.isDemo && <Alert tone="warning">{t('pub.report.demoNote')}</Alert>}
         </div>
       ) : (
         <div className="report-form">

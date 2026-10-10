@@ -110,6 +110,7 @@ export default {
     },
   },
   analytics: {
+    illustration: 'Illustration',
     eyebrow: 'Analytics',
     title: 'Understand what works',
     subtitle: 'Track your page’s views, clicks and traffic sources, and spot the links that perform.',

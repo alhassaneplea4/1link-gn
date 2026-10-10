@@ -29,7 +29,8 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DEL
   try {
     res = await fetch(url, {
       method, credentials: 'include', signal: opts.signal,
-      headers: { Accept: 'application/json', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+      // La langue de l'interface (et non celle du navigateur) détermine la langue des e-mails et des libellés renvoyés par le serveur.
+      headers: { Accept: 'application/json', 'Accept-Language': document.documentElement.lang || 'fr', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
   } catch (e) {

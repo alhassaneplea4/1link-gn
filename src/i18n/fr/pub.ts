@@ -48,7 +48,6 @@ export default {
     submit: 'Envoyer le signalement',
     sentTitle: 'Merci pour votre signalement',
     sentText: 'Il sera examiné par l’équipe de modération.',
-    demoNote: 'Mode démonstration : le signalement est enregistré uniquement dans ce navigateur (visible dans l’Admin Center de démonstration).',
     errors: { rate_limited: 'Vous avez déjà signalé cette page plusieurs fois. Merci de patienter.', network: 'Envoi impossible : vérifiez votre connexion.', generic: 'Le signalement n’a pas pu être envoyé. Réessayez.' },
     reasons: { spam: 'Spam ou publicité abusive', impersonation: 'Usurpation d’identité', inappropriate: 'Contenu inapproprié', scam: 'Arnaque ou fraude', copyright: 'Droits d’auteur', other: 'Autre motif' },
   },

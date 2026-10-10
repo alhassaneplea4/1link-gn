@@ -1,9 +1,8 @@
 import { isContactVerified } from '@/models/auth';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, Button, Icon, LinkButton, Spinner, useToast } from '@/components/ui';
+import { Button, Icon, LinkButton, Spinner, useToast } from '@/components/ui';
 import { api } from '@/services/api';
-import { env } from '@/app/configuration/env';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -30,7 +29,7 @@ export default function VerifyEmailPage() {
     if (!token || status === 'loading') return;
     let live = true;
     api.auth.verifyEmail(token).then(
-      (s) => { if (live) { setSession(s); setPhase('done'); } },
+      (s) => { if (live) { if (s) setSession(s); setPhase('done'); } },
       () => live && setPhase('error'),
     );
     return () => { live = false; };
@@ -54,18 +53,6 @@ export default function VerifyEmailPage() {
       setBusy(false);
     }
   };
-  const simulate = async () => {
-    setBusy(true);
-    try {
-      setSession(await api.auth.demoVerifyCurrentUser!());
-      setPhase('done');
-    } catch {
-      setPhase('error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (status === 'loading' || phase === 'checking') {
     return <div className="auth-state"><Spinner size={28} label={t('auth.verify.checking')} /><p>{t('auth.verify.checking')}</p></div>;
   }
@@ -100,9 +87,6 @@ export default function VerifyEmailPage() {
       <span className="auth-state__icon"><Icon name="mail" size={28} /></span>
       <AuthHeading title={t('auth.verify.title')} subtitle={t('auth.verify.subtitle', { email: user.email ?? '' })} />
       <p className="muted">{t('auth.verify.why')}</p>
-      {env.isDemo && api.auth.demoVerifyCurrentUser && (
-        <Alert tone="warning" title={t('auth.demo.title')} action={<Button size="sm" variant="secondary" onClick={() => void simulate()} loading={busy}>{t('auth.verify.demoSimulate')}</Button>}>{t('auth.verify.demoNote')}</Alert>
-      )}
       <Button variant="secondary" onClick={() => void resend()} disabled={cooldown > 0} loading={busy}>{cooldown > 0 ? t('auth.verify.resendIn', { s: cooldown }) : t('auth.verify.resend')}</Button>
       <LinkButton to={user.onboardingDone ? paths.dashboard.root : paths.onboarding} variant="link">{t('common.back')}</LinkButton>
     </div>

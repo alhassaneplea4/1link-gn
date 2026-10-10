@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Alert, Badge, Button, Card, ConfirmDialog, DemoBadge, EmptyState, ErrorState, Icon, PageHeader, Select, Skeleton, Textarea, useToast } from '@/components/ui';
+import { Alert, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Icon, PageHeader, Select, Skeleton, Textarea, useToast } from '@/components/ui';
 import { PhoneFrame } from '@/components/ui/PhoneFrame';
 import { PageRenderer } from '@/features/page-engine/renderer/PageRenderer';
 import { api } from '@/services/api';
@@ -37,8 +37,8 @@ export default function ModerationPage() {
     if (!target) return;
     setBusy(true);
     try {
-      const out = await api.admin.applyDecision(target.id, decision, note.trim());
-      toast.push({ tone: out.mode === 'demo' ? 'warning' : 'success', title: t(`admin.moderation.done.${decision}`), description: out.mode === 'demo' ? t('admin.demoLocalOnly') : undefined });
+      await api.admin.applyDecision(target.id, decision, note.trim());
+      toast.push({ tone: 'success', title: t(`admin.moderation.done.${decision}`) });
       queue.reload();
       report.reload();
     } catch {
@@ -52,7 +52,7 @@ export default function ModerationPage() {
 
   return (
     <div>
-      <PageHeader title={t('admin.nav.moderation')} description={t('admin.moderation.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.moderation')} description={t('admin.moderation.description')} />
       {!canWrite && <Alert tone="info" className="adm-alert">{t('admin.moderation.readOnly')}</Alert>}
       <div className="mod" style={{ marginTop: 'var(--space-4)' }}>
         <Card padding="md" className="mod__queuecard">
@@ -123,7 +123,6 @@ export default function ModerationPage() {
         title={t('admin.moderation.confirmTitle', { decision: t(`admin.moderation.decisions.${decision}`) })} description={t('admin.moderation.confirmText', { username: target?.username ?? '' })}
         confirmLabel={t('admin.moderation.confirm')} requireText={sensitive ? target?.username : undefined}
       >
-        <Alert tone="warning">{t('admin.demoLocalOnly')}</Alert>
       </ConfirmDialog>
     </div>
   );

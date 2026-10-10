@@ -1,4 +1,4 @@
-import { DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { DataTable, PageHeader, SearchBar, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -20,7 +20,7 @@ export default function SupportPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.support')} description={t('admin.support.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.support')} description={t('admin.support.description')} />
       <div className="adm-filters">
         <SearchBar label={t('common.search')} onSearch={setSearch} />
         <FilterSelect label={t('admin.users.status')} value={q.filters?.status} onChange={(v) => setFilter('status', v)} options={(['open', 'pending', 'solved'] as const).map((s) => ({ value: s, label: t(`admin.support.status.${s}`) }))} />

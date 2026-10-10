@@ -1,15 +1,19 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { routes } from '@/app/routes/router';
 import { api } from '@/services/api';
-import { resetDemoDb } from '@/services/api/demo/db';
-import { useSession } from '@/state/session';
-import { useEditor } from '@/state/editor';
+import { loginThroughForm, useBackend } from '@/test/backend';
+import { createUser } from '../../../server/testing/fixtures';
 import type { VerificationInput } from '@/models/verification';
 
+const backend = useBackend();
+
 const input = (over: Partial<VerificationInput> = {}): VerificationInput => ({ kind: 'person', legalName: 'Mariama Bah', registryNumber: '', proofUrl: 'https://exemple.com/mariama', note: '', attest: true, ...over });
+const owner = () => createUser(backend.app.db, { name: 'Mariama Bah', plan: 'pro', page: { username: 'mariama', published: true } });
+const admin = () => createUser(backend.app.db, { name: 'Nènè Traoré', adminRole: 'admin', onboardingDone: true });
+
 const profileVerified = async () => {
   const res = await api.page.getPublicPage('mariama');
   if (res.state !== 'published') throw new Error('not published');
@@ -17,15 +21,10 @@ const profileVerified = async () => {
   return p?.type === 'profile' && p.data.verified;
 };
 
-beforeEach(() => {
-  resetDemoDb();
-  useSession.setState({ status: 'loading', session: null });
-  useEditor.getState().reset();
-});
-
-describe('vérification de profil — API de démonstration', () => {
+describe('vérification de profil — API', () => {
   it('refuse une demande invalide ou en double', async () => {
-    await api.auth.signIn('mariama@demo.1link', 'x');
+    const u = await owner();
+    await api.auth.signIn(u.email!, u.password);
     expect((await api.page.getVerification()).status).toBe('none');
     await expect(api.page.requestVerification(input({ attest: false }))).rejects.toMatchObject({ code: 'validation' });
     await expect(api.page.requestVerification(input({ proofUrl: 'javascript:alert(1)' }))).rejects.toMatchObject({ code: 'validation' });
@@ -35,52 +34,62 @@ describe('vérification de profil — API de démonstration', () => {
   });
 
   it('seule la modération accorde le badge, et il survit à un enregistrement qui tente de le forcer', async () => {
-    await api.auth.signIn('mariama@demo.1link', 'x');
+    const u = await owner();
+    const a = await admin();
+    await api.auth.signIn(u.email!, u.password);
     expect(await profileVerified()).toBe(false);
     // tentative de triche : le client envoie verified: true
     const mine = (await api.page.getMyPage())!;
     const forged = { ...mine, blocks: mine.blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, verified: true } } : b)) };
-    await api.page.publish(forged);
+    const saved = await api.page.publish(forged);
     expect(await profileVerified()).toBe(false);
 
     await api.page.requestVerification(input());
-    const admin = await api.auth.signIn('admin@demo.1link', 'x');
-    expect(admin.permissions).toContain('profiles:write');
+    await api.auth.signOut();
+    const session = await api.auth.signIn(a.email!, a.password);
+    expect(session.permissions).toContain('profiles:write');
     const list = await api.admin.listVerifications({ page: 1, pageSize: 100, filters: { status: 'pending' } });
     const mineReq = list.items.find((v) => v.username === 'mariama')!;
     expect(mineReq).toBeDefined();
     await api.admin.decideVerification(mineReq.id, 'approve', '');
-    await api.auth.signIn('mariama@demo.1link', 'x');
+    await api.auth.signOut();
+    await api.auth.signIn(u.email!, u.password);
     expect((await api.page.getVerification()).status).toBe('approved');
     expect(await profileVerified()).toBe(true);
     // un nouvel enregistrement ne retire ni n'ajoute le badge de lui-même
     const again = (await api.page.getMyPage())!;
+    expect(again.version).toBeGreaterThan(saved.version - 1);
     await api.page.publish({ ...again, blocks: again.blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, verified: false } } : b)) });
     expect(await profileVerified()).toBe(true);
   });
 
   it('le refus exige un motif, est communiqué au demandeur et permet de refaire une demande', async () => {
-    await api.auth.signIn('mariama@demo.1link', 'x');
+    const u = await owner();
+    const a = await admin();
+    await api.auth.signIn(u.email!, u.password);
     await api.page.requestVerification(input());
-    await api.auth.signIn('admin@demo.1link', 'x');
+    await api.auth.signOut();
+    await api.auth.signIn(a.email!, a.password);
     const req = (await api.admin.listVerifications({ page: 1, pageSize: 100, filters: { status: 'pending' } })).items.find((v) => v.username === 'mariama')!;
     await expect(api.admin.decideVerification(req.id, 'reject', 'ok')).rejects.toMatchObject({ code: 'validation' });
     await api.admin.decideVerification(req.id, 'reject', 'Lien de preuve inaccessible');
     await expect(api.admin.decideVerification(req.id, 'approve', '')).rejects.toMatchObject({ code: 'conflict' });
-    await api.auth.signIn('mariama@demo.1link', 'x');
+    await api.auth.signOut();
+    await api.auth.signIn(u.email!, u.password);
     const state = await api.page.getVerification();
     expect(state.status).toBe('rejected');
     expect(state.request?.decisionNote).toBe('Lien de preuve inaccessible');
     expect(await profileVerified()).toBe(false);
+    expect((await api.page.requestVerification(input())).status).toBe('pending'); // une nouvelle demande est possible
   });
 });
 
 describe('vérification de profil — interface', () => {
   it('permet de demander la vérification depuis les paramètres puis affiche l’état en cours', async () => {
+    const u = await owner();
     const router = createMemoryRouter(routes, { initialEntries: ['/auth/login'] });
     render(<RouterProvider router={router} />);
-    await userEvent.click(await screen.findByRole('button', { name: /Créatrice/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    await loginThroughForm(u.email!, u.password);
     await screen.findByRole('heading', { name: /Bonjour, Mariama/ });
     await router.navigate('/dashboard/settings');
     await userEvent.click(await screen.findByRole('button', { name: 'Demander la vérification' }));

@@ -1,18 +1,23 @@
 /** Configuration d'environnement : unique point de lecture des variables VITE_*. */
-const mode = import.meta.env.VITE_API_MODE === 'http' ? 'http' : 'demo';
+const apiBaseUrl = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api').replace(/\/+$/, '');
+const configuredDomain = (import.meta.env.VITE_PUBLIC_DOMAIN as string | undefined)?.trim() ?? '';
 
 export const env = {
-  /** `demo` : adaptateurs locaux explicitement signalés · `http` : API réelle. */
-  apiMode: mode as 'demo' | 'http',
-  apiBaseUrl: (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1',
-  realtimeUrl: (import.meta.env.VITE_REALTIME_URL as string | undefined) ?? '',
-  publicDomain: (import.meta.env.VITE_PUBLIC_DOMAIN as string | undefined) ?? '1link.gn',
-  isDemo: mode === 'demo',
+  /** Base de l'API : `/api` (même origine que l'interface, déploiement Vercel) par défaut. */
+  apiBaseUrl,
+  /** Flux temps réel (SSE) de l'Admin Center. */
+  realtimeUrl: (import.meta.env.VITE_REALTIME_URL as string | undefined) ?? `${apiBaseUrl}/admin/realtime`,
+  /** Domaine public des pages. Vide = le domaine sur lequel l'application est servie. */
+  publicDomain: configuredDomain,
 } as const;
 
-/** Adresse affichée (domaine configuré). */
-export const publicUrl = (username: string) => `${env.publicDomain}/${username}`;
+const hostOf = () => (typeof window !== 'undefined' ? window.location.host : 'localhost');
 
-/** Adresse réellement ouvrable : en démonstration, la page est servie par cette application. */
-export const pageShareUrl = (username: string) =>
-  env.isDemo && typeof window !== 'undefined' ? `${window.location.origin}/${username}` : `https://${publicUrl(username)}`;
+/** Adresse affichée (sans protocole), toujours celle qui s'ouvre réellement. */
+export const publicUrl = (username: string) => `${env.publicDomain || hostOf()}/${username}`;
+
+/** Adresse réellement ouvrable (partage, QR code, impression). */
+export const pageShareUrl = (username: string) => {
+  if (env.publicDomain) return `https://${env.publicDomain}/${username}`;
+  return typeof window !== 'undefined' ? `${window.location.origin}/${username}` : `https://localhost/${username}`;
+};

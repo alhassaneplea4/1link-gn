@@ -1,12 +1,14 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { routes } from '@/app/routes/router';
-import { resetDemoDb } from '@/services/api/demo/db';
+import { api } from '@/services/api';
 import { useSession } from '@/state/session';
-import { useEditor } from '@/state/editor';
-import { useOnboarding } from '@/features/onboarding/store';
+import { loginThroughForm, useBackend } from '@/test/backend';
+import { createUser, FIXTURE_PASSWORD } from '../../server/testing/fixtures';
+
+const backend = useBackend();
 
 function mount(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -14,17 +16,7 @@ function mount(path: string) {
   return router;
 }
 
-beforeEach(() => {
-  resetDemoDb();
-  useSession.setState({ status: 'loading', session: null });
-  useEditor.getState().reset();
-  useOnboarding.getState().reset();
-});
-
-const signIn = async (label: RegExp) => {
-  await userEvent.click(await screen.findByRole('button', { name: label }));
-  await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
-};
+const creator = () => createUser(backend.app.db, { name: 'Mariama Bah', plan: 'pro', page: { username: 'mariama', published: true } });
 
 describe('navigation publique', () => {
   it('affiche la landing avec le titre officiel et les CTA', async () => {
@@ -34,14 +26,22 @@ describe('navigation publique', () => {
     expect(screen.getByRole('link', { name: 'Découvrir 1Link' })).toBeInTheDocument();
   });
 
-  it('rend la page publique d’un utilisateur et les états spéciaux', async () => {
+  it('rend la page publique lue en base et chaque état (suspendue, brouillon, introuvable, indisponible)', async () => {
+    const { db } = backend.app;
+    await creator();
+    await createUser(db, { name: 'Compte Suspendu', suspended: true, page: { username: 'compte-suspendu', published: true } });
+    await createUser(db, { name: 'Brouillon', page: { username: 'brouillon-demo', published: false } });
+    const real = backend.browser.asFetch();
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).includes('/api/pages/panne-serveur') ? Promise.resolve(Response.json({ message: 'unavailable' }, { status: 503 })) : real(input, init));
+
     const r = mount('/mariama');
     expect(await screen.findByRole('heading', { level: 1, name: /Mariama Bah/ })).toBeInTheDocument();
     await r.navigate('/compte-suspendu');
     expect(await screen.findByRole('heading', { name: /suspendue/i })).toBeInTheDocument();
     await r.navigate('/brouillon-demo');
     expect(await screen.findByRole('heading', { name: /pas encore publiée/i })).toBeInTheDocument();
-    await r.navigate('/indisponible-demo');
+    await r.navigate('/panne-serveur');
     expect(await screen.findByRole('heading', { name: /temporairement indisponible/i })).toBeInTheDocument();
     await r.navigate('/introuvable-xyz');
     expect(await screen.findByRole('heading', { name: /n’existe pas/i })).toBeInTheDocument();
@@ -60,12 +60,14 @@ describe('guards d’accès (expérience uniquement)', () => {
     expect(r.state.location.search).toContain('next=%2Fdashboard');
   });
 
-  it('refuse l’Admin Center à un utilisateur sans permission', async () => {
+  it('refuse l’Admin Center à un utilisateur sans permission (le serveur aussi)', async () => {
+    const { email, password } = await creator();
     const r = mount('/auth/login');
-    await signIn(/Créatrice/);
+    await loginThroughForm(email!, password);
     await screen.findByRole('heading', { name: /Bonjour, Mariama/ });
     await r.navigate('/admin');
     await waitFor(() => expect(r.state.location.pathname).toBe('/403'));
+    expect((await backend.browser.get('/api/admin/users')).status).toBe(403);
   });
 });
 
@@ -80,12 +82,22 @@ describe('authentification', () => {
     expect(await screen.findByText(/incorrect/i)).toBeInTheDocument();
   });
 
-  it('connecte un compte de démonstration et ouvre le dashboard avec le bandeau Démonstration', async () => {
+  it('connecte un compte réel (mot de passe vérifié) et ne montre aucun bandeau de démonstration', async () => {
+    const { email, password } = await creator();
     mount('/auth/login');
-    await signIn(/Créatrice/);
+    expect(screen.queryByText(/comptes? d’essai|Démonstration/)).not.toBeInTheDocument();
+    await loginThroughForm(email!, password);
     expect(await screen.findByRole('heading', { name: /Bonjour, Mariama/ })).toBeInTheDocument();
-    expect(screen.getAllByText(/Démonstration/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Démonstration/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Ma page' })[0]!).toBeInTheDocument();
+  });
+
+  it('refuse un mauvais mot de passe pour un compte existant', async () => {
+    const { email } = await creator();
+    mount('/auth/login');
+    await loginThroughForm(email!, 'Mauvais-mot-de-passe-1');
+    expect(await screen.findByText(/incorrect/i)).toBeInTheDocument();
+    expect(useSession.getState().status).not.toBe('authenticated');
   });
 
   it('affiche l’état de session expirée', async () => {
@@ -93,32 +105,50 @@ describe('authentification', () => {
     expect(await screen.findByRole('heading', { name: 'Session expirée' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Se reconnecter' })).toHaveAttribute('href', expect.stringContaining('next=%2Fdashboard'));
   });
+
+  it('bascule sur « session expirée » quand le serveur révoque la session', async () => {
+    const { email, password, user } = await creator();
+    const r = mount('/auth/login');
+    await loginThroughForm(email!, password);
+    await screen.findByRole('heading', { name: /Bonjour, Mariama/ });
+    const { sessions } = await import('../../server/db/schema');
+    const { eq } = await import('drizzle-orm');
+    await backend.app.db.delete(sessions).where(eq(sessions.userId, user.id));
+    // La prochaine requête de l'interface reçoit un 401 : elle bascule d'elle-même sur l'écran « session expirée ».
+    await api.page.getMyPage().catch(() => undefined);
+    await waitFor(() => expect(r.state.location.pathname).toBe('/auth/session-expired'));
+  });
 });
 
 describe('Admin Center et rôles', () => {
-  it('donne un accès complet au Super Admin et limite le Support', async () => {
+  it('donne un accès complet au Super Admin, avec des chiffres lus en base', async () => {
+    const admin = await createUser(backend.app.db, { name: 'Sékou Condé', adminRole: 'super_admin', onboardingDone: true });
+    await createUser(backend.app.db, { name: 'Un inscrit' });
     mount('/auth/login');
-    await signIn(/Super Admin/);
+    await loginThroughForm(admin.email!, admin.password);
     expect(await screen.findByRole('heading', { name: /Vue globale/ })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Paiements' }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/fictifs|démonstration/i)).not.toBeInTheDocument();
   });
 
   it('masque Paiements au rôle Support et affiche l’accès restreint si on force l’URL', async () => {
+    const support = await createUser(backend.app.db, { name: 'Kadiatou Sylla', adminRole: 'support', onboardingDone: true });
     const r = mount('/auth/login');
-    await signIn(/^Support/);
+    await loginThroughForm(support.email!, support.password);
     await screen.findByRole('heading', { name: /Vue globale/ });
     expect(screen.queryByRole('link', { name: 'Paiements' })).not.toBeInTheDocument();
     await r.navigate('/admin/payments');
     expect(await screen.findByRole('heading', { name: /Accès non autorisé/ })).toBeInTheDocument();
+    expect((await backend.browser.get('/api/admin/payments')).status).toBe(403);
   });
 });
 
-describe('inscription et onboarding (démonstration)', () => {
-  it('crée un compte, parcourt l’assistant par catégorie et enregistre un brouillon', async () => {
+describe('inscription et onboarding', () => {
+  it('crée un compte réel, parcourt l’assistant, vérifie l’e-mail par le lien reçu, puis publie', async () => {
     const r = mount('/auth/register');
     await userEvent.type(await screen.findByLabelText(/Nom complet/), 'Awa Test');
     await userEvent.type(screen.getByLabelText(/Adresse e-mail/), 'awa.test@exemple.com');
-    await userEvent.type(screen.getByLabelText(/^Mot de passe/), 'MotDePasse123');
+    await userEvent.type(screen.getByLabelText(/^Mot de passe/), 'MotDePasse-Solide-123');
     await userEvent.click(screen.getByLabelText(/J’accepte/));
     await userEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }));
     await waitFor(() => expect(r.state.location.pathname).toBe('/onboarding'));
@@ -155,7 +185,7 @@ describe('inscription et onboarding (démonstration)', () => {
     await screen.findByRole('heading', { name: 'Vérifiez votre page' });
     await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
 
-    // publication : bloquée tant que l’e-mail n’est pas vérifié, brouillon possible
+    // publication : bloquée tant que l’e-mail n’est pas vérifié ; le brouillon est enregistré en base
     await screen.findByRole('heading', { name: 'Prêt à publier ?' });
     expect(screen.getByRole('button', { name: 'Publier ma page' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer en brouillon' }));
@@ -163,26 +193,36 @@ describe('inscription et onboarding (démonstration)', () => {
     expect(await screen.findByRole('heading', { name: /Bonjour, Awa/ })).toBeInTheDocument();
     expect(screen.queryByText('Votre page est publiée')).not.toBeInTheDocument();
     expect(screen.getAllByText(/Vérifiez votre adresse e-mail/).length).toBeGreaterThan(0);
-  }, 60000);
+    const page = (await backend.browser.get('/api/me/page')).body;
+    expect(page).toMatchObject({ status: 'draft', category: 'professional', version: 1 });
+
+    // le lien reçu par e-mail (boîte d'envoi du serveur de test) valide l'adresse
+    const mail = backend.app.mailer.outbox.filter((m) => m.to === 'awa.test@exemple.com').at(-1)!;
+    const token = decodeURIComponent(/token=([^\s&]+)/.exec(mail.text)![1]!);
+    await r.navigate(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+    expect(await screen.findByRole('heading', { name: /Adresse e-mail vérifiée/ })).toBeInTheDocument();
+    expect(useSession.getState().session?.user.emailVerified).toBe(true);
+  }, 90000);
 });
 
 describe('éditeur de page', () => {
-  it('ajoute puis supprime un bloc, avec confirmation', async () => {
+  it('ajoute puis supprime un bloc, avec confirmation, sur une page lue en base', async () => {
+    const { email, password } = await creator();
     mount('/auth/login');
-    await signIn(/Créatrice/);
+    await loginThroughForm(email!, password);
     await screen.findByRole('heading', { name: /Bonjour, Mariama/ });
     await userEvent.click(screen.getAllByRole('link', { name: 'Ma page' })[0]!);
     await screen.findByRole('heading', { level: 1, name: 'Ma page' });
     const countBlocks = () => document.querySelectorAll('.bcard').length;
-    const before = countBlocks();
+    await waitFor(() => expect(countBlocks()).toBe(3));
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter un bloc' }));
     await userEvent.click((await screen.findAllByRole('button', { name: /^Vidéo/ }))[0]!);
-    await waitFor(() => expect(countBlocks()).toBe(before + 1));
+    await waitFor(() => expect(countBlocks()).toBe(4));
     expect(screen.getByText('Modifications non enregistrées')).toBeInTheDocument();
     await userEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]!);
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Supprimer' }));
-    await waitFor(() => expect(countBlocks()).toBe(before));
+    await waitFor(() => expect(countBlocks()).toBe(3));
   }, 60000);
 });
 
-import { within } from '@testing-library/react';
+void FIXTURE_PASSWORD;

@@ -1,6 +1,6 @@
 import type { CategoryId } from './category';
 import type { PlanId } from './auth';
-import type { DataSourceKind, SeriesPoint, Share } from './analytics';
+import type { SeriesPoint, Share } from './analytics';
 import type { InvoiceStatus } from './billing';
 import type { PageStatus } from './page';
 
@@ -9,9 +9,10 @@ export type UserStatus = 'active' | 'pending' | 'suspended';
 export interface AdminUserRow {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   username: string | null;
-  category: CategoryId;
+  category: CategoryId | null;
   plan: PlanId;
   status: UserStatus;
   emailVerified: boolean;
@@ -56,7 +57,7 @@ export interface Report {
 }
 
 export type ModerationDecision = 'dismiss' | 'warn' | 'suspend' | 'reinstate';
-export type MutationOutcome = { mode: 'demo' | 'live'; applied: boolean };
+export type MutationOutcome = { applied: boolean };
 
 export interface PaymentRow {
   id: string;
@@ -114,7 +115,6 @@ export interface ServiceStatus {
 }
 
 export interface PlatformOverview {
-  source: DataSourceKind;
   kpis: {
     users: number; activeUsers: number; newAccounts: number; publishedPages: number; visits: number;
     clicks: number; subscriptions: number; revenue: number; reports: number; errors: number;

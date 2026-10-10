@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Badge, Button, Card, DemoBadge, EmptyState, Icon, PageHeader, type IconName } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Icon, PageHeader, type IconName } from '@/components/ui';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -10,8 +10,7 @@ const ICONS: Record<RealtimeEvent['kind'], IconName> = { signup: 'user-check', p
 const MAX = 40;
 
 /**
- * Activité en temps réel. L'adaptateur (`api.realtime`) fournit la source : SSE/WebSocket en production,
- * générateur de DÉMONSTRATION sinon — qui ne démarre que sur action explicite et est toujours signalé.
+ * Activité en temps réel de la plateforme, lue depuis la base de données par le serveur (flux SSE).
  */
 export default function RealtimePage() {
   const t = useT('admin', 'common');
@@ -40,7 +39,7 @@ export default function RealtimePage() {
   const connected = state === 'connected';
   return (
     <div className="adm-live">
-      <PageHeader title={t('admin.nav.realtime')} description={t('admin.realtime.description')} badge={adapter.kind === 'demo' ? <DemoBadge /> : undefined} />
+      <PageHeader title={t('admin.nav.realtime')} description={t('admin.realtime.description')} />
       <Card padding="lg" className="adm-conn">
         <div className="adm-conn__state">
           <span className={`adm-pulse ${connected ? 'is-on' : ''}`} aria-hidden="true" />
@@ -50,10 +49,9 @@ export default function RealtimePage() {
           </div>
         </div>
         {adapter.available ? (
-          connected ? <Button variant="secondary" iconLeft="pause" onClick={halt}>{t('admin.realtime.stop')}</Button> : <Button variant="gradient" iconLeft="play" onClick={start} loading={state === 'connecting'}>{adapter.kind === 'demo' ? t('admin.realtime.startDemo') : t('admin.realtime.connect')}</Button>
+          connected ? <Button variant="secondary" iconLeft="pause" onClick={halt}>{t('admin.realtime.stop')}</Button> : <Button variant="gradient" iconLeft="play" onClick={start} loading={state === 'connecting'}>{t('admin.realtime.connect')}</Button>
         ) : <Badge tone="neutral" icon="wifi-off">{t('admin.realtime.notConnected')}</Badge>}
       </Card>
-      {adapter.kind === 'demo' && <Alert tone="warning" title={t('admin.realtime.demoTitle')}>{t('admin.realtime.demoText')}</Alert>}
       {!adapter.available && <Alert tone="info" title={t('admin.realtime.setupTitle')}>{t('admin.realtime.setupText')}</Alert>}
 
       <div className="adm-grid adm-grid--2-1">
@@ -71,7 +69,6 @@ export default function RealtimePage() {
           <Card padding="md">
             <p className="stat__label">{t('admin.realtime.activeVisitors')}</p>
             <p className="adm-big" aria-live="polite">{active ?? '—'}</p>
-            {adapter.kind === 'demo' && connected && <DemoBadge />}
           </Card>
           <Card padding="md">
             <h2 className="adm-section-title">{t('admin.realtime.session')}</h2>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, ConfirmDialog, DataTable, DemoBadge, EmptyState, ErrorState, Icon, PageHeader, Segmented, Skeleton, useToast, type Column } from '@/components/ui';
+import { Alert, Badge, Button, Card, ConfirmDialog, DataTable, EmptyState, ErrorState, Icon, PageHeader, Segmented, Skeleton, useToast, type Column } from '@/components/ui';
 import { PLANS, getPlan } from '@/app/configuration/plans';
-import { env } from '@/app/configuration/env';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -51,7 +50,7 @@ export default function SubscriptionPage() {
     setBusy(true);
     try {
       if (current?.cancelAtPeriodEnd) await api.billing.resume(); else await api.billing.cancel();
-      toast.push({ tone: 'success', title: current?.cancelAtPeriodEnd ? t('billing.sub.resumed') : t('billing.sub.canceled'), description: env.isDemo ? t('billing.sub.demoLocal') : undefined });
+      toast.push({ tone: 'success', title: current?.cancelAtPeriodEnd ? t('billing.sub.resumed') : t('billing.sub.canceled') });
       sub.reload();
     } catch {
       toast.push({ tone: 'error', title: t('billing.sub.changeFailed') });
@@ -82,7 +81,7 @@ export default function SubscriptionPage() {
           <>
             <div>
               <p className="eyebrow">{t('billing.sub.current')}</p>
-              <h2 className="subpg__plan">{t(`common.plans.${plan.id}`)} <Badge tone={current?.status === 'active' ? 'success' : 'warning'} dot>{t(`dashboard.overview.subStatus.${current?.status ?? 'active'}`)}</Badge>{env.isDemo && <DemoBadge />}</h2>
+              <h2 className="subpg__plan">{t(`common.plans.${plan.id}`)} <Badge tone={current?.status === 'active' ? 'success' : 'warning'} dot>{t(`dashboard.overview.subStatus.${current?.status ?? 'active'}`)}</Badge></h2>
               <p className="muted">{t(`marketing.pricing.desc.${plan.id}`)}</p>
               {current?.renewsAt && <p className="subpg__renew"><Icon name="calendar" size={16} /> {current.cancelAtPeriodEnd ? t('billing.sub.endsOn', { date: formatDate(current.renewsAt) }) : t('billing.sub.renewsOn', { date: formatDate(current.renewsAt) })}</p>}
             </div>
@@ -122,7 +121,7 @@ export default function SubscriptionPage() {
       </section>
 
       <section aria-labelledby="sub-invoices" className="subpg__section">
-        <div className="subpg__head"><h2 id="sub-invoices">{t('billing.sub.history')}</h2>{env.isDemo && <DemoBadge />}</div>
+        <div className="subpg__head"><h2 id="sub-invoices">{t('billing.sub.history')}</h2></div>
         <DataTable
           caption={t('billing.sub.history')} columns={columns} rows={invoices.data} getRowId={(i) => i.id} loading={invoices.status === 'loading'} error={invoices.status === 'error' ? invoices.error : null} onRetry={invoices.reload}
           empty={<EmptyState compact icon="receipt" title={t('billing.sub.noInvoices')} description={t('billing.sub.noInvoicesText')} />}

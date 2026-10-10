@@ -1,19 +1,19 @@
 /**
- * Adaptateurs HTTP : implémentation « production » du contrat `Api`.
- * Les chemins ci-dessous sont des HYPOTHÈSES de contrat REST à confirmer avec l'équipe backend ;
- * seuls ces fichiers changeront à ce moment-là, aucun composant.
+ * Client de l'API 1Link (serveur Hono + PostgreSQL, dossier `server/`).
+ * Sessions par cookie httpOnly (jamais de jeton lisible par JavaScript) ; les chemins ci-dessous sont ceux des routes du serveur.
  */
 import type { ListQuery } from '@/models/api';
 import type { Session } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
-import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, PageApi, PublishResult } from '../types';
+import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, PageApi } from '../types';
 import { request } from './client';
 import { sseRealtime } from './realtime';
 
 const q = (l: ListQuery) => ({ page: l.page, pageSize: l.pageSize, search: l.search, sort: l.sort, dir: l.dir, ...l.filters });
+const seg = encodeURIComponent;
 
 const auth: AuthApi = {
-  getSession: () => request<Session | null>('GET', '/auth/session').catch((e) => (e?.code === 'unauthorized' ? null : Promise.reject(e))),
+  getSession: () => request<Session | null>('GET', '/auth/session'),
   signIn: (email, password) => request('POST', '/auth/sign-in', { body: { email, password } }),
   signUp: (input) => request('POST', '/auth/sign-up', { body: input }),
   signOut: () => request('POST', '/auth/sign-out'),
@@ -28,14 +28,16 @@ const auth: AuthApi = {
 const page: PageApi = {
   getMyPage: () => request<PageDocument | null>('GET', '/me/page'),
   saveDraft: (doc) => request('PUT', '/me/page/draft', { body: doc }),
-  publish: (doc) => request<PageDocument>('POST', '/me/page/publish', { body: doc }).then((p): PublishResult => ({ page: p, mode: 'live' })),
+  publish: (doc) => request<PageDocument>('POST', '/me/page/publish', { body: doc }),
   unpublish: () => request('POST', '/me/page/unpublish'),
-  getPublicPage: (username) => request<PublicPageResult>('GET', `/pages/${encodeURIComponent(username)}`),
+  getPublicPage: (username) => request<PublicPageResult>('GET', `/pages/${seg(username)}`),
   checkUsername: (username) => request('GET', '/usernames/check', { query: { username } }),
   getVerification: () => request('GET', '/me/verification'),
   requestVerification: (input) => request('POST', '/me/verification', { body: input }),
-  reportPage: (username, input) => request('POST', `/pages/${encodeURIComponent(username)}/reports`, { body: input }).then(() => ({ mode: 'live' as const })),
-  trackEvent: (username, event) => request('POST', `/pages/${encodeURIComponent(username)}/events`, { body: event }),
+  reportPage: (username, input) => request<void>('POST', `/pages/${seg(username)}/reports`, { body: input }),
+  trackEvent: (username, event) => request('POST', `/pages/${seg(username)}/events`, { body: event }),
+  getOnboardingState: () => request<{ state: Record<string, unknown> | null }>('GET', '/me/onboarding').then((r) => r.state),
+  saveOnboardingState: (state) => request('PUT', '/me/onboarding', { body: { state } }),
 };
 
 const analytics: AnalyticsApi = {
@@ -53,14 +55,14 @@ const billing: BillingApi = {
 const admin: AdminApi = {
   getOverview: (r) => request('GET', '/admin/overview', { query: { from: r.from, to: r.to } }),
   listUsers: (l) => request('GET', '/admin/users', { query: q(l) }),
-  getUser: (id) => request('GET', `/admin/users/${encodeURIComponent(id)}`),
+  getUser: (id) => request('GET', `/admin/users/${seg(id)}`),
   listProfiles: (l) => request('GET', '/admin/profiles', { query: q(l) }),
   listReports: (l) => request('GET', '/admin/reports', { query: q(l) }),
-  getReport: (id) => request('GET', `/admin/reports/${encodeURIComponent(id)}`),
-  applyDecision: (id, decision, note) => request('POST', `/admin/reports/${encodeURIComponent(id)}/decision`, { body: { decision, note } }),
-  setUserStatus: (id, status) => request('PATCH', `/admin/users/${encodeURIComponent(id)}/status`, { body: { status } }),
+  getReport: (id) => request('GET', `/admin/reports/${seg(id)}`),
+  applyDecision: (id, decision, note) => request('POST', `/admin/reports/${seg(id)}/decision`, { body: { decision, note } }),
+  setUserStatus: (id, status) => request('PATCH', `/admin/users/${seg(id)}/status`, { body: { status } }),
   listVerifications: (l) => request('GET', '/admin/verifications', { query: q(l) }),
-  decideVerification: (id, decision, note) => request('POST', `/admin/verifications/${encodeURIComponent(id)}/decision`, { body: { decision, note } }),
+  decideVerification: (id, decision, note) => request('POST', `/admin/verifications/${seg(id)}/decision`, { body: { decision, note } }),
   listSubscriptions: (l) => request('GET', '/admin/subscriptions', { query: q(l) }),
   listPayments: (l) => request('GET', '/admin/payments', { query: q(l) }),
   listTickets: (l) => request('GET', '/admin/tickets', { query: q(l) }),
@@ -70,4 +72,4 @@ const admin: AdminApi = {
   getRoleMatrix: () => request('GET', '/admin/roles'),
 };
 
-export const httpApi: Api = { mode: 'http', auth, page, analytics, billing, admin, realtime: sseRealtime };
+export const httpApi: Api = { auth, page, analytics, billing, admin, realtime: sseRealtime };

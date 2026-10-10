@@ -2,21 +2,9 @@ import { accountContact, isContactVerified } from '@/models/auth';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Dropdown, Icon, IconButton, type MenuItem } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
-import { env } from '@/app/configuration/env';
 import { LOCALES, useLocale, useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import { Link } from 'react-router-dom';
-
-export function DemoBanner() {
-  const t = useT('common');
-  if (!env.isDemo) return null;
-  return (
-    <div className="banner banner--demo" role="note">
-      <Icon name="flask" size={16} />
-      <span><strong>{t('common.demo')}</strong> — {t('common.demoNotice')}</span>
-    </div>
-  );
-}
 
 export function VerifyBanner() {
   const t = useT('dashboard');

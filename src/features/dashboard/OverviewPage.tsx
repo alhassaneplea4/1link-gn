@@ -163,10 +163,10 @@ export default function OverviewPage() {
           <Card><ErrorState code={report.error} onRetry={report.reload} compact /></Card>
         ) : (
           <div className="stats">
-            <StatCard label={t('analytics.metrics.views')} icon="eye" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.views) : '—'} delta={r?.deltas.views} demo={r?.source === 'demo'} spark={r?.series.map((p) => p.views)} />
-            <StatCard label={t('analytics.metrics.visitors')} icon="users" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.visitors) : '—'} delta={r?.deltas.visitors} demo={r?.source === 'demo'} />
-            <StatCard label={t('analytics.metrics.clicks')} icon="click" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.clicks) : '—'} delta={r?.deltas.clicks} demo={r?.source === 'demo'} spark={r?.series.map((p) => p.clicks)} />
-            <StatCard label={t('analytics.metrics.ctr')} icon="target" loading={report.status === 'loading'} value={r ? formatPercent(r.totals.ctr, 1) : '—'} delta={r?.deltas.ctr} demo={r?.source === 'demo'} />
+            <StatCard label={t('analytics.metrics.views')} icon="eye" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.views) : '—'} delta={r?.deltas.views} spark={r?.series.map((p) => p.views)} />
+            <StatCard label={t('analytics.metrics.visitors')} icon="users" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.visitors) : '—'} delta={r?.deltas.visitors} />
+            <StatCard label={t('analytics.metrics.clicks')} icon="click" loading={report.status === 'loading'} value={r ? formatCompact(r.totals.clicks) : '—'} delta={r?.deltas.clicks} spark={r?.series.map((p) => p.clicks)} />
+            <StatCard label={t('analytics.metrics.ctr')} icon="target" loading={report.status === 'loading'} value={r ? formatPercent(r.totals.ctr, 1) : '—'} delta={r?.deltas.ctr} />
           </div>
         )}
       </section>

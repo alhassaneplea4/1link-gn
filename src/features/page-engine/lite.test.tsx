@@ -24,9 +24,11 @@ describe('mode économe — rendu', () => {
     expect(container.querySelector('img[src="https://exemple.com/a.jpg"]')).not.toBeNull();
   });
 
-  it('affiche directement les images déjà en mémoire (URL de données) et tout hors mode économe', () => {
-    const lite = render(<PageRenderer page={withGallery('data:image/svg+xml;utf8,<svg/>')} pageUrl="https://1link.gn/x" lite />);
-    expect(lite.container.querySelector('img[src^="data:image"]')).not.toBeNull();
+  it('retient aussi les images téléversées sur la plateforme en mode économe, et affiche tout hors mode économe', () => {
+    const media = '/api/media/med_0123456789abcdef0123';
+    const lite = render(<PageRenderer page={withGallery(media)} pageUrl="https://1link.gn/x" lite />);
+    expect(lite.container.querySelector(`img[src="${media}"]`)).toBeNull();
+    expect(screen.getByRole('button', { name: /Afficher l’image : Atelier/ })).toBeInTheDocument();
     lite.unmount();
     const normal = render(<PageRenderer page={withGallery('https://exemple.com/a.jpg')} pageUrl="https://1link.gn/x" />);
     expect(normal.container.querySelector('img[src="https://exemple.com/a.jpg"]')).not.toBeNull();

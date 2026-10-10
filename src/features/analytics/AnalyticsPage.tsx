@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Button, ChartCard, EmptyState, Input, PageHeader, Segmented, StatCard, DemoBadge } from '@/components/ui';
+import { Alert, Button, ChartCard, EmptyState, Input, PageHeader, Segmented, StatCard } from '@/components/ui';
 import { ChartLegend, DonutChart, HBarList, TimeChart } from '@/components/charts/charts';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
   return (
     <div className="an">
       <PageHeader
-        title={t('analytics.title')} description={t('analytics.subtitle')} badge={report?.source === 'demo' ? <DemoBadge /> : undefined}
+        title={t('analytics.title')} description={t('analytics.subtitle')}
         actions={report && !empty ? <Button variant="secondary" iconLeft="download" onClick={() => downloadCsv(report, [t('analytics.csv.date'), t('analytics.metrics.views'), t('analytics.metrics.visitors'), t('analytics.metrics.clicks')])}>{t('analytics.export')}</Button> : undefined}
       />
 
@@ -69,7 +69,6 @@ export default function AnalyticsPage() {
         {res.refreshing && <span className="subtle an-filters__refresh" role="status">{t('common.loading')}</span>}
       </div>
 
-      {report?.source === 'demo' && <Alert tone="warning" title={t('analytics.demo.title')} className="an-alert">{t('analytics.demo.text')}</Alert>}
       {tooLongForPlan && <Alert tone="info" className="an-alert" action={<Link className="btn btn--secondary btn--sm" to={paths.dashboard.subscription}><span className="btn__label">{t('analytics.planLimit.cta')}</span></Link>}>{t('analytics.planLimit.text', { days: entitlements!.analyticsDays })}</Alert>}
 
       {empty && !loading ? (
@@ -85,7 +84,7 @@ export default function AnalyticsPage() {
 
           <ChartCard
             className="an-main" title={t('analytics.evolution')} description={report ? `${formatDate(report.range.from, { dateStyle: 'medium' }, 'UTC')} → ${formatDate(report.range.to, { dateStyle: 'medium' }, 'UTC')}` : undefined}
-            loading={loading} error={err} onRetry={res.reload} demo={report?.source === 'demo'}
+            loading={loading} error={err} onRetry={res.reload}
             actions={<Segmented size="sm" label={t('analytics.chartType')} value={kind} onChange={setKind} options={[{ value: 'line', label: t('analytics.line'), icon: 'activity' }, { value: 'bar', label: t('analytics.bars'), icon: 'chart' }]} />}
             footer={<ChartLegend items={[{ label: t('analytics.metrics.views') }, { label: t('analytics.metrics.visitors') }, { label: t('analytics.metrics.clicks') }]} />}
           >
@@ -93,16 +92,16 @@ export default function AnalyticsPage() {
           </ChartCard>
 
           <div className="an-cols">
-            <ChartCard title={t('analytics.topLinks')} description={t('analytics.topLinksDesc')} loading={loading} error={err} onRetry={res.reload} empty={report?.topLinks.length === 0} emptyLabel={t('analytics.noLinks')} demo={report?.source === 'demo'}>
+            <ChartCard title={t('analytics.topLinks')} description={t('analytics.topLinksDesc')} loading={loading} error={err} onRetry={res.reload} empty={report?.topLinks.length === 0} emptyLabel={t('analytics.noLinks')}>
               {report && <HBarList items={report.topLinks.slice(0, 6).map((l) => ({ label: l.label, value: l.clicks, sub: `${t('analytics.metrics.ctr')} ${formatPercent(l.ctr, 1)}` }))} />}
             </ChartCard>
-            <ChartCard title={t('analytics.sources')} description={t('analytics.sourcesDesc')} loading={loading} error={err} onRetry={res.reload} demo={report?.source === 'demo'}>
+            <ChartCard title={t('analytics.sources')} description={t('analytics.sourcesDesc')} loading={loading} error={err} onRetry={res.reload}>
               {report && <HBarList showShare items={report.sources.map((s) => ({ label: s.name, value: s.value }))} />}
             </ChartCard>
-            <ChartCard title={t('analytics.devices')} loading={loading} error={err} onRetry={res.reload} demo={report?.source === 'demo'}>
+            <ChartCard title={t('analytics.devices')} loading={loading} error={err} onRetry={res.reload}>
               {report && <DonutChart label={t('analytics.devices')} centerLabel={t('analytics.metrics.visitors')} items={report.devices.map((d) => ({ label: d.name, value: d.value }))} />}
             </ChartCard>
-            <ChartCard title={t('analytics.countries')} description={report?.geoApproximate ? t('analytics.geoApprox') : undefined} loading={loading} error={err} onRetry={res.reload} demo={report?.source === 'demo'} footer={report?.geoApproximate ? <span>{t('analytics.geoNote')}</span> : undefined}>
+            <ChartCard title={t('analytics.countries')} description={report?.geoApproximate ? t('analytics.geoApprox') : undefined} loading={loading} error={err} onRetry={res.reload} footer={report?.geoApproximate ? <span>{t('analytics.geoNote')}</span> : undefined}>
               {report && <HBarList showShare items={report.countries.map((c) => ({ label: c.name, value: c.value }))} />}
             </ChartCard>
           </div>

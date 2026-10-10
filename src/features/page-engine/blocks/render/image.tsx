@@ -14,12 +14,12 @@ interface PgImageProps {
 
 /**
  * Image de page. En mode économe, rien n'est téléchargé tant que le visiteur ne le demande pas
- * (les URL de données locales, déjà en mémoire, s'affichent directement).
+ * (images téléversées sur la plateforme comprises : elles pèsent aussi sur la connexion).
  */
 export function PgImage({ src, alt, width, height, className, ctx }: PgImageProps) {
   const t = useT('pub');
   const [shown, setShown] = useState(false);
-  const gated = ctx.lite && !ctx.preview && !shown && !src.startsWith('data:');
+  const gated = ctx.lite && !ctx.preview && !shown;
   if (gated) {
     return (
       <button type="button" className={`pg-imgate ${className ?? ''}`} style={{ aspectRatio: `${width} / ${height}` }} onClick={() => setShown(true)} aria-label={`${t('pub.lite.showImage')}${alt ? ` : ${alt}` : ''}`}>

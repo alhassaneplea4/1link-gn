@@ -247,7 +247,6 @@ export function PublishStep({ doc, onPublish, onSaveDraft, busy, error }: { doc:
         <Icon name="link" size={20} />
         <div><strong className="mono">{publicUrl(doc.username)}</strong><small>{t('onboarding.publish.address')}</small></div>
       </div>
-      {env.isDemo && <Alert tone="warning" title={t('editor.publish.demoTitle')}>{t('editor.publish.demoBefore')}</Alert>}
       {!verified && (
         <Alert tone="warning" title={t('editor.publish.unverifiedTitle')} action={<Link className="btn btn--secondary btn--sm" to={paths.verifyEmail}><span className="btn__label">{t('editor.publish.verifyNow')}</span></Link>}>
           {t('onboarding.publish.unverifiedText')}

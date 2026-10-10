@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Badge, Button, Icon, Logo } from '@/components/ui';
+import { Badge, Button, Icon, Logo, Spinner } from '@/components/ui';
+import { api } from '@/services/api';
 import { PhoneFrame } from '@/components/ui/PhoneFrame';
 import { PageRenderer } from '@/features/page-engine/renderer/PageRenderer';
 import { pageReadiness } from '@/features/page-engine/document';
@@ -13,7 +14,7 @@ import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { composeDocument } from './compose';
 import { ActivityStep, AppearanceStep, CategoryStep, ContentStep, IdentityStep, LinksStep, PreviewStep, PublishStep } from './steps';
-import { STEPS, useOnboarding, type OnboardingData } from './store';
+import { STEPS, restoreOnboarding, snapshotOnboarding, useOnboarding, type OnboardingData } from './store';
 import { validateStep } from './validate';
 import './onboarding.css';
 
@@ -31,6 +32,31 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Reprise : le brouillon de l'assistant est conservé sur le serveur (même compte, n'importe quel appareil).
+  useEffect(() => {
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let pending: Record<string, unknown> | null = null;
+    const flush = () => {
+      if (!pending) return;
+      const state = pending;
+      pending = null;
+      void api.page.saveOnboardingState(state).catch(() => undefined);
+    };
+    let unsubscribe: (() => void) | undefined;
+    api.page.getOnboardingState().then((raw) => { if (live && raw) restoreOnboarding(raw); }, () => undefined).finally(() => {
+      if (!live) return;
+      setRestored(true);
+      unsubscribe = useOnboarding.subscribe((s) => {
+        pending = snapshotOnboarding(s);
+        clearTimeout(timer);
+        timer = setTimeout(flush, 800);
+      });
+    });
+    return () => { live = false; unsubscribe?.(); clearTimeout(timer); flush(); };
+  }, []);
 
   const stepId = STEPS[step] ?? 'category';
   const doc = useMemo(() => composeDocument(data as OnboardingData, user?.name ?? ''), [data.category, data.identity, data.activity, data.socials, data.links, data.items, data.about, data.themeId, data.primaryColor, user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -40,6 +66,7 @@ export default function OnboardingPage() {
   useEffect(() => { heading.current?.focus({ preventScroll: false }); window.scrollTo({ top: 0 }); }, [step]);
 
   if (user?.onboardingDone) return <Navigate to={paths.dashboard.root} replace />;
+  if (!restored) return <div className="fullpage-loader" role="status"><Spinner size={28} label={t('common.loading')} /></div>;
 
   // État global de la configuration affiché dans l'en-tête.
   const readiness = pageReadiness(doc);
@@ -59,7 +86,9 @@ export default function OnboardingPage() {
   const finish = async (publish: boolean) => {
     setBusy(true);
     setPublishError(null);
-    useEditor.setState({ status: 'ready', doc, saved: null, past: [], future: [], dirty: true });
+    // Un brouillon peut déjà exister côté serveur (assistant interrompu) : on repart de sa version pour ne rien écraser par erreur.
+    const existing = await api.page.getMyPage().catch(() => null);
+    useEditor.setState({ status: 'ready', doc: existing ? { ...doc, id: existing.id, version: existing.version } : doc, saved: null, past: [], future: [], dirty: true });
     const result = publish ? await useEditor.getState().publish() : { ok: await useEditor.getState().saveDraft(), error: undefined };
     setBusy(false);
     if (!result.ok) { setPublishError(result.error ?? 'unknown'); return; }
@@ -69,6 +98,7 @@ export default function OnboardingPage() {
       if (s) useSession.getState().setSession({ ...s, user: { ...s.user, onboardingDone: true, username: doc.username, category: doc.category } });
     }
     useOnboarding.getState().reset();
+    void api.page.saveOnboardingState(null).catch(() => undefined);
     navigate(paths.dashboard.root, { replace: true });
   };
 

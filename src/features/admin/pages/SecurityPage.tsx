@@ -1,4 +1,4 @@
-import { Badge, Card, DataTable, DemoBadge, Icon, PageHeader, SearchBar, Skeleton, ErrorState, type Column } from '@/components/ui';
+import { Badge, Card, DataTable, Icon, PageHeader, SearchBar, Skeleton, ErrorState, type Column } from '@/components/ui';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -25,7 +25,7 @@ export default function AdminSecurityPage() {
   ];
   return (
     <div className="adm-stack">
-      <PageHeader title={t('admin.nav.security')} description={t('admin.security.description')} badge={<DemoBadge />} />
+      <PageHeader title={t('admin.nav.security')} description={t('admin.security.description')} />
       <Card padding="lg">
         <h2 className="adm-section-title"><Icon name="shield-check" size={18} /> {t('admin.security.yourAccess')}</h2>
         <p className="muted">{t('admin.security.yourAccessText')}</p>

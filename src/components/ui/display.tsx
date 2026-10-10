@@ -18,15 +18,6 @@ export function Badge({ tone = 'neutral', icon, dot, children, className }: { to
 }
 
 /** Signale sans ambiguïté qu'une donnée est fictive. À placer près de TOUT chiffre issu d'un adaptateur de démonstration. */
-export function DemoBadge({ label, className }: { label?: string; className?: string }) {
-  const t = useT('common');
-  return (
-    <Badge tone="warning" icon="flask" className={cx('demo-badge', className)}>
-      {label ?? t('common.demo')}
-    </Badge>
-  );
-}
-
 /* — Alert — */
 export function Alert({ tone = 'info', title, children, action, onDismiss, className, role }: { tone?: 'info' | 'success' | 'warning' | 'danger'; title?: ReactNode; children?: ReactNode; action?: ReactNode; onDismiss?: () => void; className?: string; role?: 'alert' | 'status' }) {
   const t = useT('common');

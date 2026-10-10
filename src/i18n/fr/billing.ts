@@ -44,7 +44,6 @@ export default {
     cancelText: 'Votre offre reste active jusqu’à la fin de la période en cours, puis repasse à Free. Vous pouvez reprendre l’abonnement avant cette date.',
     canceled: 'Résiliation programmée',
     resumed: 'Abonnement repris',
-    demoLocal: 'Mode démonstration : enregistré localement uniquement.',
     changePlan: 'Changer d’offre',
     yourPlan: 'Votre offre',
     upgradeTo: 'Passer à',
