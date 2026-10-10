@@ -1,5 +1,6 @@
 import { ApiError, type ListQuery, type Paged } from '@/models/api';
 import type { AdminUserDetail, PlatformOverview, Report, ServiceStatus } from '@/models/admin';
+import type { VerificationRequest } from '@/models/verification';
 import type { AdminApi } from '../types';
 import { addDays, hashSeed, isoDay, rng } from './prng';
 import { delay, readDb, writeDb } from './db';
@@ -30,6 +31,11 @@ export function listFrom<T extends object>(rows: readonly T[], q: ListQuery, sea
 }
 
 const guard = () => requireDemoUser();
+const allVerifications = (): VerificationRequest[] => {
+  const db = readDb();
+  const own = Object.values(db.verifications ?? {});
+  return [...own, ...getSeed().verifications].map((v) => ({ ...v, ...(db.verificationOverrides?.[v.id] ?? {}) }));
+};
 const withOverrides = (r: Report): Report => {
   const o = readDb().moderation[r.id];
   return o ? { ...r, status: o.status, history: [...r.history, ...o.history] } : r;
@@ -130,6 +136,33 @@ export const demoAdmin: AdminApi = {
     await delay(null, 400);
     writeDb((db) => {
       db.userStatus[userId] = status;
+    });
+    return { mode: 'demo' as const, applied: false };
+  },
+
+  async listVerifications(q) {
+    guard();
+    return delay(listFrom(allVerifications(), q, ['username', 'owner', 'legalName', 'id']));
+  },
+
+  async decideVerification(id, decision, note) {
+    guard();
+    await delay(null, 450);
+    const req = allVerifications().find((v) => v.id === id);
+    if (!req) throw new ApiError('not_found', 'verification', { status: 404 });
+    if (req.status !== 'pending') throw new ApiError('conflict', 'already_decided', { status: 409 });
+    if (decision === 'reject' && note.trim().length < 5) throw new ApiError('validation', 'note_required', { status: 422 });
+    const decided = { status: decision === 'approve' ? ('approved' as const) : ('rejected' as const), decidedAt: new Date().toISOString(), decisionNote: note.trim() || null };
+    writeDb((db) => {
+      db.verificationOverrides = { ...(db.verificationOverrides ?? {}), [id]: decided };
+      const owner = db.users.find((u) => u.username === req.username);
+      if (owner && decision === 'approve') {
+        db.verifiedUsers = { ...(db.verifiedUsers ?? {}), [owner.id]: true };
+        for (const store of [db.pages, db.published]) {
+          const doc = store[owner.id];
+          if (doc) store[owner.id] = { ...doc, blocks: doc.blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, verified: true } } : b)) };
+        }
+      }
     });
     return { mode: 'demo' as const, applied: false };
   },

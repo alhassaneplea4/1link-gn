@@ -259,6 +259,39 @@ test.describe('Admin Center', () => {
   });
 });
 
+test.describe('vérification de profil', () => {
+  test('demande par l’utilisateur, décision de l’administrateur, badge sur la page publique', async ({ page }) => {
+    await loginAs(page, /Créatrice/);
+    await page.goto('/dashboard/settings');
+    await expect(page.getByText('Non vérifié').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Demander la vérification' }).click();
+    await page.getByLabel(/Nom légal/).fill('Mariama Bah');
+    await page.getByLabel(/Lien de preuve/).fill('https://exemple.com/mariama');
+    await page.getByLabel(/J’atteste sur l’honneur/).check();
+    await page.getByRole('button', { name: 'Envoyer la demande' }).click();
+    await expect(page.getByText('Demande en cours d’examen')).toBeVisible();
+    await page.goto('/mariama');
+    await expect(page.getByRole('heading', { level: 1, name: /Mariama/ })).toBeVisible();
+    await expect(page.getByTitle('Profil vérifié')).toHaveCount(0);
+
+    await page.goto('/auth/sign-out');
+    await page.getByRole('button', { name: 'Se déconnecter' }).click();
+    await expect(page).toHaveURL(/signed-out/);
+    await loginAs(page, /^Admin/);
+    await page.goto('/admin/profiles');
+    await page.getByRole('tab', { name: 'Vérifications' }).click();
+    await page.getByPlaceholder(/Pseudonyme, nom/).fill('mariama');
+    const row = page.locator('tbody tr').filter({ has: page.getByText('@mariama', { exact: true }) }).first();
+    await row.click();
+    await page.getByRole('button', { name: 'Accepter', exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Accepter', exact: true }).click();
+    await expect(page.locator('.toasts').getByText('Profil vérifié')).toBeVisible();
+
+    await page.goto('/mariama');
+    await expect(page.getByTitle('Profil vérifié')).toBeVisible();
+  });
+});
+
 test.describe('états d’erreur et formulaires', () => {
   test('connexion : validation et identifiants refusés', async ({ page }) => {
     await page.goto('/auth/login');

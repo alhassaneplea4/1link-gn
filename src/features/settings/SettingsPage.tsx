@@ -7,6 +7,7 @@ import { env, publicUrl } from '@/app/configuration/env';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { useUi, type ThemePreference } from '@/state/ui';
+import { VerificationCard } from './VerificationCard';
 import './settings.css';
 
 export default function SettingsPage() {
@@ -67,6 +68,8 @@ export default function SettingsPage() {
           </Select>
           <Toggle label={t('dashboard.settings.emailNotifs')} hint={t('dashboard.settings.soonHint')} checked={false} onChange={() => undefined} disabled />
         </Card>
+
+        <VerificationCard />
 
         <Card padding="lg" className="settings__card settings__card--danger">
           <h2>{t('dashboard.settings.dangerZone')}</h2>

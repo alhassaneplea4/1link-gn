@@ -30,6 +30,8 @@ const page: PageApi = {
   unpublish: () => request('POST', '/me/page/unpublish'),
   getPublicPage: (username) => request<PublicPageResult>('GET', `/pages/${encodeURIComponent(username)}`),
   checkUsername: (username) => request('GET', '/usernames/check', { query: { username } }),
+  getVerification: () => request('GET', '/me/verification'),
+  requestVerification: (input) => request('POST', '/me/verification', { body: input }),
   reportPage: (username, input) => request('POST', `/pages/${encodeURIComponent(username)}/reports`, { body: input }).then(() => ({ mode: 'live' as const })),
   trackEvent: (username, event) => request('POST', `/pages/${encodeURIComponent(username)}/events`, { body: event }),
 };
@@ -55,6 +57,8 @@ const admin: AdminApi = {
   getReport: (id) => request('GET', `/admin/reports/${encodeURIComponent(id)}`),
   applyDecision: (id, decision, note) => request('POST', `/admin/reports/${encodeURIComponent(id)}/decision`, { body: { decision, note } }),
   setUserStatus: (id, status) => request('PATCH', `/admin/users/${encodeURIComponent(id)}/status`, { body: { status } }),
+  listVerifications: (l) => request('GET', '/admin/verifications', { query: q(l) }),
+  decideVerification: (id, decision, note) => request('POST', `/admin/verifications/${encodeURIComponent(id)}/decision`, { body: { decision, note } }),
   listSubscriptions: (l) => request('GET', '/admin/subscriptions', { query: q(l) }),
   listPayments: (l) => request('GET', '/admin/payments', { query: q(l) }),
   listTickets: (l) => request('GET', '/admin/tickets', { query: q(l) }),

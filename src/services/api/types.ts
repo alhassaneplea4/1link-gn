@@ -4,6 +4,7 @@
  * l'implémentation HTTP (services/api/http) à la place de l'implémentation de démonstration.
  */
 import type { Paged, ListQuery } from '@/models/api';
+import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
 import type { Session, SignUpInput } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { AnalyticsReport, DateRange } from '@/models/analytics';
@@ -55,6 +56,8 @@ export interface PageApi {
   unpublish(): Promise<PageDocument>;
   getPublicPage(username: string): Promise<PublicPageResult>;
   checkUsername(username: string): Promise<{ available: boolean; reason?: 'taken' | 'reserved' | 'invalid' }>;
+  getVerification(): Promise<VerificationState>;
+  requestVerification(input: VerificationInput): Promise<VerificationState>;
   /** Signalement d'une page publique par un visiteur (anonyme). */
   reportPage(username: string, input: ReportInput): Promise<{ mode: 'demo' | 'live' }>;
   /** `source` = canal d'origine (paramètre `?src=` sanitisé), pour l'attribution des visites. */
@@ -82,6 +85,8 @@ export interface AdminApi {
   getReport(id: string): Promise<Report>;
   applyDecision(reportId: string, decision: ModerationDecision, note: string): Promise<MutationOutcome>;
   setUserStatus(userId: string, status: 'active' | 'suspended'): Promise<MutationOutcome>;
+  listVerifications(q: ListQuery): Promise<Paged<VerificationRequest>>;
+  decideVerification(id: string, decision: VerificationDecision, note: string): Promise<MutationOutcome>;
   listSubscriptions(q: ListQuery): Promise<Paged<SubscriptionRow>>;
   listPayments(q: ListQuery): Promise<Paged<PaymentRow>>;
   listTickets(q: ListQuery): Promise<Paged<Ticket>>;

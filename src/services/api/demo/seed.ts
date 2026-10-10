@@ -1,4 +1,5 @@
 /** Jeux de données ADMIN fictifs, déterministes, générés à la volée. Jamais utilisés hors du mode démonstration. */
+import type { VerificationRequest } from '@/models/verification';
 import type { AdminProfileRow, AdminUserRow, AuditLog, PaymentRow, Report, ReportReason, SecurityEvent, SubscriptionRow, Ticket } from '@/models/admin';
 import type { PlanId } from '@/models/auth';
 import { CATEGORY_IDS } from '@/models/category';
@@ -26,6 +27,7 @@ export interface SeedData {
   tickets: Ticket[];
   logs: AuditLog[];
   security: SecurityEvent[];
+  verifications: VerificationRequest[];
 }
 
 let cache: SeedData | null = null;
@@ -117,6 +119,17 @@ export function getSeed(): SeedData {
     };
   }).sort((a, b) => b.at.localeCompare(a.at));
 
-  cache = { users, profiles, reports, payments, subscriptions, tickets, logs, security };
+  const verifKinds = ['person', 'business', 'organization'] as const;
+  const verifications: VerificationRequest[] = Array.from({ length: 14 }, (_, i) => {
+    const p = r.pick(profiles);
+    const status = r.pick(['pending', 'pending', 'pending', 'approved', 'rejected'] as const);
+    const kind = r.pick(verifKinds);
+    return {
+      id: `ver_${9000 + i}`, username: p.username, owner: p.owner, kind, legalName: kind === 'person' ? p.owner : `${p.owner.split(' ')[1] ?? 'Groupe'} ${kind === 'business' ? 'SARL' : 'Association'}`,
+      registryNumber: kind === 'person' ? '' : `RCCM/GN/${r.int(2015, 2025)}/B/${r.int(1000, 9999)}`, proofUrl: `https://exemple.test/${p.username}`, note: '',
+      status, createdAt: ago(r.int(0, 25), r.int(0, 23)), decidedAt: status === 'pending' ? null : ago(r.int(0, 5)), decisionNote: status === 'rejected' ? 'Les éléments fournis ne permettent pas de recouper l’identité.' : null,
+    };
+  });
+  cache = { users, profiles, reports, payments, subscriptions, tickets, logs, security, verifications };
   return cache;
 }

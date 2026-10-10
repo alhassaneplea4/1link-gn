@@ -75,10 +75,12 @@ export interface ConfirmDialogProps {
   loading?: boolean;
   /** Si fourni, l'utilisateur doit saisir ce texte pour activer la confirmation (actions très sensibles). */
   requireText?: string;
+  /** Désactive la confirmation tant qu'une condition métier n'est pas remplie. */
+  confirmDisabled?: boolean;
   children?: ReactNode;
 }
 
-export function ConfirmDialog({ open, onCancel, onConfirm, title, description, confirmLabel, cancelLabel, tone = 'primary', loading, requireText, children }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onCancel, onConfirm, title, description, confirmLabel, cancelLabel, tone = 'primary', loading, requireText, confirmDisabled, children }: ConfirmDialogProps) {
   const t = useT('common');
   const [typed, setTyped] = useState('');
   const blocked = Boolean(requireText) && typed.trim() !== requireText;
@@ -93,7 +95,7 @@ export function ConfirmDialog({ open, onCancel, onConfirm, title, description, c
       footer={
         <>
           <Button variant="secondary" onClick={onCancel} disabled={loading}>{cancelLabel ?? t('common.cancel')}</Button>
-          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={() => void onConfirm()} loading={loading} disabled={blocked} data-autofocus={!requireText ? '' : undefined}>
+          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={() => void onConfirm()} loading={loading} disabled={blocked || confirmDisabled} data-autofocus={!requireText ? '' : undefined}>
             {confirmLabel}
           </Button>
         </>

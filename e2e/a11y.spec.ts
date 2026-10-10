@@ -26,7 +26,7 @@ test.describe('accessibilité (axe)', () => {
       await audit(page, path);
     });
   }
-  for (const path of ['/admin', '/admin/users', '/admin/moderation', '/admin/security']) {
+  for (const path of ['/admin', '/admin/users', '/admin/moderation', '/admin/security', '/admin/profiles']) {
     test(`admin ${path}`, async ({ page }) => {
       await loginAs(page, /Super Admin/);
       await page.goto(path);

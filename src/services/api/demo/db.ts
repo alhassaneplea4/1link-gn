@@ -8,6 +8,7 @@ import type { CategoryId } from '@/models/category';
 import type { PageDocument } from '@/models/page';
 import type { Subscription } from '@/models/billing';
 import type { Report, ReportStatus } from '@/models/admin';
+import type { VerificationRequest } from '@/models/verification';
 import { safeStorage } from '@/utilities/storage';
 import { getSampleDocument } from '@/features/page-engine/samples';
 
@@ -38,6 +39,12 @@ export interface DemoDb {
   userStatus: Record<string, 'active' | 'suspended'>;
   /** Signalements envoyés depuis les pages publiques de ce navigateur (démonstration). */
   reports?: Report[];
+  /** Demande de vérification de chaque utilisateur (démonstration). */
+  verifications?: Record<string, VerificationRequest>;
+  /** Badge « vérifié » accordé par la modération : seule source de vérité du badge. */
+  verifiedUsers?: Record<string, boolean>;
+  /** Décisions prises sur les demandes fictives de l'Admin Center. */
+  verificationOverrides?: Record<string, Pick<VerificationRequest, 'status' | 'decidedAt' | 'decisionNote'>>;
 }
 
 const KEY = 'onelink.demo.db.v1';

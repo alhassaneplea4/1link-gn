@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Badge, DataTable, DemoBadge, PageHeader, SearchBar, type Column } from '@/components/ui';
+import { Badge, DataTable, DemoBadge, PageHeader, SearchBar, Tabs, type Column } from '@/components/ui';
+import VerificationsPanel from './VerificationsPanel';
 import { api } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/dom';
 import { paths } from '@/app/configuration/paths';
@@ -9,9 +10,8 @@ import type { AdminProfileRow } from '@/models/admin';
 import { formatNumber, formatRelative } from '@/utilities/format';
 import { FilterSelect, StatusBadge, useAdminList } from '../shared';
 
-export default function ProfilesPage() {
+function PagesPanel() {
   const t = useT('admin', 'common');
-  useDocumentTitle(`${t('admin.nav.profiles')} · Admin Center`);
   const { q, res, setSearch, setFilter, setPage, setSort } = useAdminList((query) => api.admin.listProfiles(query), { sort: 'views30d', dir: 'desc' });
   const cols: Column<AdminProfileRow>[] = [
     { key: 'username', header: t('admin.profiles.page'), sortable: true, primary: true, cell: (p) => <span><strong>@{p.username}</strong><br /><small className="subtle">{p.owner}</small></span> },
@@ -29,7 +29,6 @@ export default function ProfilesPage() {
   ];
   return (
     <div>
-      <PageHeader title={t('admin.nav.profiles')} description={t('admin.profiles.description')} badge={<DemoBadge />} />
       <div className="adm-filters">
         <SearchBar label={t('common.search')} placeholder={t('admin.profiles.searchPlaceholder')} onSearch={setSearch} />
         <FilterSelect label={t('admin.users.status')} value={q.filters?.status} onChange={(v) => setFilter('status', v)} options={(['published', 'draft', 'suspended'] as const).map((s) => ({ value: s, label: t(`common.status.${s}`) }))} />
@@ -39,6 +38,20 @@ export default function ProfilesPage() {
         caption={t('admin.nav.profiles')} columns={cols} rows={res.data?.items} getRowId={(p) => p.id} loading={res.status === 'loading' || res.refreshing} error={res.status === 'error' ? res.error : null} onRetry={res.reload}
         sort={q.sort ? { key: q.sort, dir: q.dir ?? 'asc' } : undefined} onSort={setSort} pagination={res.data ? { page: res.data.page, pageSize: res.data.pageSize, total: res.data.total, onChange: setPage } : undefined}
       />
+    </div>
+  );
+}
+
+export default function ProfilesPage() {
+  const t = useT('admin', 'common');
+  useDocumentTitle(`${t('admin.nav.profiles')} · Admin Center`);
+  return (
+    <div>
+      <PageHeader title={t('admin.nav.profiles')} description={t('admin.profiles.description')} badge={<DemoBadge />} />
+      <Tabs variant="pills" label={t('admin.nav.profiles')} items={[
+        { id: 'pages', label: t('admin.verification.pagesTab'), icon: 'file', panel: <PagesPanel /> },
+        { id: 'verifications', label: t('admin.verification.tab'), icon: 'shield-check', panel: <VerificationsPanel /> },
+      ]} />
     </div>
   );
 }
