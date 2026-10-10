@@ -76,6 +76,7 @@ export default function OverviewPage() {
       addContact: { done: has('contact', 'email', 'phone', 'whatsapp'), action: () => run({ id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } }) },
       addVideo: { done: has('video'), action: () => run({ id: 'contents', icon: 'video', action: { type: 'add-block', block: 'video' } }) },
       addVcard: { done: has('vcard'), action: () => run({ id: 'vcard', icon: 'user-check', action: { type: 'add-block', block: 'vcard' } }) },
+      addBooking: { done: has('booking'), action: () => run({ id: 'appointments', icon: 'calendar', action: { type: 'add-block', block: 'booking' } }) },
       addShop: { done: has('shop'), action: () => run({ id: 'catalog', icon: 'store', action: { type: 'add-block', block: 'shop' } }) },
       addPayment: { done: has('payment'), action: () => run({ id: 'payments', icon: 'wallet', action: { type: 'add-block', block: 'payment' } }) },
       addEvents: { done: has('text'), action: () => run({ id: 'events', icon: 'calendar', action: { type: 'add-block', block: 'text' } }) },

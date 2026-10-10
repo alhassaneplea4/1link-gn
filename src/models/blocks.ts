@@ -2,7 +2,7 @@
 
 export const BLOCK_TYPES = [
   'profile', 'text', 'link', 'social', 'service', 'portfolio', 'gallery', 'video',
-  'contact', 'email', 'phone', 'whatsapp', 'vcard', 'shop', 'payment', 'location', 'qr', 'divider', 'cta',
+  'contact', 'email', 'phone', 'whatsapp', 'vcard', 'booking', 'shop', 'payment', 'location', 'qr', 'divider', 'cta',
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
@@ -35,6 +35,9 @@ export interface EmailData { label: string; email: string; subject: string }
 export interface PhoneData { label: string; phone: string }
 export interface WhatsappData { label: string; phone: string; message: string }
 export interface VcardData { label: string; fullName: string; organization: string; jobTitle: string; phone: string; email: string; website: string; address: string; note: string }
+export interface BookingService { name: string }
+/** Demande de rendez-vous envoyée par le visiteur sur WhatsApp : aucune donnée n'est stockée par 1Link. */
+export interface BookingData { title: string; phone: string; availability: string; services: BookingService[]; note: string }
 export const CURRENCIES = ['GNF', 'XOF', 'XAF', 'EUR', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];
 export interface ShopItem { name: string; description: string; price: string; imageUrl: string }
@@ -64,6 +67,7 @@ export interface BlockDataMap {
   phone: PhoneData;
   whatsapp: WhatsappData;
   vcard: VcardData;
+  booking: BookingData;
   shop: ShopData;
   payment: PaymentData;
   location: LocationData;

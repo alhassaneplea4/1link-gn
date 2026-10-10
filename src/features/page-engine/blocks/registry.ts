@@ -16,6 +16,7 @@ import { DividerRender, GalleryRender, PortfolioRender, ServiceRender, TextRende
 import { ContactRender, LocationRender, QrRender } from './render/places';
 import { VcardRender } from './render/vcard';
 import { PaymentRender, ShopRender } from './render/commerce';
+import { BookingRender } from './render/booking';
 
 const platformOptions = ['link', ...SOCIAL_PLATFORMS] as const;
 
@@ -132,6 +133,19 @@ export const blockRegistry: BlockRegistry = {
     create: () => ({ label: '', fullName: '', organization: '', jobTitle: '', phone: '', email: '', website: '', address: '', note: '' }),
     summary: (d) => d.fullName || d.phone || d.email,
     Render: VcardRender,
+  }),
+  booking: def({
+    type: 'booking', group: 'contact', icon: 'calendar',
+    fields: [
+      text('title', { max: 80 }),
+      { kind: 'tel', name: 'phone', required: true },
+      area('availability', { max: 200 }),
+      { kind: 'list', name: 'services', max: 10, defaultItem: { name: '' }, itemFields: [text('name', { required: true, max: 80 })] },
+      area('note', { max: 240 }),
+    ],
+    create: () => ({ title: '', phone: '', availability: '', services: [], note: '' }),
+    summary: (d) => d.title || d.availability || d.phone,
+    Render: BookingRender,
   }),
   shop: def({
     type: 'shop', group: 'content', icon: 'store',

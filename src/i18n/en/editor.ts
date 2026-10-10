@@ -154,6 +154,11 @@ export default {
     email: { label: 'Email', description: 'A button to write an email.', fields: { label: 'Label', email: 'Email address', subject: 'Pre-filled subject' } },
     phone: { label: 'Phone', description: 'A button to call.', fields: { label: 'Label', phone: 'Phone number' }, placeholders: { phone: '+224 6XX XX XX XX' } },
     whatsapp: { label: 'WhatsApp', description: 'Opens a WhatsApp chat.', fields: { label: 'Label', phone: 'WhatsApp number', message: 'Pre-filled message' }, placeholders: { phone: '+224 6XX XX XX XX' } },
+    booking: {
+      label: 'Appointments', description: 'An appointment request form, sent by the visitor to your WhatsApp.',
+      fields: { title: 'Title', phone: 'WhatsApp number that receives requests', availability: 'Availability', services: 'Reasons / services offered', name: 'Service name', note: 'Additional information' },
+      hints: { phone: 'With country code, e.g. +224 6XX XX XX XX.', availability: 'E.g. Monday to Friday, 9am–5pm.', services: 'Optional: the visitor can pick one.', note: 'E.g. cancel 24 hours in advance.' },
+    },
     shop: {
       label: 'Shop (WhatsApp orders)', description: 'A product catalogue: the customer orders on WhatsApp, with no payment on 1Link.',
       fields: { title: 'Title', phone: 'WhatsApp number for orders', currency: 'Currency', items: 'Products', name: 'Product name', description: 'Description', price: 'Price', imageUrl: 'Photo', note: 'Ordering information' },

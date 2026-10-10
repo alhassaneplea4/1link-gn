@@ -213,3 +213,18 @@
 .pg-sched { position: absolute; z-index: 2; top: -8px; right: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; font-size: 0.7em; font-weight: 700; background: #1d4ed8; color: #fff; }
 .pg-sched[data-state='expired'] { background: #6b7280; }
 .pg-sched[data-state='active'] { background: #047857; }
+
+/* — Rendez-vous — */
+.pg-booking { display: grid; gap: 10px; }
+.pg-booking__avail { display: flex; gap: 6px; align-items: center; color: var(--pg-muted); font-size: 0.88em; }
+.pg-booking__toggle { margin-top: 2px; }
+.pg-form { display: grid; gap: 12px; padding-top: 6px; }
+.pg-form__row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+.pg-field { display: grid; gap: 4px; text-align: left; font-size: 0.85em; font-weight: 650; }
+.pg-field input, .pg-field select, .pg-field textarea { font: inherit; font-weight: 500; color: var(--pg-text); background: var(--pg-bg); border: 1.5px solid var(--pg-border); border-radius: calc(var(--pg-r) * 0.7); padding: 10px 12px; min-height: 44px; width: 100%; }
+.pg-field textarea { resize: vertical; }
+.pg-field input:focus-visible, .pg-field select:focus-visible, .pg-field textarea:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 1px; }
+.pg-field [aria-invalid='true'] { border-color: #dc2626; }
+.pg-field__err { color: #b91c1c; font-weight: 650; }
+.pg[data-bg='gradient'] .pg-field__err, .pg[data-bg='image'] .pg-field__err { color: #fecaca; }
+.pg-btn--send { justify-content: flex-start; }

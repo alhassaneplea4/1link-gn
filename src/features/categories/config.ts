@@ -47,7 +47,7 @@ export interface CategoryConfig {
   /** Raccourcis mis en avant dans le dashboard. */
   focus: readonly FocusItem[];
   /** Clés de recommandations (dashboard.recommendations.*). */
-  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents' | 'addVcard' | 'addShop' | 'addPayment')[];
+  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents' | 'addVcard' | 'addShop' | 'addPayment' | 'addBooking')[];
   /** Les statistiques d'audience d'autres plateformes ne sont PAS disponibles sans intégration. */
   externalAudienceStats: boolean;
 }
@@ -101,9 +101,9 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'certifications', icon: 'award', action: { type: 'add-block', block: 'text' } },
       { id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } },
       { id: 'vcard', icon: 'user-check', action: { type: 'add-block', block: 'vcard' } },
-      { id: 'appointments', icon: 'calendar', action: { type: 'soon' } },
+      { id: 'appointments', icon: 'calendar', action: { type: 'add-block', block: 'booking' } },
     ],
-    recommendations: ['addServices', 'addVcard', 'addPortfolio', 'addContact'],
+    recommendations: ['addServices', 'addBooking', 'addVcard', 'addPortfolio'],
     externalAudienceStats: false,
   },
   business: {

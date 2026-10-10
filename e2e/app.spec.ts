@@ -89,6 +89,26 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     await expect(dialog.getByRole('link', { name: /Commander sur WhatsApp/ })).toBeVisible();
   });
 
+  test('rendez-vous : publication puis demande d’un visiteur envoyée sur WhatsApp', async ({ page, context }) => {
+    await context.route('**://wa.me/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: 'ok' }));
+    await page.goto('/dashboard/page');
+    await page.getByRole('button', { name: 'Ajouter un bloc' }).click();
+    await page.getByRole('button', { name: /^Rendez-vous/ }).first().click();
+    await page.getByLabel(/Numéro WhatsApp qui reçoit les demandes/).fill('+224 622 00 00 00');
+    await page.getByRole('button', { name: /Mettre à jour/ }).first().click();
+    await page.getByRole('button', { name: 'Publier les modifications' }).click();
+    await expect(page.getByRole('heading', { name: 'Publication effectuée' })).toBeVisible();
+    await page.goto('/mariama');
+    await page.getByRole('button', { name: /Demander un rendez-vous/ }).click();
+    await page.getByLabel(/Votre nom/).fill('Awa Test');
+    const popup = page.waitForEvent('popup');
+    await page.getByRole('button', { name: /Envoyer sur WhatsApp/ }).click();
+    const opened = await popup;
+    await opened.waitForLoadState();
+    expect(opened.url()).toContain('wa.me/224622000000');
+    expect(decodeURIComponent(opened.url())).toContain('Awa Test');
+  });
+
   test('programmation : un bloc futur est signalé en aperçu et refuse une période inversée', async ({ page }) => {
     await page.goto('/dashboard/page');
     await page.getByRole('button', { name: 'Ajouter un bloc' }).click();
