@@ -2,7 +2,7 @@
 
 export const BLOCK_TYPES = [
   'profile', 'text', 'link', 'social', 'service', 'portfolio', 'gallery', 'video',
-  'contact', 'email', 'phone', 'whatsapp', 'location', 'qr', 'divider', 'cta',
+  'contact', 'email', 'phone', 'whatsapp', 'vcard', 'location', 'qr', 'divider', 'cta',
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
@@ -34,6 +34,7 @@ export interface ContactData { title: string; items: ContactItem[] }
 export interface EmailData { label: string; email: string; subject: string }
 export interface PhoneData { label: string; phone: string }
 export interface WhatsappData { label: string; phone: string; message: string }
+export interface VcardData { label: string; fullName: string; organization: string; jobTitle: string; phone: string; email: string; website: string; address: string; note: string }
 export interface LocationData { label: string; address: string; mapUrl: string; hours: string }
 export interface QrData { label: string; target: 'page' | 'custom'; url: string }
 export interface DividerData { style: 'line' | 'dots' | 'space'; label: string }
@@ -52,6 +53,7 @@ export interface BlockDataMap {
   email: EmailData;
   phone: PhoneData;
   whatsapp: WhatsappData;
+  vcard: VcardData;
   location: LocationData;
   qr: QrData;
   divider: DividerData;

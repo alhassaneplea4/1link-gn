@@ -3,6 +3,7 @@ import type { Dict } from '../types';
 /** Textes de la page publique (visiteurs) et de ses états. */
 export default {
   verified: 'Profil vérifié',
+  saveContact: 'Enregistrer mon contact',
   learnMore: 'En savoir plus',
   playVideo: 'Lire la vidéo',
   video: 'Vidéo',

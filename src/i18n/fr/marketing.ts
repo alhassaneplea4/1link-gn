@@ -81,7 +81,7 @@ export default {
       presentation: 'Présentation', links: 'Liens', socials: 'Réseaux sociaux', contacts: 'Contacts', appearance: 'Apparence', share: 'Partage',
       contents: 'Contenus vidéo', portfolio: 'Portfolio', distribution: 'Liens de diffusion', collabs: 'Collaborations', audience: 'Statistiques de votre page',
       skills: 'Compétences', services: 'Services', experience: 'Expérience', certifications: 'Certifications', appointments: 'Rendez-vous',
-      brand: 'Identité de marque', team: 'Équipe', location: 'Localisation', multiuser: 'Gestion multi-utilisateur',
+      vcard: 'Carte de contact', brand: 'Identité de marque', team: 'Équipe', location: 'Localisation', multiuser: 'Gestion multi-utilisateur',
       mission: 'Mission', projects: 'Projets', activities: 'Activités', events: 'Événements',
     },
   },

@@ -122,6 +122,7 @@ export default {
     brand: { title: 'Identité de marque', text: 'Couleurs, typographie et boutons de votre marque.' },
     team: { title: 'Équipe', text: 'Présentez les personnes derrière la marque.' },
     location: { title: 'Localisation', text: 'Adresse, horaires et itinéraire.' },
+    vcard: { title: 'Carte de contact', text: 'Les visiteurs vous ajoutent à leur répertoire en un geste.' },
     multiuser: { title: 'Gestion multi-utilisateur', text: 'Plusieurs collaborateurs sur un même compte.' },
     mission: { title: 'Mission', text: 'Pourquoi vous existez.' },
     projects: { title: 'Projets', text: 'Vos réalisations et actions.' },
@@ -138,6 +139,7 @@ export default {
     tryTheme: { title: 'Choisissez un thème', text: 'Donnez à votre page une identité visuelle.' },
     addContact: { title: 'Facilitez le contact', text: 'WhatsApp, appel ou e-mail en un clic.' },
     addVideo: { title: 'Ajoutez une vidéo', text: 'Votre dernier contenu, chargé uniquement au clic.' },
+    addVcard: { title: 'Ajoutez « Enregistrer mon contact »', text: 'Vos coordonnées dans le répertoire de vos visiteurs, sans carte papier.' },
     addEvents: { title: 'Annoncez vos événements', text: 'Un bloc texte pour vos prochains rendez-vous.' },
   },
   content: {

@@ -143,6 +143,11 @@ export default {
     email: { label: 'E-mail', description: 'Un bouton pour écrire un e-mail.', fields: { label: 'Libellé', email: 'Adresse e-mail', subject: 'Objet pré-rempli' } },
     phone: { label: 'Téléphone', description: 'Un bouton pour appeler.', fields: { label: 'Libellé', phone: 'Numéro de téléphone' }, placeholders: { phone: '+224 6XX XX XX XX' } },
     whatsapp: { label: 'WhatsApp', description: 'Ouvre une discussion WhatsApp.', fields: { label: 'Libellé', phone: 'Numéro WhatsApp', message: 'Message pré-rempli' }, placeholders: { phone: '+224 6XX XX XX XX' } },
+    vcard: {
+      label: 'Enregistrer mon contact', description: 'Un bouton qui ajoute vos coordonnées au répertoire du visiteur (fichier vCard).',
+      fields: { label: 'Texte du bouton', fullName: 'Nom complet', organization: 'Entreprise ou organisation', jobTitle: 'Fonction', phone: 'Téléphone', email: 'Adresse e-mail', website: 'Site web', address: 'Adresse', note: 'Note' },
+      hints: { label: 'Par défaut : « Enregistrer mon contact ».', phone: 'Avec l’indicatif pays, ex. +224 6XX XX XX XX.' },
+    },
     location: { label: 'Localisation', description: 'Adresse, horaires et itinéraire.', fields: { label: 'Nom du lieu', address: 'Adresse', mapUrl: 'Lien de la carte', hours: 'Horaires' }, hints: { mapUrl: 'Facultatif : sinon un lien de recherche cartographique est créé.' } },
     qr: { label: 'QR Code', description: 'Un QR code à scanner vers votre page.', fields: { label: 'Légende', target: 'Destination', url: 'Adresse personnalisée' } },
     divider: { label: 'Séparateur', description: 'Une ligne ou un espace pour aérer.', fields: { style: 'Style', label: 'Texte (facultatif)' } },

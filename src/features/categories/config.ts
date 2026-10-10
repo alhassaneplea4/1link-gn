@@ -15,7 +15,7 @@ export type FocusId =
   | 'presentation' | 'links' | 'socials' | 'contacts' | 'appearance' | 'share'
   | 'contents' | 'portfolio' | 'distribution' | 'collabs' | 'audience'
   | 'skills' | 'services' | 'experience' | 'certifications' | 'appointments'
-  | 'brand' | 'team' | 'location' | 'multiuser'
+  | 'brand' | 'team' | 'location' | 'multiuser' | 'vcard'
   | 'mission' | 'projects' | 'activities' | 'events';
 
 export type FocusAction =
@@ -47,7 +47,7 @@ export interface CategoryConfig {
   /** Raccourcis mis en avant dans le dashboard. */
   focus: readonly FocusItem[];
   /** Clés de recommandations (dashboard.recommendations.*). */
-  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents')[];
+  recommendations: readonly ('addBio' | 'addLinks' | 'addServices' | 'addPortfolio' | 'addLocation' | 'shareQr' | 'tryTheme' | 'addContact' | 'addVideo' | 'addEvents' | 'addVcard')[];
   /** Les statistiques d'audience d'autres plateformes ne sont PAS disponibles sans intégration. */
   externalAudienceStats: boolean;
 }
@@ -66,9 +66,10 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'socials', icon: 'share', action: { type: 'add-block', block: 'social' } },
       { id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } },
       { id: 'appearance', icon: 'palette', action: { type: 'goto', to: paths.dashboard.appearance } },
+      { id: 'vcard', icon: 'user-check', action: { type: 'add-block', block: 'vcard' } },
       { id: 'share', icon: 'send', action: { type: 'share' } },
     ],
-    recommendations: ['addBio', 'addLinks', 'tryTheme', 'shareQr'],
+    recommendations: ['addBio', 'addLinks', 'addVcard', 'tryTheme'],
     externalAudienceStats: false,
   },
   creator: {
@@ -98,9 +99,10 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'experience', icon: 'history', action: { type: 'add-block', block: 'text' } },
       { id: 'certifications', icon: 'award', action: { type: 'add-block', block: 'text' } },
       { id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } },
+      { id: 'vcard', icon: 'user-check', action: { type: 'add-block', block: 'vcard' } },
       { id: 'appointments', icon: 'calendar', action: { type: 'soon' } },
     ],
-    recommendations: ['addServices', 'addPortfolio', 'addContact', 'addBio'],
+    recommendations: ['addServices', 'addVcard', 'addPortfolio', 'addContact'],
     externalAudienceStats: false,
   },
   business: {
@@ -114,6 +116,7 @@ export const CATEGORY_CONFIG: Record<CategoryId, CategoryConfig> = {
       { id: 'team', icon: 'users', action: { type: 'add-block', block: 'portfolio' } },
       { id: 'contacts', icon: 'phone', action: { type: 'add-block', block: 'contact' } },
       { id: 'location', icon: 'pin', action: { type: 'add-block', block: 'location' } },
+      { id: 'vcard', icon: 'user-check', action: { type: 'add-block', block: 'vcard' } },
       { id: 'audience', icon: 'chart', action: { type: 'goto', to: paths.dashboard.analytics } },
       { id: 'multiuser', icon: 'user-cog', action: { type: 'soon' } },
     ],

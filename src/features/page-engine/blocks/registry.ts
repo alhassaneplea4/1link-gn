@@ -13,6 +13,7 @@ import { ProfileRender } from './render/profile';
 import { CtaRender, EmailRender, LinkRender, PhoneRender, SocialRender, WhatsappRender } from './render/links';
 import { DividerRender, GalleryRender, PortfolioRender, ServiceRender, TextRender, VideoRender } from './render/content';
 import { ContactRender, LocationRender, QrRender } from './render/places';
+import { VcardRender } from './render/vcard';
 
 const platformOptions = ['link', ...SOCIAL_PLATFORMS] as const;
 
@@ -122,6 +123,13 @@ export const blockRegistry: BlockRegistry = {
     create: () => ({ label: '', phone: '', message: '' }),
     summary: (d) => d.label || d.phone,
     Render: WhatsappRender,
+  }),
+  vcard: def({
+    type: 'vcard', group: 'contact', icon: 'user-check',
+    fields: [text('label', { max: 60 }), text('fullName', { required: true, max: 80 }), text('organization', { max: 80 }), text('jobTitle', { max: 80 }), { kind: 'tel', name: 'phone' }, { kind: 'email', name: 'email' }, url('website'), text('address', { max: 200 }), area('note', { max: 240 })],
+    create: () => ({ label: '', fullName: '', organization: '', jobTitle: '', phone: '', email: '', website: '', address: '', note: '' }),
+    summary: (d) => d.fullName || d.phone || d.email,
+    Render: VcardRender,
   }),
   location: def({
     type: 'location', group: 'contact', icon: 'pin',

@@ -122,6 +122,11 @@ export const useEditor = create<EditorState>((set, get) => {
       const limit = useSession.getState().session?.entitlements.maxBlocks;
       if (limit !== undefined && doc.blocks.length >= limit) return { ok: false, reason: 'plan_limit' };
       const block = createBlock(type, { category: doc.category }) as AnyBlock;
+      // La carte de contact reprend le nom du profil pour éviter une double saisie.
+      if (block.type === 'vcard') {
+        const profile = doc.blocks.find((b) => b.type === 'profile');
+        if (profile?.type === 'profile') block.data.fullName = profile.data.displayName;
+      }
       const blocks = [...doc.blocks];
       blocks.splice(index ?? blocks.length, 0, block);
       withBlocks(blocks);
