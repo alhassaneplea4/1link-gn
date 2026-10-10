@@ -29,6 +29,7 @@ describe('e-mails de bienvenue et de suivi', () => {
   it('échappe le nom de l’utilisateur dans la version HTML', async () => {
     const email = uniqueEmail('xss');
     await t.client({ 'x-real-ip': `203.0.113.${ip++}` }).post('/api/auth/sign-up', { name: '<img src=x onerror=alert(1)>', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+    await tick();
     const html = mailsTo(email!)[0]!.html!;
     expect(html).not.toContain('<img src=x');
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
@@ -38,6 +39,7 @@ describe('e-mails de bienvenue et de suivi', () => {
     const email = uniqueEmail('english');
     const c = t.client({ 'x-real-ip': `203.0.113.${ip++}`, 'accept-language': 'en' });
     await c.post('/api/auth/sign-up', { name: 'John', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+    await tick();
     expect(mailsTo(email!)[0]!.subject).toMatch(/Welcome to 1Link/);
     await t.client({ 'x-real-ip': `203.0.113.${ip++}` }).post('/api/auth/password/forgot', { email: email! });
     await tick();

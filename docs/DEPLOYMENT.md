@@ -1,6 +1,6 @@
 # Déploiement sur Vercel + PostgreSQL (Neon)
 
-Un seul projet Vercel sert **l'interface** (fichiers statiques Vite) et **l'API** (fonction `api/[...path].ts`, application Hono)
+Un seul projet Vercel sert **l'interface** (fichiers statiques Vite) et **l'API** (fonction `api/index.ts`, application Hono)
 sur la **même origine** : pas de CORS, cookies de session `httpOnly` + `SameSite=Lax`, une seule URL.
 
 ```

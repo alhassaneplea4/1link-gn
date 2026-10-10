@@ -65,7 +65,8 @@ authRoutes.post('/sign-up', async (c) => {
   await enforce(deps.db, keyFor('signup-ip', c.get('ip')), 10, 3600, deps.now());
   assertStrongPassword(body.password, [body.email, body.email.split('@')[0] ?? '']);
   const user = await createAccount(deps, { name: body.name, email: body.email, password: body.password, country: country(c), locale: c.get('locale') });
-  await sendVerificationEmail(c, deps, user, true);
+  // L'envoi (SMTP : plusieurs secondes) ne doit pas retarder la réponse ; en cas d'échec l'utilisateur peut redemander le lien.
+  deps.defer(sendVerificationEmail(c, deps, user, true).catch((e) => console.error('[auth] accueil :', (e as Error).message)));
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
 });

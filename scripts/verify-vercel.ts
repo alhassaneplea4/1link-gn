@@ -31,7 +31,7 @@ try {
     MAIL_PROVIDER: 'none',
     OTP_PROVIDER: 'none',
   });
-  const entry = pathToFileURL(join(out, 'api', '[...path].js')).href.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
+  const entry = pathToFileURL(join(out, 'api', 'index.js')).href;
   const mod = (await import(entry)) as { default: { fetch(r: Request): Promise<Response> } };
   const health = await mod.default.fetch(new Request('https://preview.example.test/api/health'));
   const body = (await health.json()) as { status?: string };

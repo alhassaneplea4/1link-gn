@@ -41,7 +41,7 @@ Voir **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** : base Neon, variables d'envir
 |---|---|
 | `src/` | Interface (React, i18n fr/en, éditeur de blocs, Admin Center) |
 | `server/` | API Hono : routes, services, validation zod, schéma Drizzle (`db/schema.ts`), tests serveur |
-| `api/[...path].ts` | Point d'entrée Vercel |
+| `api/index.ts` | Point d'entrée Vercel |
 | `drizzle/` | Migrations SQL versionnées |
 | `e2e/` | Tests de bout en bout |
 | `docs/` | Déploiement, architecture, API, sécurité, limites |

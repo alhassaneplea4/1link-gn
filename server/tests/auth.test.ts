@@ -10,6 +10,7 @@ beforeAll(async () => void (t = await createTestApp()));
 afterAll(async () => t.close());
 
 const signUp = (c = t.client(), email = uniqueEmail('new')) => c.post('/api/auth/sign-up', { name: 'Awa Test', email, password: 'MotDePasse-2026', acceptTerms: true }).then((r) => ({ c, email, r }));
+const settle = () => new Promise((r) => setTimeout(r, 40));
 const linkToken = (mail: { text: string }) => decodeURIComponent(/token=([^\s&]+)/.exec(mail.text)![1]!);
 
 describe('inscription par e-mail', () => {
@@ -21,6 +22,7 @@ describe('inscription par e-mail', () => {
     expect(r.body.entitlements.maxBlocks).toBe(10);
     expect(r.headers.get('set-cookie')).toMatch(/onelink_session=.+HttpOnly.+SameSite=Lax/i);
     expect((await c.get('/api/auth/session')).body.user.email).toBe(email);
+    await settle();
     expect(t.mailer.outbox.at(-1)).toMatchObject({ to: email });
     const [row] = await t.db.select().from(users).where(eq(users.email, email));
     expect(row!.passwordHash).toMatch(/^scrypt\$/);
@@ -117,6 +119,7 @@ describe('protection CSRF', () => {
 describe('vérification de l’e-mail', () => {
   it('valide l’adresse avec le lien reçu, une seule fois', async () => {
     const { c, email } = await signUp();
+    await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     const ok = await c.post('/api/auth/email/verify', { token });
     expect(ok.status).toBe(200);
@@ -127,6 +130,7 @@ describe('vérification de l’e-mail', () => {
 
   it('n’ouvre pas de session quand le lien est ouvert dans un autre navigateur', async () => {
     const { email } = await signUp();
+    await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     const other = t.client();
     const r = await other.post('/api/auth/email/verify', { token });
@@ -138,6 +142,7 @@ describe('vérification de l’e-mail', () => {
 
   it('refuse un jeton expiré', async () => {
     const { c, email } = await signUp();
+    await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     t.clock.advance(25 * 3_600_000);
     expect((await c.post('/api/auth/email/verify', { token })).body.message).toBe('token_expired');

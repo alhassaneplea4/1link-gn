@@ -6,7 +6,8 @@
     "api/**/*.ts": { "maxDuration": 60, "memory": 1024 }
   },
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ],
   "crons": [
     { "path": "/api/cron/maintenance", "schedule": "17 3 * * *" }

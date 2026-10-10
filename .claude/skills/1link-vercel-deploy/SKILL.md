@@ -5,7 +5,7 @@ description: Déployer 1Link sur Vercel avec Neon (variables d'environnement, mi
 
 # Déploiement Vercel + Neon
 
-Guide complet : `docs/DEPLOYMENT.md`. Un projet Vercel sert la SPA (`dist/`) et l'API (`api/[...path].ts`, Hono) sur la même origine. `vercel.json` : fonction (60 s, 1 Go), réécriture SPA qui **exclut `/api/`**, cron de maintenance, en-têtes de sécurité (CSP, HSTS…).
+Guide complet : `docs/DEPLOYMENT.md`. Un projet Vercel sert la SPA (`dist/`) et l'API (`api/index.ts`, Hono) sur la même origine. `vercel.json` : fonction (60 s, 1 Go), réécriture `/api/*` → fonction puis réécriture SPA qui **exclut `/api`**, cron de maintenance, en-têtes de sécurité (CSP, HSTS…).
 
 ## Avant de pousser
 1. `npm run typecheck && npm test` ; `npm run e2e` pour les changements d'interface/parcours.

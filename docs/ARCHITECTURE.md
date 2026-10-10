@@ -10,7 +10,7 @@
 src/  (React 19, Vite)                      server/  (Hono, TypeScript, ESM)                      PostgreSQL
  features/* → services/api (contrat)  ──►   routes/ → services/ → db/schema.ts (Drizzle)   ──►   tables, contraintes, index
  state (zustand) : session, éditeur           validation/ (zod)   lib/ (crypto, débit, e-mail, OTP, droits)   drizzle/*.sql
-api/[...path].ts  ← point d'entrée Vercel : createRuntimeApp() (pool PostgreSQL réutilisé entre les requêtes)
+api/index.ts  ← point d'entrée Vercel : createRuntimeApp() (pool PostgreSQL réutilisé entre les requêtes)
 ```
 
 Une seule fonction `createApp(deps)` assemble l'API ; `deps` (base, horloge, e-mail, SMS) est **injecté** : la production, `npm run dev`, les tests serveur,
@@ -58,7 +58,7 @@ server/
 ├── runtime.ts           dépendances réelles (Vercel / local)
 ├── testing/             PostgreSQL embarqué, harnais, fixtures — JAMAIS importés par le code de production
 └── tests/               tests serveur (SQL réel)
-api/[...path].ts         entrée Vercel
+api/index.ts         entrée Vercel
 drizzle/                 migrations SQL versionnées
 scripts/                 dev, migrate, admin (CLI), verify-vercel
 ```
