@@ -1,0 +1,13 @@
+.phone { margin: 0; width: min(100%, var(--phone-w, 300px)); }
+.phone__bezel {
+  position: relative; border-radius: 2.6rem; padding: 9px; background: linear-gradient(160deg, #1f2937, #0b1020);
+  box-shadow: var(--shadow-4), inset 0 0 0 1.5px rgb(255 255 255 / 0.08);
+}
+.phone__notch { position: absolute; z-index: 3; top: 15px; left: 50%; width: 76px; height: 20px; transform: translateX(-50%); background: #05070d; border-radius: 99px; pointer-events: none; }
+.phone__screen { position: relative; border-radius: 2.1rem; overflow-y: auto; overflow-x: hidden; aspect-ratio: 9 / 18.5; background: #fff; overscroll-behavior: contain; scrollbar-width: none; isolation: isolate; }
+.phone__screen::-webkit-scrollbar { display: none; }
+.phone__screen > .pg { min-height: 100%; padding-top: 52px; }
+.phone--tilt { transform: perspective(1400px) rotateY(-9deg) rotateX(3deg) rotateZ(1.5deg); transition: transform var(--dur-slower) var(--ease-out); }
+.phone--tilt:hover { transform: perspective(1400px) rotateY(-3deg) rotateX(1deg) rotateZ(0deg); }
+@media (prefers-reduced-motion: reduce) { .phone--tilt { transform: none; } }
+.phone__screen.is-static { overflow: hidden; }

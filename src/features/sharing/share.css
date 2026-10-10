@@ -1,0 +1,6 @@
+.share { display: grid; gap: var(--space-5); justify-items: center; text-align: center; }
+.share__alert { margin-bottom: var(--space-4); }
+.share__qr { padding: 0.75rem; background: #fff; border-radius: var(--radius-lg); border: var(--border-1); box-shadow: var(--shadow-2); }
+.share__side { display: grid; gap: var(--space-3); width: 100%; }
+.share__url { padding: 0.65rem 0.9rem; background: var(--color-surface-2); border-radius: var(--radius-md); word-break: break-all; font-weight: var(--weight-semibold); }
+.share__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }

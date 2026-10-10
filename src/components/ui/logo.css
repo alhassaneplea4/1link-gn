@@ -1,0 +1,6 @@
+.logo { display: inline-flex; align-items: center; gap: 0.6rem; line-height: 1; color: var(--color-text); }
+.logo--light { color: #fff; }
+.logo--dark { color: var(--brand-ink); }
+.logo__word { font-size: 1.4rem; font-weight: var(--weight-extrabold); letter-spacing: var(--tracking-tighter); }
+.logo__word span { font-weight: var(--weight-semibold); letter-spacing: -0.03em; }
+a:has(> .logo) { text-decoration: none; }

@@ -1,0 +1,31 @@
+import type { Dict } from '../types';
+
+export default {
+  nav: { label: 'Main navigation', features: 'Features', audiences: 'Who is it for?', pricing: 'Pricing', faq: 'FAQ', login: 'Sign in', cta: 'Create my 1Link', openMenu: 'Open menu', closeMenu: 'Close menu', myspace: 'My space' },
+  hero: {
+    eyebrow: 'Your digital presence, in one link',
+    title: 'One link, for your whole presence.',
+    subtitle: 'Create your personalised digital space and bring your links, socials, services and contacts together in one place.',
+    cta: 'Create my 1Link',
+    secondary: 'Discover 1Link',
+    note: 'Free to start. Ready in minutes.',
+    fictional: 'Fictional example',
+    cardClickTitle: 'New click',
+    cardClickText: 'A visitor opened “Latest video”',
+    cardQr: 'Scan to open',
+    cardContact: 'Contact on WhatsApp',
+    illustrative: 'Illustrative elements',
+  },
+  demo: { eyebrow: 'Demo', title: 'Build your page like a construction set', hint: 'Interactive: nothing is saved.', hide: 'Hide', show: 'Show', up: 'Move up', down: 'Move down' },
+  problem: { eyebrow: 'The problem', title: 'Your presence is scattered' },
+  solution: { eyebrow: 'The solution', title: '1Link brings everything under one address' },
+  how: { eyebrow: 'How it works', title: 'From zero to published in four steps' },
+  audiences: { eyebrow: 'Who is it for?', title: 'Five categories, one tailored experience' },
+  customize: { eyebrow: 'Customisation', title: 'Your page, your way' },
+  features: { eyebrow: 'Features', title: 'Everything to build a credible presence' },
+  analytics: { eyebrow: 'Analytics', title: 'Understand what works', illustrative: 'Illustrative data' },
+  pricing: { eyebrow: 'Pricing', title: 'Start free, grow at your pace', monthly: 'Monthly', yearly: 'Yearly', perMonth: '/ month', perYear: '/ year', free: 'Free', popular: 'Most popular', indicative: 'Indicative prices, subject to change before paid plans launch.', start: 'Start for free' },
+  faq: { eyebrow: 'FAQ', title: 'Frequently asked questions' },
+  final: { title: 'Ready to bring your whole presence together?', text: 'Create your 1Link in minutes and share it everywhere.', cta: 'Create my 1Link', secondary: 'See pricing' },
+  footer: { product: 'Product', forWho: 'Who it’s for', account: 'Account', rights: '© {year} 1Link. All rights reserved.' },
+} satisfies Dict;

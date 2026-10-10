@@ -1,0 +1,7 @@
+.pubload { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 32px 18px; }
+.pubstate { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: var(--space-8); padding: var(--space-8) var(--gutter); background: radial-gradient(50rem 28rem at 50% -10%, rgb(37 99 235 / 0.1), transparent), var(--color-bg); }
+.pubstate__card { display: grid; justify-items: center; gap: var(--space-3); text-align: center; max-width: 28rem; }
+.pubstate__icon { display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: var(--radius-xl); background: var(--gradient-brand-soft); color: var(--color-primary); }
+.pubstate h1 { font-size: var(--text-3xl); }
+.pubstate p { color: var(--color-text-muted); }
+.pubstate__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: var(--space-2); }

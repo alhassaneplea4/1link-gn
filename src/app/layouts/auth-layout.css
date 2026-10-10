@@ -1,0 +1,41 @@
+.authl { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--color-bg); }
+.authl__form { display: flex; flex-direction: column; min-height: 100dvh; padding: var(--space-5) var(--gutter); }
+.authl__top { display: flex; align-items: center; justify-content: space-between; }
+.authl__lang select { height: 2.25rem; border-radius: var(--radius-sm); border: var(--border-1); background: var(--color-surface); padding: 0 0.6rem; font-size: var(--text-sm); }
+.authl__main { flex: 1; display: grid; align-items: center; padding-block: var(--space-8); }
+.authl__card { width: min(100%, 26rem); margin-inline: auto; display: grid; gap: var(--space-5); animation: ol-rise var(--dur-slow) var(--ease-out) both; }
+.authl__aside { display: none; }
+.auth-heading h1 { font-size: var(--text-3xl); letter-spacing: var(--tracking-tighter); }
+.auth-heading p { color: var(--color-text-muted); margin-top: 0.4rem; }
+.auth-form { display: grid; gap: var(--space-4); }
+.auth-form__row { display: flex; justify-content: flex-end; font-size: var(--text-sm); margin-top: -0.5rem; }
+.auth-alt { text-align: center; color: var(--color-text-muted); font-size: var(--text-sm); }
+.auth-alt a { font-weight: var(--weight-semibold); }
+.auth-state { display: grid; justify-items: center; gap: var(--space-4); text-align: center; }
+.auth-state .auth-heading { text-align: center; }
+.auth-state__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+.auth-state__icon { display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: var(--radius-xl); background: var(--gradient-brand-soft); color: var(--color-primary); }
+.auth-state__icon--ok { background: var(--color-success-soft); color: var(--color-success); }
+.auth-state__icon--bad { background: var(--color-danger-soft); color: var(--color-danger); }
+.strength { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.4rem; font-size: var(--text-xs); color: var(--color-text-muted); }
+.strength__bar { display: inline-flex; gap: 3px; } .strength__bar i { width: 28px; height: 4px; border-radius: 2px; background: var(--color-surface-3); }
+.strength__bar[data-level='1'] i:nth-child(-n+1) { background: var(--color-danger); }
+.strength__bar[data-level='2'] i:nth-child(-n+2) { background: #d97706; }
+.strength__bar[data-level='3'] i { background: var(--color-success); }
+.demo-box { padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-warning-soft); border: 1px dashed color-mix(in srgb, var(--color-warning) 45%, transparent); display: grid; gap: var(--space-3); font-size: var(--text-sm); }
+.demo-box p { color: var(--color-text); }
+.demo-box__list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.4rem; }
+.demo-chip { width: 100%; text-align: left; display: grid; padding: 0.5rem 0.65rem; border-radius: var(--radius-sm); background: var(--color-surface); border: var(--border-1); min-height: 2.9rem; transition: transform var(--dur-fast), border-color var(--dur-base); }
+.demo-chip:hover { border-color: var(--color-primary); transform: translateY(-1px); }
+.demo-chip strong { font-size: var(--text-xs); } .demo-chip small { font-size: 0.65rem; color: var(--color-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (min-width: 1024px) {
+  .authl { grid-template-columns: minmax(28rem, 1fr) minmax(0, 1.05fr); }
+  .authl__aside { position: relative; display: grid; place-content: center; justify-items: center; gap: var(--space-6); overflow: hidden; padding: var(--space-8); background: linear-gradient(150deg, #1d3fb8 0%, #5b2bd0 60%, #7c3aed 100%); color: #fff; }
+  .authl__glow { position: absolute; inset: auto -20% -30% auto; width: 70%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / 0.22), transparent 70%); }
+  .authl__copy { position: relative; text-align: center; max-width: 28rem; }
+  .authl__copy h2 { font-size: var(--text-4xl); letter-spacing: var(--tracking-tighter); }
+  .authl__copy p { margin-top: 0.75rem; opacity: 0.85; }
+  .authl__phone { --phone-w: 270px; position: relative; }
+  .authl__caption { position: relative; opacity: 0.7; }
+}
