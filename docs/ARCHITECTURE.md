@@ -82,6 +82,14 @@ Routes et dictionnaires chargés à la demande, polices à la demande, QR à la 
 ### 8. i18n
 `t('ns.chemin.clé')` typé sur le français ; l'anglais couvre toute l'interface utilisateur (l'Admin Center reste en français, repli automatique). `src/i18n/i18n.test.ts` impose la parité des clés et des variables. Dates/nombres/devises via `Intl` (`utilities/format.ts`), fuseau d'affichage par défaut `Africa/Conakry`, devise et tarifs dans `app/configuration/plans.ts`.
 
+### 9. Systèmes ajoutés après la première version
+- **Programmation** : `page-engine/schedule.ts` (`scheduleState`, `isBlockLive`, `nextScheduleChange`). `PageRenderer` filtre les blocs et se réveille à la prochaine échéance ; l'éditeur marque les blocs « programmé / expiré ».
+- **Rendez-vous** : bloc `booking` (créneaux hebdomadaires) → message WhatsApp pré-rempli. Aucune réservation n'est confirmée par 1Link.
+- **Multi-devises** : `blocks/money.ts` ; le taux est saisi par le vendeur et affiché comme indicatif. Aucune conversion ni transaction.
+- **Suivi par canal / affiche** : `utilities/tracking.ts` (`?src=`, liste blanche de sources), `sharing/ShareDialog` et `sharing/PrintPage` (CSS d'impression, A4).
+- **Vérification de profil** : `models/verification.ts`, côté utilisateur (`VerificationCard`) et côté admin (`VerificationsPanel`). Le badge est une donnée du serveur ; `withServerVerified` empêche l'interface de se l'attribuer.
+- **Authentification par téléphone** : `utilities/phone.ts` (E.164, pays d'Afrique de l'Ouest et diaspora), `AuthApi.requestOtp / verifyOtp`, composant `PhoneAuth`. `isContactVerified(user)` (e-mail **ou** téléphone) remplace `emailVerified` pour autoriser la publication. L'adaptateur démo (`demo/otp.ts`) simule les garde-fous (TTL, essais, renvoi, plafond horaire) en mémoire uniquement ; le serveur réel doit les appliquer et ne jamais révéler l'existence d'un compte avant la preuve de possession.
+
 ## Ajouter…
 - **un type de bloc** : `models/blocks.ts` → définition dans `registry.ts` → libellés `editor.blocks.<type>.*` (un test vérifie la traduction de chaque champ).
 - **un thème** : entrée dans `appearance/themes.ts` + libellé `common.themes.<id>`.

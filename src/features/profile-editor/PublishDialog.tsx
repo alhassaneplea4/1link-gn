@@ -1,3 +1,4 @@
+import { isContactVerified } from '@/models/auth';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Icon, Input, Modal, Textarea } from '@/components/ui';
@@ -21,7 +22,7 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
   const setMeta = useEditor((s) => s.setMeta);
   const publish = useEditor((s) => s.publish);
   const saving = useEditor((s) => s.save.state === 'saving');
-  const verified = useSession((s) => s.session?.user.emailVerified ?? false);
+  const verified = useSession((s) => (s.session ? isContactVerified(s.session.user) : false));
   const [username, setUsername] = useState(doc?.username ?? '');
   const [avail, setAvail] = useState<Availability>('idle');
   const [result, setResult] = useState<{ ok: boolean; mode?: 'demo' | 'live'; error?: string } | null>(null);

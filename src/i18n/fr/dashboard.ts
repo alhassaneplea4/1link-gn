@@ -236,6 +236,7 @@ export default {
   security: {
     description: 'Protégez l’accès à votre compte.',
     emailTitle: 'Adresse e-mail',
+    phoneTitle: 'Numéro de téléphone',
     passwordTitle: 'Mot de passe',
     passwordDemo: 'En démonstration, aucun mot de passe n’est stocké ni vérifié : il n’y a rien à modifier.',
     changePassword: 'Modifier le mot de passe',

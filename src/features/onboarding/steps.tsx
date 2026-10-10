@@ -1,3 +1,4 @@
+import { isContactVerified } from '@/models/auth';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Icon, IconButton, Input, Textarea, useToast } from '@/components/ui';
@@ -237,7 +238,7 @@ export function PreviewStep({ doc, go }: { doc: PageDocument; go: (i: number) =>
 /* — 8. Publication — */
 export function PublishStep({ doc, onPublish, onSaveDraft, busy, error }: { doc: PageDocument; onPublish: () => void; onSaveDraft: () => void; busy: boolean; error: string | null }) {
   const t = useT('onboarding', 'editor');
-  const verified = useSession((s) => s.session?.user.emailVerified ?? false);
+  const verified = useSession((s) => (s.session ? isContactVerified(s.session.user) : false));
   const errKey = error && ['username_taken', 'username_invalid', 'username_reserved', 'email_not_verified', 'plan_limit'].includes(error) ? error : error ? 'unknown' : null;
   return (
     <div className="stepform">

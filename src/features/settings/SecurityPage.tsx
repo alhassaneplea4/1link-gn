@@ -6,6 +6,7 @@ import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import { formatDateTime } from '@/utilities/format';
+import { accountContact, isContactVerified } from '@/models/auth';
 import './settings.css';
 
 /**
@@ -23,12 +24,12 @@ export default function SecurityPage() {
       <PageHeader title={t('dashboard.nav.security')} description={t('dashboard.security.description')} />
       <div className="settings__grid">
         <Card padding="lg" className="settings__card">
-          <h2><Icon name="mail" size={18} /> {t('dashboard.security.emailTitle')}</h2>
+          <h2><Icon name={user.email ? 'mail' : 'phone'} size={18} /> {user.email ? t('dashboard.security.emailTitle') : t('dashboard.security.phoneTitle')}</h2>
           <p className="settings__status">
-            <Badge tone={user.emailVerified ? 'success' : 'warning'} dot>{user.emailVerified ? t('dashboard.settings.verified') : t('dashboard.settings.unverified')}</Badge>
-            <span className="muted">{user.email}</span>
+            <Badge tone={isContactVerified(user) ? 'success' : 'warning'} dot>{isContactVerified(user) ? t('dashboard.settings.verified') : t('dashboard.settings.unverified')}</Badge>
+            <span className="muted">{accountContact(user)}</span>
           </p>
-          {!user.emailVerified && <LinkButton to={paths.verifyEmail} variant="gradient" size="sm">{t('dashboard.shell.verifyCta')}</LinkButton>}
+          {!isContactVerified(user) && <LinkButton to={paths.verifyEmail} variant="gradient" size="sm">{t('dashboard.shell.verifyCta')}</LinkButton>}
         </Card>
 
         <Card padding="lg" className="settings__card">

@@ -19,6 +19,21 @@ test.describe('accessibilité (axe)', () => {
       await audit(page, path);
     });
   }
+  for (const path of ['/auth/login', '/auth/register']) {
+    test(`public ${path} (onglet téléphone, étape du code)`, async ({ page }) => {
+      await page.goto(path);
+      await page.getByRole('radio', { name: 'Téléphone' }).click();
+      await audit(page, `${path} téléphone`);
+      await page.getByLabel(/Numéro de téléphone/).fill('622000000');
+      if (path.endsWith('register')) {
+        await page.getByLabel(/Nom complet/).fill('Awa Test');
+        await page.getByLabel(/J’accepte/).check();
+      }
+      await page.getByRole('button', { name: 'Recevoir le code' }).click();
+      await expect(page.getByText(/Aucun message n’est réellement envoyé/)).toBeVisible();
+      await audit(page, `${path} code`);
+    });
+  }
   for (const path of ['/dashboard', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings', '/dashboard/print']) {
     test(`dashboard ${path}`, async ({ page }) => {
       await loginAs(page, /Créatrice/);

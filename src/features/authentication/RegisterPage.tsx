@@ -6,7 +6,8 @@ import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import { isEmail } from '@/utilities/validation';
-import { AuthHeading, PasswordInput, authErrorKey, passwordStrength } from './parts';
+import { AuthHeading, MethodSwitch, PasswordInput, authErrorKey, passwordStrength, type AuthMethod } from './parts';
+import { PhoneAuth } from './PhoneAuth';
 
 export default function RegisterPage() {
   const t = useT('auth', 'common');
@@ -17,6 +18,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<AuthMethod>('email');
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const strength = passwordStrength(form.password);
 
@@ -46,6 +48,8 @@ export default function RegisterPage() {
   return (
     <>
       <AuthHeading title={t('auth.register.title')} subtitle={t('auth.register.subtitle')} />
+      <MethodSwitch value={method} onChange={setMethod} />
+      {method === 'phone' ? <PhoneAuth mode="sign_up" onDone={() => navigate(paths.onboarding, { replace: true })} /> : (
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">
         {formError && <Alert tone="danger">{formError}</Alert>}
         <Input label={t('auth.fields.name')} name="name" autoComplete="name" value={form.name} onChange={(e) => set('name', e.target.value)} error={errors.name} required />
@@ -62,6 +66,7 @@ export default function RegisterPage() {
         <Checkbox label={t('auth.register.terms')} checked={form.acceptTerms} onChange={(e) => set('acceptTerms', e.target.checked)} error={errors.terms} />
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.register.submit')}</Button>
       </form>
+      )}
       <p className="auth-alt">{t('auth.register.haveAccount')} <Link to={paths.login}>{t('auth.register.login')}</Link></p>
     </>
   );

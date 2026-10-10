@@ -1,3 +1,4 @@
+import { isContactVerified } from '@/models/auth';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, Icon, LinkButton, PageHeader, ProgressBar, Skeleton, StatCard, useToast } from '@/components/ui';
@@ -104,7 +105,7 @@ export default function OverviewPage() {
         }
       />
 
-      {session && !session.user.emailVerified && (
+      {session && !isContactVerified(session.user) && (
         <Alert tone="info" title={t('dashboard.overview.verifyTitle')} className="ov__alert" action={<LinkButton to={paths.verifyEmail} size="sm" variant="secondary">{t('dashboard.shell.verifyCta')}</LinkButton>}>
           {t('dashboard.overview.verifyText')}
         </Alert>

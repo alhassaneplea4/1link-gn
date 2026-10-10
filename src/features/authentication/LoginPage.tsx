@@ -7,7 +7,8 @@ import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import { isEmail } from '@/utilities/validation';
-import { AuthHeading, PasswordInput, authErrorKey, useNextPath } from './parts';
+import { AuthHeading, MethodSwitch, PasswordInput, afterAuthPath, authErrorKey, useNextPath, type AuthMethod } from './parts';
+import { PhoneAuth } from './PhoneAuth';
 
 export default function LoginPage() {
   const t = useT('auth', 'common');
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<AuthMethod>('email');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,8 +35,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const session = await signIn(email, password);
-      const dest = next ?? (!session.user.onboardingDone ? paths.onboarding : session.user.adminRole ? paths.admin.root : paths.dashboard.root);
-      navigate(dest, { replace: true });
+      navigate(afterAuthPath(session, next), { replace: true });
     } catch (err) {
       setFormError(t(authErrorKey(err)));
       setBusy(false);
@@ -60,6 +61,8 @@ export default function LoginPage() {
           </ul>
         </section>
       )}
+      <MethodSwitch value={method} onChange={setMethod} />
+      {method === 'phone' ? <PhoneAuth mode="sign_in" onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} /> : (
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">
         {formError && <Alert tone="danger">{formError}</Alert>}
         <Input label={t('auth.fields.email')} type="email" name="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} required />
@@ -67,6 +70,7 @@ export default function LoginPage() {
         <div className="auth-form__row"><Link to={paths.forgotPassword}>{t('auth.login.forgot')}</Link></div>
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.login.submit')}</Button>
       </form>
+      )}
       <p className="auth-alt">{t('auth.login.noAccount')} <Link to={paths.register}>{t('auth.login.register')}</Link></p>
     </>
   );

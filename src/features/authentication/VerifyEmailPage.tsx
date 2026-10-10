@@ -1,3 +1,4 @@
+import { isContactVerified } from '@/models/auth';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, Icon, LinkButton, Spinner, useToast } from '@/components/ui';
@@ -68,7 +69,7 @@ export default function VerifyEmailPage() {
   if (status === 'loading' || phase === 'checking') {
     return <div className="auth-state"><Spinner size={28} label={t('auth.verify.checking')} /><p>{t('auth.verify.checking')}</p></div>;
   }
-  if (phase === 'done' || (user?.emailVerified && !token)) {
+  if (phase === 'done' || (user && isContactVerified(user) && !token)) {
     return (
       <div className="auth-state">
         <span className="auth-state__icon auth-state__icon--ok"><Icon name="check-circle" size={28} /></span>
@@ -97,7 +98,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="auth-state">
       <span className="auth-state__icon"><Icon name="mail" size={28} /></span>
-      <AuthHeading title={t('auth.verify.title')} subtitle={t('auth.verify.subtitle', { email: user.email })} />
+      <AuthHeading title={t('auth.verify.title')} subtitle={t('auth.verify.subtitle', { email: user.email ?? '' })} />
       <p className="muted">{t('auth.verify.why')}</p>
       {env.isDemo && api.auth.demoVerifyCurrentUser && (
         <Alert tone="warning" title={t('auth.demo.title')} action={<Button size="sm" variant="secondary" onClick={() => void simulate()} loading={busy}>{t('auth.verify.demoSimulate')}</Button>}>{t('auth.verify.demoNote')}</Alert>

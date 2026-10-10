@@ -16,9 +16,14 @@ Ce document est volontairement sans fard : il distingue ce qui **fonctionne rée
 - Admin Center : 14 rubriques, rôles et permissions reflétés dans la navigation et les routes, tableaux (recherche, filtres, tri, pagination).
 - Accessibilité : navigation clavier, focus visible, dialogues avec piège de focus, `aria-*`, tables équivalentes aux graphiques, `prefers-reduced-motion`. Audit axe-core WCAG 2 A/AA : 0 violation « serious/critical » sur 16 écrans testés.
 
+- **Programmation des blocs** (affichage entre deux dates, vérifié à l'ouverture et à chaque échéance), **prise de rendez-vous** (demande envoyée par WhatsApp, aucune réservation confirmée par la plateforme), **prix multi-devises** pour la diaspora (taux fixé par le vendeur, indicatif), **liens de suivi par canal** (`?src=`) et **affiche / cartes de visite imprimables** (QR code réel, PDF A4 via l'impression du navigateur).
+- **Connexion par téléphone** (WhatsApp / SMS) : formulaire, choix du pays, saisie du code, minuteur de renvoi, messages d'erreur. Un compte vérifié par téléphone peut publier sans e-mail.
+
 ## En mode démonstration uniquement (`VITE_API_MODE=demo`, défaut)
 Tout est **local à ce navigateur** (`localStorage`) et signalé (bandeau, badges « Démonstration »).
 - **Authentification** : aucun mot de passe n'est vérifié ni stocké ; comptes d'essai sur l'écran de connexion. Aucun e-mail n'est envoyé (la vérification se simule par un bouton explicite).
+- **Code à usage unique (OTP)** : aucun message WhatsApp / SMS n'est envoyé ; le code est généré localement, affiché dans un encadré « Démonstration » et jamais stocké dans `localStorage`. Les garde-fous (6 chiffres, validité 5 min, 5 essais, renvoi après 30 s, 5 demandes / heure) sont simulés pour valider l'interface ; en production ils doivent être appliqués **par le serveur**.
+- **Badge « Profil vérifié »** : la demande et la décision se jouent dans ce navigateur ; en production le badge appartient au serveur (l'interface ne peut pas se l'attribuer).
 - **Publication** : « publier » enregistre dans ce navigateur ; la page n'est visible que là.
 - **Analytics et chiffres admin** : générés (PRNG déterministe), `source: 'demo'`.
 - **Modération / suspension** : modifient l'état local ; l'interface le dit (« non transmis à un serveur »).
@@ -27,7 +32,7 @@ Tout est **local à ce navigateur** (`localStorage`) et signalé (bandeau, badge
 - **Images** : réduites puis conservées en URL de données ; en mode `http`, `POST /me/media` est attendu.
 
 ## Jamais simulé comme réussi
-- Paiements et changements de plan (`unavailable / payments_not_connected`), remboursements, suppression de compte, changement de mot de passe, 2FA, domaine personnalisé, gestion d'équipe, prise de rendez-vous : désactivés ou marqués « bientôt ».
+- Paiements et changements de plan (`unavailable / payments_not_connected`), remboursements, suppression de compte, changement de mot de passe, 2FA, domaine personnalisé, gestion d'équipe : désactivés ou marqués « bientôt ».
 
 ## Limites techniques
 - **Aperçus de liens (Open Graph) sur WhatsApp / réseaux** : les robots n'exécutent pas JavaScript. Les balises sont mises à jour côté client, mais un vrai aperçu requiert un rendu serveur / edge (ou pré-rendu) de `/:username` — hors périmètre front pur.

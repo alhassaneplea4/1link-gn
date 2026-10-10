@@ -1,3 +1,4 @@
+import { isContactVerified } from '@/models/auth';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, LinkButton, SearchBar } from '@/components/ui';
@@ -66,7 +67,7 @@ export default function DashboardLayout() {
   // Notifications calculées depuis l'état réel (aucune notification fictive).
   const notifications = useMemo(() => {
     const out: { id: string; icon: 'alert' | 'mail' | 'rocket' | 'info'; title: string; text: string; to?: string }[] = [];
-    if (session && !session.user.emailVerified) out.push({ id: 'verify', icon: 'mail', title: t('dashboard.notifications.verify'), text: t('dashboard.notifications.verifyText'), to: paths.verifyEmail });
+    if (session && !isContactVerified(session.user)) out.push({ id: 'verify', icon: 'mail', title: t('dashboard.notifications.verify'), text: t('dashboard.notifications.verifyText'), to: paths.verifyEmail });
     if (doc) {
       const r = pageReadiness(doc);
       if (doc.status !== 'published') out.push({ id: 'unpublished', icon: 'rocket', title: t('dashboard.notifications.draft'), text: t('dashboard.notifications.draftText'), to: paths.dashboard.page });

@@ -39,3 +39,10 @@
   .authl__phone { --phone-w: 270px; position: relative; }
   .authl__caption { position: relative; opacity: 0.7; }
 }
+
+.auth-method { width: 100%; }
+.auth-method .segmented__opt { flex: 1; }
+.auth-form__split { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.auth-form__note { display: flex; gap: 0.4rem; align-items: flex-start; font-size: var(--text-xs); }
+.phonefield { display: grid; gap: var(--space-3); }
+.otp-input { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }

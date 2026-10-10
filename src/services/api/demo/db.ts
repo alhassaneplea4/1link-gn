@@ -14,9 +14,11 @@ import { getSampleDocument } from '@/features/page-engine/samples';
 
 export interface DemoUserRecord {
   id: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
   name: string;
   emailVerified: boolean;
+  phoneVerified?: boolean;
   category: CategoryId | null;
   onboardingDone: boolean;
   username: string | null;

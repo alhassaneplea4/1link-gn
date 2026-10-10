@@ -39,6 +39,30 @@ test.describe('inscription et onboarding (démonstration)', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText('Votre page est publiée')).toBeVisible();
   });
+
+  test('inscription par téléphone (code de démonstration) puis publication sans e-mail', async ({ page }) => {
+    await page.goto('/auth/register');
+    await page.getByRole('radio', { name: 'Téléphone' }).click();
+    await page.getByLabel(/Nom complet/).fill('Kadiatou Tel');
+    await page.getByLabel(/Numéro de téléphone/).fill(`62${Date.now().toString().slice(-7)}`);
+    await page.getByLabel(/J’accepte/).check();
+    await page.getByRole('button', { name: 'Recevoir le code' }).click();
+    await expect(page.getByText(/Aucun message n’est réellement envoyé/)).toBeVisible();
+    await page.getByRole('button', { name: 'Remplir' }).click();
+    await page.getByRole('button', { name: 'Valider' }).click();
+    await expect(page).toHaveURL(/\/onboarding/);
+    await page.getByLabel(/Particulier/).check();
+    await page.getByRole('button', { name: /Continuer/ }).click();
+    await page.getByLabel(/Adresse de votre page/).fill(`kadi${Date.now().toString().slice(-6)}`);
+    for (let i = 0; i < 6; i++) {
+      await page.getByRole('button', { name: /Continuer/ }).click();
+      await page.waitForTimeout(150);
+    }
+    await expect(page.getByRole('heading', { name: 'Prêt à publier ?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Publier ma page' }).click(); // numéro vérifié par le code : pas d'e-mail requis
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText('Votre page est publiée')).toBeVisible();
+  });
 });
 
 test.describe('dashboard, éditeur, apparence, analytics', () => {

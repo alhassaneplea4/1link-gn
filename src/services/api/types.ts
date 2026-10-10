@@ -5,7 +5,7 @@
  */
 import type { Paged, ListQuery } from '@/models/api';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
-import type { Session, SignUpInput } from '@/models/auth';
+import type { OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignUpInput } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { AnalyticsReport, DateRange } from '@/models/analytics';
 import type { ChangePlanResult, Invoice, Subscription } from '@/models/billing';
@@ -27,6 +27,10 @@ export interface AuthApi {
   signIn(email: string, password: string): Promise<Session>;
   signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
+  /** Envoie un code à usage unique (WhatsApp ou SMS). Le numéro est au format E.164. */
+  requestOtp(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
+  /** Vérifie le code ; ouvre une session (connexion) ou crée le compte (inscription). */
+  verifyOtp(input: OtpVerifyInput): Promise<Session>;
   requestPasswordReset(email: string): Promise<void>;
   resetPassword(token: string, password: string): Promise<void>;
   /** Vérifie l'e-mail à partir du jeton reçu par courriel. */

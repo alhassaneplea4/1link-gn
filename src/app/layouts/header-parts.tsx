@@ -1,3 +1,4 @@
+import { accountContact, isContactVerified } from '@/models/auth';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Dropdown, Icon, IconButton, type MenuItem } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
@@ -19,7 +20,7 @@ export function DemoBanner() {
 
 export function VerifyBanner() {
   const t = useT('dashboard');
-  const verified = useSession((s) => s.session?.user.emailVerified ?? true);
+  const verified = useSession((s) => (s.session ? isContactVerified(s.session.user) : true));
   if (verified) return null;
   return (
     <div className="banner banner--verify" role="status">
@@ -44,7 +45,7 @@ export function AccountMenu({ extraItems = [] }: { extraItems?: MenuItem[] }) {
   return (
     <Dropdown
       align="end"
-      header={<div><strong>{user.name}</strong><div className="subtle" style={{ fontSize: 'var(--text-xs)' }}>{user.email}</div>{user.adminRole && <Badge tone="violet" className="" icon="shield">{t(`common.roles.${user.adminRole}`)}</Badge>}</div>}
+      header={<div><strong>{user.name}</strong><div className="subtle" style={{ fontSize: 'var(--text-xs)' }}>{accountContact(user)}</div>{user.adminRole && <Badge tone="violet" className="" icon="shield">{t(`common.roles.${user.adminRole}`)}</Badge>}</div>}
       items={items}
       trigger={
         <button type="button" className="account-btn" aria-label={t('dashboard.shell.accountMenu')}>

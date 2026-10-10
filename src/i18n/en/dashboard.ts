@@ -230,6 +230,7 @@ export default {
   security: {
     description: 'Protect access to your account.',
     emailTitle: 'Email address',
+    phoneTitle: 'Phone number',
     passwordTitle: 'Password',
     passwordDemo: 'In demo mode, no password is stored or checked: there is nothing to change.',
     changePassword: 'Change password',

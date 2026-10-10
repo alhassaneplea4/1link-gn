@@ -75,7 +75,7 @@ export const demoPage: PageApi = {
   async publish(doc) {
     const u = requireDemoUser();
     await delay(null, 520);
-    if (!u.emailVerified) throw new ApiError('forbidden', 'email_not_verified', { status: 403 });
+    if (!u.emailVerified && !u.phoneVerified) throw new ApiError('forbidden', 'email_not_verified', { status: 403 });
     const problem = validateUsername(doc.username, u.id);
     if (problem) throw new ApiError('validation', `username_${problem}`, { status: 422, fields: { username: problem } });
     checkEntitlements(u.id, doc);
