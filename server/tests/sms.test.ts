@@ -270,6 +270,19 @@ describe('amorçage du premier administrateur', () => {
     expect((await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: seed.email, password: seed.password })).status).toBe(200);
   });
 
+  it('crée la page publique de l’administrateur à son adresse, une seule fois, sans coordonnées personnelles', async () => {
+    const { seedPlatformAdmin } = await import('../services/admin-seed.js');
+    const withPage = { ...seed, email: 'admin.page@exemple.test', username: 'astronetgn' };
+    expect(await seedPlatformAdmin(t.db, withPage, 10)).toBe('created');
+    const pub = await t.client({ 'x-real-ip': nextIp() }).get('/api/pages/astronetgn');
+    expect(pub.body.state).toBe('published');
+    expect(JSON.stringify(pub.body.page)).not.toContain(seed.phone);
+    const profile = pub.body.page.blocks.find((b: { type: string }) => b.type === 'profile').data;
+    expect(profile).toMatchObject({ displayName: seed.name, verified: false });
+    expect(await seedPlatformAdmin(t.db, withPage, 10)).toBe('unchanged');
+    expect(await seedPlatformAdmin(t.db, { ...withPage, username: 'autre-nom' }, 10)).toBe('unchanged'); // une page existe déjà : rien n'est ajouté
+  });
+
   it('accorde le rôle à un compte existant sans changer son mot de passe, et ne reprend pas le numéro d’un autre', async () => {
     const { seedPlatformAdmin, adminSeedFromEnv } = await import('../services/admin-seed.js');
     const taken = '+224624629411';

@@ -108,14 +108,14 @@ export function thumbPng(seed: number, from: string, to: string, w = 480, h = 36
   });
 }
 
-async function storeMedia(db: Db, userId: string, bytes: Buffer, now: Date): Promise<string> {
+export async function storeMedia(db: Db, userId: string, bytes: Buffer, now: Date): Promise<string> {
   const id = `med_${newId('x').slice(2)}`;
   await db.insert(media).values({ id, userId, mime: 'image/png', size: bytes.length, sha256: sha256(bytes.toString('base64')), data: bytes, createdAt: now });
   return `/api/media/${id}`;
 }
 
 // — Apparences —
-const BASE: AppearanceConfig = {
+export const BASE: AppearanceConfig = {
   themeId: 'minimal',
   colors: { primary: '#111827', accent: '#2563eb', text: '#111827', textMuted: '#4b5563', background: '#ffffff', surface: '#ffffff', border: '#e5e7eb' },
   button: { style: 'filled', radius: 'medium', customRadius: 14 },
