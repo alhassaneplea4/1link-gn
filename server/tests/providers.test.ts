@@ -162,3 +162,51 @@ describe('capacités publiques (canaux réellement disponibles)', () => {
     }
   }, 90_000);
 });
+
+describe('smsmobileapi.com (passerelle SMS)', () => {
+  const cfg = (extra: Record<string, string> = {}) => loadConfig({ ...base, SMSMOBILEAPI_KEY: 'cle-smsmobile-0123456789', ...extra });
+  const send = (channel: 'sms' | 'whatsapp' = 'sms', extra: Record<string, string> = {}) => createOtpSender(cfg(extra)).send({ phone: '+224622000000', channel, code: '135790', ttlMinutes: 5, locale: 'fr' });
+  const reply = (body: unknown, status = 200) => vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), { status })));
+
+  it('est prioritaire sur SMS8 quand les deux clés existent, et envoie en POST avec la clé dans le corps', async () => {
+    expect(cfg({ SMS8_API_KEY: 'autre-cle-0123456789' }).otp.provider).toBe('smsmobile');
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ result: { error: 0, sent: '1', id: 'abc' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    expect(await send('sms')).toBeUndefined();
+    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://api.smsmobileapi.com/sendsms/');
+    expect(init.method).toBe('POST');
+    const form = new URLSearchParams(String(init.body));
+    expect(form.get('apikey')).toBe('cle-smsmobile-0123456789');
+    expect(form.get('recipients')).toBe('224622000000'); // sans « + »
+    expect(form.get('message')).toContain('135790');
+    expect(form.get('sendsms')).toBe('1');
+    expect(url).not.toContain('cle-smsmobile');
+  });
+
+  it('traite comme un échec toute réponse HTTP 200 dont error ≠ 0 ou sent ≠ "1" (clé invalide : error 50, api_error)', async () => {
+    reply({ result: { error: '50', sent: 'api_error' } });
+    await expect(send()).rejects.toThrow(/smsmobileapi 200 error=50 sent=api_error/);
+    reply({ result: { error: '60', sent: 'api_missing' } });
+    await expect(send()).rejects.toThrow(/api_missing/);
+    reply({});
+    await expect(send()).rejects.toThrow(/smsmobileapi/);
+    reply({ message: 'oops' }, 500);
+    await expect(send()).rejects.toThrow(/smsmobileapi 500/);
+  });
+
+  it('annonce « SMS » quand WhatsApp est demandé sans que le compte le gère, et utilise WhatsApp si activé', async () => {
+    reply({ result: { error: 0, sent: '1' } });
+    expect(await send('whatsapp')).toEqual({ channel: 'sms' });
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ result: { error: 0, sent: '1' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    expect(await send('whatsapp', { SMSMOBILEAPI_WHATSAPP: '1', SMSMOBILEAPI_PORT: '2' })).toBeUndefined();
+    const form = new URLSearchParams(String((fetchSpy.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect([form.get('sendwa'), form.get('sendsms'), form.get('port')]).toEqual(['1', '0', '2']);
+  });
+
+  it('exige la clé et https quand le fournisseur est forcé', () => {
+    expect(() => loadConfig({ ...base, OTP_PROVIDER: 'smsmobile' })).toThrow(/SMSMOBILEAPI_KEY/);
+    expect(() => cfg({ SMSMOBILEAPI_BASE_URL: 'http://api.smsmobileapi.com' })).toThrow(/https/);
+  });
+});

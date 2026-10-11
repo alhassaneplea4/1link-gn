@@ -26,7 +26,7 @@ systemRoutes.get('/health', async (c) => {
 systemRoutes.get('/capabilities', (c) => {
   const { otp } = c.get('deps').config;
   const channels =
-    otp.provider === 'sms8' ? ['sms'] : otp.provider === 'twilio' ? [...(otp.twilio.whatsappFrom || otp.twilio.messagingServiceSid ? ['whatsapp'] : []), ...(otp.twilio.smsFrom || otp.twilio.messagingServiceSid ? ['sms'] : [])] : otp.provider === 'dev' ? ['whatsapp', 'sms'] : [];
+    otp.provider === 'smsmobile' ? [...(otp.smsmobile.whatsapp ? ['whatsapp'] : []), 'sms'] : otp.provider === 'sms8' ? ['sms'] : otp.provider === 'twilio' ? [...(otp.twilio.whatsappFrom || otp.twilio.messagingServiceSid ? ['whatsapp'] : []), ...(otp.twilio.smsFrom || otp.twilio.messagingServiceSid ? ['sms'] : [])] : otp.provider === 'dev' ? ['whatsapp', 'sms'] : [];
   return c.json({ otpChannels: channels, emailSending: c.get('deps').config.mail.provider !== 'none' });
 });
 

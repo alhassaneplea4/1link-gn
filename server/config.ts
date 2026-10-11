@@ -8,7 +8,7 @@ import { COUNTRIES } from '../src/utilities/phone.js';
 
 export type AppEnv = 'production' | 'preview' | 'development' | 'test';
 export type MailProvider = 'smtp' | 'resend' | 'dev' | 'none';
-export type OtpProvider = 'sms8' | 'twilio' | 'dev' | 'none';
+export type OtpProvider = 'smsmobile' | 'sms8' | 'twilio' | 'dev' | 'none';
 
 export interface AppConfig {
   appEnv: AppEnv;
@@ -30,6 +30,8 @@ export interface AppConfig {
   otp: {
     provider: OtpProvider;
     allowedDialCodes: string[];
+    /** Passerelle smsmobileapi.com : SMS envoyés par un téléphone Android appairé ; WhatsApp possible si le compte le gère (SMSMOBILEAPI_WHATSAPP=1). */
+    smsmobile: { apiKey: string; baseUrl: string; port: string; device: string; whatsapp: boolean };
     /** Passerelle SMS8.io : les SMS partent depuis un téléphone Android appairé (SMS uniquement, pas de WhatsApp). */
     sms8: { apiKey: string; baseUrl: string; devices: string; option: number };
     twilio: { sid: string; token: string; smsFrom: string; whatsappFrom: string; whatsappContentSid: string; messagingServiceSid: string };
@@ -90,8 +92,11 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     whatsappFrom: trim(env.TWILIO_WHATSAPP_FROM), whatsappContentSid: trim(env.TWILIO_WHATSAPP_CONTENT_SID), messagingServiceSid: trim(env.TWILIO_MESSAGING_SERVICE_SID),
   };
   const sms8 = { apiKey: trim(env.SMS8_API_KEY), baseUrl: (trim(env.SMS8_BASE_URL) || 'https://app.sms8.io').replace(/\/+$/, ''), devices: trim(env.SMS8_DEVICES), option: Number(trim(env.SMS8_OPTION) || 0) };
-  const otpChoice = trim(env.OTP_PROVIDER) || (sms8.apiKey ? 'sms8' : tw.sid && tw.token ? 'twilio' : hardened ? 'none' : 'dev');
-  if (!['sms8', 'twilio', 'dev', 'none'].includes(otpChoice)) problems.push('OTP_PROVIDER doit valoir sms8, twilio, dev ou none.');
+  const smsmobile = { apiKey: trim(env.SMSMOBILEAPI_KEY), baseUrl: (trim(env.SMSMOBILEAPI_BASE_URL) || 'https://api.smsmobileapi.com').replace(/\/+$/, ''), port: trim(env.SMSMOBILEAPI_PORT), device: trim(env.SMSMOBILEAPI_DEVICE), whatsapp: trim(env.SMSMOBILEAPI_WHATSAPP) === '1' };
+  const otpChoice = trim(env.OTP_PROVIDER) || (smsmobile.apiKey ? 'smsmobile' : sms8.apiKey ? 'sms8' : tw.sid && tw.token ? 'twilio' : hardened ? 'none' : 'dev');
+  if (!['smsmobile', 'sms8', 'twilio', 'dev', 'none'].includes(otpChoice)) problems.push('OTP_PROVIDER doit valoir smsmobile, sms8, twilio, dev ou none.');
+  if (otpChoice === 'smsmobile' && !smsmobile.apiKey) problems.push('SMSMOBILEAPI_KEY est requis quand OTP_PROVIDER=smsmobile.');
+  if (otpChoice === 'smsmobile' && !smsmobile.baseUrl.startsWith('https://')) problems.push('SMSMOBILEAPI_BASE_URL doit être en https.');
   if (otpChoice === 'sms8' && !sms8.apiKey) problems.push('SMS8_API_KEY est requis quand OTP_PROVIDER=sms8.');
   if (otpChoice === 'sms8' && !sms8.baseUrl.startsWith('https://')) problems.push('SMS8_BASE_URL doit être en https.');
   if (otpChoice === 'twilio' && !(tw.sid && tw.token)) problems.push('TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN sont requis quand OTP_PROVIDER=twilio.');
@@ -127,7 +132,7 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
       resendKey,
       smtp: { host: trim(env.SMTP_HOST) || 'smtp.gmail.com', port: smtpPort, secure: trim(env.SMTP_SECURE) ? trim(env.SMTP_SECURE) !== '0' : smtpPort === 465, user: smtpUser, pass: smtpPass },
     },
-    otp: { provider: otpChoice as OtpProvider, allowedDialCodes, sms8, twilio: tw },
+    otp: { provider: otpChoice as OtpProvider, allowedDialCodes, smsmobile, sms8, twilio: tw },
     cronSecret: trim(env.CRON_SECRET),
     devRoutes, rateLimitScale,
     retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90) },

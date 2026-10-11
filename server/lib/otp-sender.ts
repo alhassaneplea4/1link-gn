@@ -1,5 +1,6 @@
 /**
  * Envoi des codes à usage unique par WhatsApp ou SMS.
+ *  - `smsmobile` : passerelle smsmobileapi.com (SMS envoyés par un téléphone Android appairé) ;
  *  - `sms8` : passerelle SMS8.io (SMS envoyés par un téléphone Android appairé ; pas de WhatsApp) ;
  *  - `twilio` : API REST Twilio (WhatsApp et SMS) ;
  *  - `dev` : n'envoie rien, mémorise le message (développement et tests UNIQUEMENT — la route renvoie alors `devCode`) ;
@@ -19,7 +20,7 @@ export interface OtpDelivery {
 }
 
 export interface OtpSender {
-  readonly provider: 'sms8' | 'twilio' | 'dev' | 'none';
+  readonly provider: 'smsmobile' | 'sms8' | 'twilio' | 'dev' | 'none';
   /** Retourne le canal RÉELLEMENT utilisé quand il diffère de la demande (ex. WhatsApp demandé, SMS envoyé). */
   send(d: OtpDelivery): Promise<{ channel: OtpChannel } | void>;
 }
@@ -30,6 +31,36 @@ export interface DevOtpSender extends OtpSender {
 }
 
 export function createOtpSender(config: AppConfig): OtpSender {
+  if (config.otp.provider === 'smsmobile') {
+    const { apiKey, baseUrl, port, device, whatsapp } = config.otp.smsmobile;
+    return {
+      provider: 'smsmobile',
+      async send(d) {
+        const viaWhatsapp = whatsapp && d.channel === 'whatsapp';
+        // La clé voyage dans le CORPS (POST), jamais dans l'URL (journaux d'accès, historique).
+        const form = new URLSearchParams({ apikey: apiKey, recipients: d.phone.replace(/^\+/, ''), message: otpMessage(d.code, d.ttlMinutes, d.locale), sendsms: viaWhatsapp ? '0' : '1', sendwa: viaWhatsapp ? '1' : '0' });
+        if (port) form.set('port', port);
+        if (device) form.set('sIdentifiant', device);
+        const res = await fetch(`${baseUrl}/sendsms/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+          body: form,
+          signal: AbortSignal.timeout(20_000),
+        });
+        const text = await res.text();
+        let result = {} as { error?: number | string; sent?: string };
+        try {
+          result = ((JSON.parse(text) as { result?: typeof result }).result ?? {}) as typeof result;
+        } catch {
+          /* réponse non JSON : échec ci-dessous */
+        }
+        // Succès = HTTP 200 ET error = 0 ET sent = "1" (l'API répond 200 même pour une clé invalide : error "50", sent "api_error").
+        if (!res.ok || Number(result.error) !== 0 || String(result.sent) !== '1') throw new Error(`smsmobileapi ${res.status} error=${String(result.error)} sent=${String(result.sent)}`);
+        // WhatsApp n'est utilisé que si le compte le gère et que l'opérateur l'a activé ; sinon le message est parti par SMS.
+        return d.channel === 'whatsapp' && !viaWhatsapp ? { channel: 'sms' as const } : undefined;
+      },
+    };
+  }
   if (config.otp.provider === 'sms8') {
     const { apiKey, baseUrl, devices, option } = config.otp.sms8;
     return {
