@@ -9,6 +9,7 @@ import { createDb } from '../server/db/client.js';
 import { runMigrations } from '../server/db/migrate.js';
 import { createRuntimeApp } from '../server/runtime.js';
 import { startLocalPostgres } from '../server/testing/local-postgres.js';
+import { seedTestAccounts } from '../server/services/test-accounts.js';
 
 const API_PORT = Number(process.env.API_PORT ?? 8787);
 const DB_PORT = Number(process.env.DEV_DB_PORT ?? 54329);
@@ -27,6 +28,11 @@ if (!external) {
 
 const handle = createDb(databaseUrl, 2);
 await runMigrations(handle.db);
+// SEED_TEST_ACCOUNTS=1 : un compte par type de profil (mot de passe local TEST_ACCOUNTS_PASSWORD, sinon « Test-Passw0rd-2026 »).
+if (process.env.SEED_TEST_ACCOUNTS === '1') {
+  const made = await seedTestAccounts(handle.db, process.env.TEST_ACCOUNTS_PASSWORD ?? 'Test-Passw0rd-2026', 10);
+  console.log(`[dev] comptes de test : ${made.filter((m) => m.created).length} créé(s) — pages /test-particulier, /test-createur, /test-professionnel, /test-entreprise, /test-association`);
+}
 await handle.close();
 
 const { app } = await createRuntimeApp({

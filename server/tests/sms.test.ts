@@ -287,3 +287,31 @@ describe('amorçage du premier administrateur', () => {
     expect(() => adminSeedFromEnv({ ADMIN_SEED_EMAIL: 'a@b.co', ADMIN_SEED_PASSWORD: 'court', ADMIN_SEED_NAME: 'X' })).toThrow();
   });
 });
+
+describe('comptes de test (un par type de profil)', () => {
+  it('crée 5 comptes utilisables dont chaque page publiée est valide, sans jamais rien écraser', async () => {
+    const { seedTestAccounts, removeTestAccounts } = await import('../services/test-accounts.js');
+    const { pageInput } = await import('../validation/page.js');
+    const first = await seedTestAccounts(t.db, 'Mot-de-passe-solide-1', 10);
+    expect(first.map((m) => [m.category, m.created])).toEqual([['individual', true], ['creator', true], ['professional', true], ['business', true], ['organization', true]]);
+    expect((await seedTestAccounts(t.db, 'Autre-mot-de-passe-9', 10)).every((m) => !m.created)).toBe(true);
+
+    for (const m of first) {
+      const c = t.client({ 'x-real-ip': nextIp() });
+      const login = await c.post('/api/auth/sign-in', { email: m.email, password: 'Mot-de-passe-solide-1' });
+      expect(login.status, m.email).toBe(200);
+      expect(login.body.user).toMatchObject({ plan: m.plan, category: m.category, onboardingDone: true, emailVerified: true, adminRole: null });
+      // La page du propriétaire passe la validation de PUBLICATION du serveur : il peut la modifier et la republier.
+      const mine = (await c.get('/api/me/page')).body;
+      const parsed = pageInput('publish').safeParse({ ...mine, username: m.username });
+      expect(parsed.success, `${m.username}: ${parsed.success ? '' : JSON.stringify(parsed.error.issues.slice(0, 3))}`).toBe(true);
+      const pub = await t.client({ 'x-real-ip': nextIp() }).get(`/api/pages/${m.username}`);
+      expect(pub.body.state).toBe('published');
+      expect(pub.body.page.blocks.find((b: { type: string }) => b.type === 'profile').data.coverUrl).toMatch(/^\/api\/media\/med_[a-f0-9]{20}$/);
+      const cover = await t.client().get(pub.body.page.blocks.find((b: { type: string }) => b.type === 'profile').data.coverUrl);
+      expect(cover.status).toBe(200);
+    }
+    expect(await removeTestAccounts(t.db)).toBe(5);
+    expect((await t.client().get('/api/pages/test-createur')).body.state).toBe('not_found');
+  }, 120000);
+});

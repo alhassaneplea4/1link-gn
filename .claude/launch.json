@@ -9,7 +9,10 @@
         "dev"
       ],
       "port": 5173,
-      "autoPort": true
+      "autoPort": true,
+      "env": {
+        "SEED_TEST_ACCOUNTS": "1"
+      }
     }
   ]
 }

@@ -7,6 +7,7 @@
 import { createDb } from '../server/db/client.js';
 import { runMigrations } from '../server/db/migrate.js';
 import { adminSeedFromEnv, seedPlatformAdmin } from '../server/services/admin-seed.js';
+import { seedTestAccounts } from '../server/services/test-accounts.js';
 
 // Au build : migre automatiquement en PRODUCTION (la nouvelle version ne part en ligne que si le schéma est à jour) ;
 // ailleurs seulement si MIGRATE_ON_BUILD=1 ; MIGRATE_ON_BUILD=0 désactive tout.
@@ -33,7 +34,13 @@ for (let attempt = 1; ; attempt++) {
       console.log('[migrate] base à jour.');
       // Premier administrateur (ADMIN_SEED_*) : créé une seule fois, jamais écrasé ensuite. Les variables peuvent être retirées après le premier déploiement.
       const seed = adminSeedFromEnv(process.env);
-      if (seed) console.log(`[migrate] administrateur ${seed.email} : ${await seedPlatformAdmin(handle.db, seed, Number(process.env.SCRYPT_LOG2_N) || 15)}.`);
+      const log2N = Number(process.env.SCRYPT_LOG2_N) || 15;
+      if (seed) console.log(`[migrate] administrateur ${seed.email} : ${await seedPlatformAdmin(handle.db, seed, log2N)}.`);
+      // Comptes de test (un par type de profil), sur demande explicite : mêmes accès que l'administrateur, jamais recréés s'ils existent.
+      if (process.env.SEED_TEST_ACCOUNTS === '1' && seed) {
+        const made = await seedTestAccounts(handle.db, seed.password, log2N);
+        console.log(`[migrate] comptes de test : ${made.filter((m) => m.created).length} créé(s), ${made.filter((m) => !m.created).length} déjà présent(s).`);
+      }
     } finally {
       await client.query('select pg_advisory_unlock(727274)').catch(() => undefined);
       client.release();

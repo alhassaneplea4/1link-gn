@@ -19,6 +19,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
     "db:migrate:ci": "tsx scripts/migrate.ts --if-enabled",
     "admin": "tsx --env-file-if-exists=.env.local scripts/admin.ts",
+    "test-accounts": "tsx --env-file-if-exists=.env.local scripts/test-accounts.ts",
     "verify:vercel": "tsx scripts/verify-vercel.ts",
     "test:all": "npm run typecheck && npm run test && npm run e2e",
     "mail:test": "tsx --env-file-if-exists=.env.local scripts/mail-test.ts",

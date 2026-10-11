@@ -106,7 +106,7 @@ export default function PublicProfilePage() {
   return (
     <main id="main">
       <PageRenderer
-        page={data.page} pageUrl={pageShareUrl(data.page.username)} fullscreen branding={data.branding} onTrack={onTrack} lite={lite}
+        page={data.page} pageUrl={pageShareUrl(data.page.username)} layout="profile" fullscreen branding={data.branding} onTrack={onTrack} lite={lite}
         footer={<><button type="button" aria-pressed={lite} onClick={toggleLite} title={t('pub.lite.hint')}>{lite ? t('pub.lite.on') : t('pub.lite.off')}</button><button type="button" onClick={() => setReportOpen(true)}>{t('pub.report.open')}</button></>}
       />
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} username={data.page.username} />
