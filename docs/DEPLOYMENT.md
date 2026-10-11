@@ -47,6 +47,7 @@ Le test `server/tests/imports.test.ts` et la commande `npm run verify:vercel` ga
 | `APP_URL` | recommandé | URL publique (liens des e-mails). Déduite de Vercel sinon |
 | `CRON_SECRET` | oui | Autorise la tâche de maintenance quotidienne |
 | `SMTP_USER` + `SMTP_PASS` + `MAIL_FROM` (ou `RESEND_API_KEY`) | pour les e-mails | Accueil, vérification d'adresse, mot de passe oublié, page en ligne, décisions de modération |
+| `ADMIN_SEED_EMAIL` · `ADMIN_SEED_PASSWORD` · `ADMIN_SEED_NAME` · `ADMIN_SEED_PHONE` | non | Crée **une seule fois**, au premier déploiement, le super administrateur (mot de passe ≥ 12 caractères ; un compte existant n'est jamais écrasé). À retirer des variables Vercel ensuite. Le numéro reste non vérifié jusqu'à la saisie d'un code SMS dans *Sécurité* |
 | `SMSMOBILEAPI_KEY` (ou `SMS8_API_KEY`, `TWILIO_*`) | pour le téléphone | Codes par SMS pour 3 usages : inscription/connexion par téléphone, **double authentification** (code après le mot de passe) et **mot de passe oublié par SMS**. Choix automatique : smsmobileapi > SMS8 > Twilio |
 | `MIGRATE_ON_BUILD=1` | **Production uniquement** | Applique les migrations pendant le build |
 

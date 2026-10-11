@@ -6,6 +6,7 @@
  */
 import { createDb } from '../server/db/client.js';
 import { runMigrations } from '../server/db/migrate.js';
+import { adminSeedFromEnv, seedPlatformAdmin } from '../server/services/admin-seed.js';
 
 // Au build : migre automatiquement en PRODUCTION (la nouvelle version ne part en ligne que si le schéma est à jour) ;
 // ailleurs seulement si MIGRATE_ON_BUILD=1 ; MIGRATE_ON_BUILD=0 désactive tout.
@@ -30,6 +31,9 @@ for (let attempt = 1; ; attempt++) {
       await client.query('select pg_advisory_lock(727274)');
       await runMigrations(handle.db);
       console.log('[migrate] base à jour.');
+      // Premier administrateur (ADMIN_SEED_*) : créé une seule fois, jamais écrasé ensuite. Les variables peuvent être retirées après le premier déploiement.
+      const seed = adminSeedFromEnv(process.env);
+      if (seed) console.log(`[migrate] administrateur ${seed.email} : ${await seedPlatformAdmin(handle.db, seed, Number(process.env.SCRYPT_LOG2_N) || 15)}.`);
     } finally {
       await client.query('select pg_advisory_unlock(727274)').catch(() => undefined);
       client.release();

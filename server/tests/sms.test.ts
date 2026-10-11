@@ -253,3 +253,37 @@ describe('réinitialisation du mot de passe par SMS', () => {
     expect(statuses.at(-1)).toBe(429);
   });
 });
+
+describe('amorçage du premier administrateur', () => {
+  const seed = { email: 'admin.seed@exemple.test', password: 'Mot-de-passe-solide-1', name: 'ALHASSANA CAMARA', phone: '+224624629400' };
+
+  it('crée un super administrateur utilisable, avec un numéro non vérifié, puis ne réécrit jamais son mot de passe', async () => {
+    const { seedPlatformAdmin } = await import('../services/admin-seed.js');
+    expect(await seedPlatformAdmin(t.db, seed, 10)).toBe('created');
+    const r = await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: seed.email, password: seed.password });
+    expect(r.status).toBe(200);
+    expect(r.body.user).toMatchObject({ email: seed.email, name: seed.name, phone: seed.phone, phoneVerified: false, adminRole: 'super_admin', emailVerified: true });
+    expect(r.body.permissions.length).toBeGreaterThan(0);
+
+    // Redéploiement avec un autre mot de passe dans l'environnement : le compte n'est pas touché.
+    expect(await seedPlatformAdmin(t.db, { ...seed, password: 'Autre-mot-de-passe-9' }, 10)).toBe('unchanged');
+    expect((await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: seed.email, password: seed.password })).status).toBe(200);
+  });
+
+  it('accorde le rôle à un compte existant sans changer son mot de passe, et ne reprend pas le numéro d’un autre', async () => {
+    const { seedPlatformAdmin, adminSeedFromEnv } = await import('../services/admin-seed.js');
+    const taken = '+224624629411';
+    await createUser(t.db, { phone: taken, phoneVerified: true });
+    const mine = await createUser(t.db, { email: 'existant.seed@exemple.test' });
+    expect(await seedPlatformAdmin(t.db, { ...seed, email: 'existant.seed@exemple.test' }, 10)).toBe('role_granted');
+    const r = await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: mine.email, password: mine.password });
+    expect(r.body.user.adminRole).toBe('super_admin');
+    expect(await seedPlatformAdmin(t.db, { ...seed, email: 'autre.seed@exemple.test', phone: taken }, 10)).toBe('created');
+    const [row] = await t.db.select().from(users).where(eq(users.email, 'autre.seed@exemple.test'));
+    expect(row!.phone).toBeNull();
+
+    expect(adminSeedFromEnv({})).toBeNull();
+    expect(adminSeedFromEnv({ ADMIN_SEED_EMAIL: 'a@b.co', ADMIN_SEED_PASSWORD: 'Mot-de-passe-solide-1', ADMIN_SEED_NAME: 'X', ADMIN_SEED_PHONE: '+224 624 62 94 00' })?.phone).toBe('+224624629400');
+    expect(() => adminSeedFromEnv({ ADMIN_SEED_EMAIL: 'a@b.co', ADMIN_SEED_PASSWORD: 'court', ADMIN_SEED_NAME: 'X' })).toThrow();
+  });
+});

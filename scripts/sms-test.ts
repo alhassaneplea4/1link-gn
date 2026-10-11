@@ -9,7 +9,7 @@ import { normalizePhone } from '../src/utilities/phone.js';
 
 const phone = normalizePhone(process.argv[2] ?? '');
 if (!phone) {
-  console.error('Usage : npm run sms:test -- +224622000000');
+  console.error('Usage : npm run sms:test -- +224624629477');
   process.exit(1);
 }
 const config = loadConfig({ DATABASE_URL: 'postgres://inutile', NODE_ENV: 'development', ...process.env } as Record<string, string | undefined>);
