@@ -7,6 +7,12 @@ import { conflict, forbidden, HttpError, badRequest } from '../lib/errors.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { requireAuth } from '../middleware.js';
+import { checkOtp, issueOtp, buildSession, uniqueViolation } from '../services/accounts.js';
+import { notify } from '../services/notifications.js';
+import { securityNoticeMessage } from '../lib/emails.js';
+import { verifyPassword } from '../lib/crypto.js';
+import { securityEvent } from '../lib/audit.js';
+import { phoneLinkVerifyBody, phoneRequestBody, passwordConfirmBody, twoFactorToggleBody } from '../validation/auth.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
 import { getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
@@ -116,6 +122,73 @@ meRoutes.put('/onboarding', async (c) => {
   const deps = c.get('deps');
   await deps.db.update(users).set({ onboardingState: body.state, updatedAt: deps.now() }).where(eq(users.id, c.get('auth')!.user.id));
   return c.body(null, 204);
+});
+
+// — Téléphone et double authentification par SMS —
+
+/** Re-saisie du mot de passe avant une opération sensible (plafonnée : 10 essais / 15 min). */
+async function confirmPassword(c: C, password: string): Promise<void> {
+  const deps = c.get('deps');
+  const { user } = c.get('auth')!;
+  await enforce(deps.db, keyFor('pw-confirm', user.id), 10, 900, deps.now());
+  if (!user.passwordHash) throw conflict('no_password');
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    await securityEvent(deps.db, { kind: 'failed_login', subject: user.email ?? user.id, userId: user.id, ip: c.get('ip') }, deps.now());
+    throw badRequest('wrong_password', { password: 'wrong' });
+  }
+}
+
+/** Étape 1 : envoie un code au numéro à associer au compte. */
+meRoutes.post('/phone/request', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, phoneRequestBody);
+  const issued = await issueOtp(c, deps, body.phone, body.channel);
+  return c.json(issued);
+});
+
+/** Étape 2 : la preuve de possession (code correct) associe et valide le numéro. */
+meRoutes.post('/phone/verify', async (c) => {
+  const deps = c.get('deps');
+  const auth = c.get('auth')!;
+  const body = await readJson(c, phoneLinkVerifyBody);
+  await checkOtp(c, deps, body.phone, body.code);
+  const now = deps.now();
+  try {
+    await deps.db.update(users).set({ phone: body.phone, phoneVerifiedAt: now, updatedAt: now }).where(eq(users.id, auth.user.id));
+  } catch (e) {
+    if (uniqueViolation(e)) throw conflict('phone_taken');
+    throw e;
+  }
+  notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_linked', locale));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+});
+
+/** Retire le numéro (et la double authentification). Impossible s'il est le seul moyen de connexion du compte. */
+meRoutes.post('/phone/remove', async (c) => {
+  const deps = c.get('deps');
+  const auth = c.get('auth')!;
+  const { password } = await readJson(c, passwordConfirmBody);
+  if (!auth.user.phone) throw new HttpError(404, 'no_phone');
+  if (!auth.user.email) throw conflict('only_login');
+  await confirmPassword(c, password);
+  const now = deps.now();
+  await deps.db.update(users).set({ phone: null, phoneVerifiedAt: null, twoFactorSms: false, updatedAt: now }).where(eq(users.id, auth.user.id));
+  notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_removed', locale));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+});
+
+/** Active ou désactive la double authentification par SMS (mot de passe exigé ; numéro vérifié requis pour l'activer). */
+meRoutes.post('/2fa', async (c) => {
+  const deps = c.get('deps');
+  const auth = c.get('auth')!;
+  const body = await readJson(c, twoFactorToggleBody);
+  await confirmPassword(c, body.password);
+  if (body.enabled && !auth.user.phoneVerifiedAt) throw badRequest('phone_required');
+  const now = deps.now();
+  await deps.db.update(users).set({ twoFactorSms: body.enabled, updatedAt: now }).where(eq(users.id, auth.user.id));
+  await securityEvent(deps.db, { kind: 'new_device', subject: body.enabled ? 'Double authentification activée' : 'Double authentification désactivée', userId: auth.user.id, ip: c.get('ip') }, now);
+  notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, body.enabled ? 'two_factor_on' : 'two_factor_off', locale));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
 });
 
 // — Images —

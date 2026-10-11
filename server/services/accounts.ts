@@ -172,7 +172,14 @@ export interface OtpIssued {
   devCode?: string;
 }
 
-export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChannel): Promise<OtpIssued> {
+export interface IssueOptions {
+  /** Applique TOUS les plafonds mais n'enregistre ni n'envoie rien : réponse identique que le compte existe ou non. */
+  silent?: boolean;
+  /** Enregistre le code puis envoie le SMS après la réponse (durée de réponse identique avec ou sans compte). */
+  deferSend?: boolean;
+}
+
+export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChannel, options: IssueOptions = {}): Promise<OtpIssued> {
   const now = deps.now();
   const dial = deps.config.otp.allowedDialCodes.find((d) => phone.startsWith(`+${d}`));
   if (!dial) throw badRequest('country_not_supported', { phone: 'country' });
@@ -185,12 +192,26 @@ export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChan
   const hourly = await hit(deps.db, keyFor('otp-hour', phone), OTP_MAX_PER_HOUR, 3600, now);
   if (!hourly.allowed) throw tooMany('too_many_requests', hourly.retryAfterSec);
 
+  // Même forme de réponse qu'un envoi réel (y compris le faux code du fournisseur de test) : rien ne distingue les deux cas.
+  if (options.silent) return { channel, expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC, ...(deps.otp.provider === 'dev' ? { devCode: randomCode() } : {}) };
   const code = randomCode();
   const id = newId('otp');
   await deps.db.transaction(async (tx) => {
     await tx.update(otpCodes).set({ consumedAt: now }).where(and(eq(otpCodes.phone, phone), isNull(otpCodes.consumedAt)));
     await tx.insert(otpCodes).values({ id, phone, codeHash: codeHash(deps, phone, code), channel, expiresAt: new Date(now.getTime() + OTP_TTL_SEC * 1000), ip, createdAt: now });
   });
+  if (options.deferSend) {
+    deps.defer(
+      deps.otp
+        .send({ phone, channel, code, ttlMinutes: OTP_TTL_SEC / 60, locale: pickLocale(c.req.header('accept-language')) })
+        .then(() => undefined)
+        .catch(async (e) => {
+          console.error('[otp] échec de l’envoi différé :', (e as Error).message);
+          await deps.db.delete(otpCodes).where(eq(otpCodes.id, id));
+        }),
+    );
+    return { channel, expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC, ...(deps.otp.provider === 'dev' ? { devCode: code } : {}) };
+  }
   let delivered: OtpChannel = channel;
   try {
     const actual = await deps.otp.send({ phone, channel, code, ttlMinutes: OTP_TTL_SEC / 60, locale: pickLocale(c.req.header('accept-language')) });

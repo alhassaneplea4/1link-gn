@@ -21,6 +21,13 @@ export const otpVerifyBody = z.object({
   name: z.string().trim().max(80).optional(),
   acceptTerms: z.boolean().optional(),
 });
+export const twoFactorBody = z.object({ challenge: z.string().min(20).max(600), code: z.string().regex(/^\d{6}$/, 'code') });
+export const challengeBody = z.object({ challenge: z.string().min(20).max(600) });
+export const phoneRequestBody = z.object({ phone: e164, channel: z.enum(['whatsapp', 'sms']).default('sms') });
+export const phoneResetBody = z.object({ phone: e164, code: z.string().regex(/^\d{6}$/, 'code'), password: z.string().min(1).max(200) });
+export const phoneLinkVerifyBody = z.object({ phone: e164, code: z.string().regex(/^\d{6}$/, 'code') });
+export const passwordConfirmBody = z.object({ password: z.string().min(1).max(200) });
+export const twoFactorToggleBody = z.object({ enabled: z.boolean(), password: z.string().min(1).max(200) });
 export const forgotBody = z.object({ email });
 export const resetBody = z.object({ token, password: z.string().min(1).max(200) });
 export const verifyEmailBody = z.object({ token });

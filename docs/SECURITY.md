@@ -12,6 +12,8 @@ serveur (l'interface ne fait que refléter). Chaque contrôle ci-dessous est cou
 | Sessions | Jeton de 256 bits en cookie `httpOnly`, `Secure` (préfixe `__Host-` en production), `SameSite=Lax` ; **seul le SHA-256 est stocké** (une fuite de la base ne permet pas de rejouer une session). Durée 30 j glissants (12 h absolues pour un administrateur). Révoquées au changement de mot de passe et à la suspension |
 | Jetons e-mail | 256 bits, hash en base, usage unique, 24 h (vérification) / 1 h (réinitialisation) ; la force du mot de passe est contrôlée **avant** de consommer le jeton |
 | Codes WhatsApp/SMS | 6 chiffres tirés par `crypto.randomInt`, stockés en **HMAC** (jamais en clair), 5 min, 5 essais, 1 code actif par numéro, renvoi après 30 s, 5/h/numéro, 20/h/IP, indicatifs autorisés. Un compte n'est révélé **qu'après** un code correct |
+| Double authentification SMS | Opt-in (numéro vérifié + mot de passe requis pour l'activer). Le mot de passe seul ne crée **aucune session** : le serveur renvoie un jeton signé HMAC (10 min, sans état) à échanger contre le code SMS. Aucun SMS n'est envoyé pour un mauvais mot de passe |
+| Mot de passe oublié par SMS | Réponse et plafonds identiques pour un numéro avec ou sans compte (aucun SMS réel sans compte, envoi différé), mot de passe contrôlé avant de consommer le code, sessions ouvertes fermées après changement, e-mail d'avertissement |
 | CSRF | `SameSite=Lax` + contrôle de l'en-tête `Origin` / `Sec-Fetch-Site` sur toute écriture |
 
 ## Autorisations

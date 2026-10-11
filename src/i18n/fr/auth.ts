@@ -26,6 +26,7 @@ export default {
     termsRequired: 'Vous devez accepter les conditions pour créer un compte.',
     invalidToken: 'Ce lien est invalide ou a expiré.',
     weakPassword: 'Ce mot de passe est trop court.',
+    wrongPassword: 'Mot de passe incorrect.',
   },
   method: { label: 'Méthode', email: 'E-mail', phone: 'Téléphone' },
   phone: {
@@ -87,6 +88,19 @@ export default {
     back: 'Retour à la connexion',
     sentTitle: 'Vérifiez votre boîte mail',
     sentText: 'Si un compte existe avec l’adresse {email}, un lien de réinitialisation vient d’être envoyé.',
+    phoneSubtitle: 'Indiquez le numéro de téléphone de votre compte : nous vous enverrons un code par SMS.',
+    phoneSubmit: 'Recevoir le code par SMS',
+    phoneResetTitle: 'Réinitialisation par SMS',
+    phoneCodeHint: 'Si un compte est associé au {phone}, un code à 6 chiffres vient d’être envoyé par SMS. Saisissez-le avec votre nouveau mot de passe.',
+  },
+  twoFactor: {
+    title: 'Vérification en deux étapes',
+    subtitle: 'Un code de sécurité est nécessaire pour terminer la connexion.',
+    hint: 'Saisissez le code à 6 chiffres envoyé par SMS au {phone}.',
+    submit: 'Confirmer la connexion',
+    back: 'Retour',
+    expired: 'La vérification a expiré. Reconnectez-vous.',
+    note: 'Ne communiquez jamais ce code, même à 1Link.',
   },
   reset: {
     title: 'Nouveau mot de passe',

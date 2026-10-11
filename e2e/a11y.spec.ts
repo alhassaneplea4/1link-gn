@@ -42,7 +42,13 @@ test.describe('accessibilité (axe)', () => {
     });
   }
 
-  for (const path of ['/dashboard', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings', '/dashboard/print']) {
+  test('public /auth/forgot-password (onglet téléphone)', async ({ page }) => {
+    await page.goto('/auth/forgot-password');
+    await page.getByRole('radio', { name: 'Téléphone' }).click();
+    await audit(page, 'mot de passe oublié par SMS');
+  });
+
+  for (const path of ['/dashboard', '/dashboard/security', '/dashboard/page', '/dashboard/appearance', '/dashboard/analytics', '/dashboard/content', '/dashboard/settings', '/dashboard/print']) {
     test(`dashboard ${path}`, async ({ page, seed }) => {
       const mariama = await seed.creator();
       await seed.views(mariama, 20, 6);

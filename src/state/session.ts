@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { api } from '@/services/api';
 import { onUnauthorized } from '@/services/api/http/client';
-import type { Permission, Session, SignUpInput } from '@/models/auth';
+import type { Permission, Session, SignInResult, SignUpInput } from '@/models/auth';
 import { resetUserScopedState } from './lifecycle';
 
 export type SessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'expired';
@@ -15,7 +15,8 @@ interface SessionState {
   status: SessionStatus;
   session: Session | null;
   init(): Promise<void>;
-  signIn(email: string, password: string): Promise<Session>;
+  signIn(email: string, password: string): Promise<SignInResult>;
+  completeTwoFactor(challenge: string, code: string): Promise<Session>;
   signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
   setSession(session: Session): void;
@@ -37,7 +38,13 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   async signIn(email, password) {
-    const session = await api.auth.signIn(email, password);
+    const result = await api.auth.signIn(email, password);
+    if (result.kind === 'session') set({ status: 'authenticated', session: result.session });
+    return result;
+  },
+
+  async completeTwoFactor(challenge, code) {
+    const session = await api.auth.completeTwoFactor(challenge, code);
     set({ status: 'authenticated', session });
     return session;
   },

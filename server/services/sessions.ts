@@ -82,7 +82,7 @@ export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId'>, 
   const u = a.user;
   return {
     user: {
-      id: u.id, email: u.email, phone: u.phone, name: u.name, emailVerified: u.emailVerifiedAt !== null, phoneVerified: u.phoneVerifiedAt !== null,
+      id: u.id, email: u.email, phone: u.phone, name: u.name, emailVerified: u.emailVerifiedAt !== null, phoneVerified: u.phoneVerifiedAt !== null, twoFactorSms: u.twoFactorSms,
       category: u.category as CategoryId | null, onboardingDone: u.onboardingDone, username: a.username, plan: a.planId, adminRole: u.adminRole as AdminRole | null,
     },
     permissions: permissionsFor(u.adminRole as AdminRole | null),

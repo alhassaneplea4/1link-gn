@@ -6,7 +6,8 @@ import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { isEmail } from '@/utilities/validation';
-import { AuthHeading, authErrorKey } from './parts';
+import { AuthHeading, MethodSwitch, authErrorKey, type AuthMethod } from './parts';
+import { PhoneReset } from './PhoneReset';
 
 export default function ForgotPasswordPage() {
   const t = useT('auth', 'common');
@@ -16,6 +17,7 @@ export default function ForgotPasswordPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [method, setMethod] = useState<AuthMethod>('email');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -45,12 +47,15 @@ export default function ForgotPasswordPage() {
   }
   return (
     <>
-      <AuthHeading title={t('auth.forgot.title')} subtitle={t('auth.forgot.subtitle')} />
+      <AuthHeading title={t('auth.forgot.title')} subtitle={method === 'phone' ? t('auth.forgot.phoneSubtitle') : t('auth.forgot.subtitle')} />
+      <MethodSwitch value={method} onChange={setMethod} />
+      {method === 'phone' ? <PhoneReset /> : (
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">
         {formError && <Alert tone="danger">{formError}</Alert>}
         <Input label={t('auth.fields.email')} type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} required />
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.forgot.submit')}</Button>
       </form>
+      )}
       <p className="auth-alt"><Link to={paths.login}>{t('auth.forgot.back')}</Link></p>
     </>
   );

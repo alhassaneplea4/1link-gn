@@ -3,7 +3,7 @@
  * Sessions par cookie httpOnly (jamais de jeton lisible par JavaScript) ; les chemins ci-dessous sont ceux des routes du serveur.
  */
 import type { ListQuery } from '@/models/api';
-import type { Session } from '@/models/auth';
+import type { Session, SignInResult, TwoFactorChallenge } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, PageApi } from '../types';
 import { request } from './client';
@@ -15,7 +15,18 @@ const seg = encodeURIComponent;
 const auth: AuthApi = {
   getCapabilities: () => request('GET', '/capabilities'),
   getSession: () => request<Session | null>('GET', '/auth/session'),
-  signIn: (email, password) => request('POST', '/auth/sign-in', { body: { email, password } }),
+  signIn: (email, password) =>
+    request<Session | { twoFactor: TwoFactorChallenge }>('POST', '/auth/sign-in', { body: { email, password } }).then(
+      (r): SignInResult => ('twoFactor' in r ? { kind: 'two_factor', challenge: r.twoFactor } : { kind: 'session', session: r }),
+    ),
+  completeTwoFactor: (challenge, code) => request('POST', '/auth/sign-in/2fa', { body: { challenge, code } }),
+  resendTwoFactor: (challenge) => request('POST', '/auth/sign-in/2fa/resend', { body: { challenge } }),
+  requestPhoneReset: (phone) => request('POST', '/auth/password/forgot-phone', { body: { phone } }),
+  resetPasswordByPhone: (input) => request('POST', '/auth/password/reset-phone', { body: input }),
+  requestPhoneLink: (input) => request('POST', '/me/phone/request', { body: input }),
+  verifyPhoneLink: (input) => request('POST', '/me/phone/verify', { body: input }),
+  removePhone: (password) => request('POST', '/me/phone/remove', { body: { password } }),
+  setTwoFactor: (enabled, password) => request('POST', '/me/2fa', { body: { enabled, password } }),
   signUp: (input) => request('POST', '/auth/sign-up', { body: input }),
   signOut: () => request('POST', '/auth/sign-out'),
   requestOtp: (input) => request('POST', '/auth/otp/request', { body: input }),

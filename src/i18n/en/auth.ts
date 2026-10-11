@@ -16,6 +16,7 @@ export default {
     termsRequired: 'You must accept the terms to create an account.',
     invalidToken: 'This link is invalid or has expired.',
     weakPassword: 'This password is too short.',
+    wrongPassword: 'Incorrect password.',
   },
   method: { label: 'Method', email: 'Email', phone: 'Phone' },
   phone: {
@@ -77,6 +78,19 @@ export default {
     back: 'Back to sign in',
     sentTitle: 'Check your inbox',
     sentText: 'If an account exists for {email}, a reset link has just been sent.',
+    phoneSubtitle: 'Enter the phone number of your account: we will text you a code.',
+    phoneSubmit: 'Get the code by SMS',
+    phoneResetTitle: 'Reset by SMS',
+    phoneCodeHint: 'If an account is linked to {phone}, a 6-digit code was just sent by SMS. Enter it with your new password.',
+  },
+  twoFactor: {
+    title: 'Two-step verification',
+    subtitle: 'A security code is required to finish signing in.',
+    hint: 'Enter the 6-digit code sent by SMS to {phone}.',
+    submit: 'Confirm sign-in',
+    back: 'Back',
+    expired: 'The verification expired. Please sign in again.',
+    note: 'Never share this code with anyone, not even 1Link.',
   },
   reset: {
     title: 'New password',

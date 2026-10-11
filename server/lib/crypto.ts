@@ -8,6 +8,23 @@ export const newToken = () => randomBytes(32).toString('base64url');
 export const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 export const hmac = (secret: string, value: string) => createHmac('sha256', secret).update(value).digest('hex');
 
+/** Jeton signé (HMAC-SHA256) à durée limitée : `base64url(JSON).signature`. Sans état : rien à stocker. */
+export function signPayload(secret: string, payload: Record<string, unknown>, ttlMs: number, now: Date): string {
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: now.getTime() + ttlMs })).toString('base64url');
+  return `${body}.${hmac(secret, `signed:${body}`)}`;
+}
+
+export function verifyPayload<T extends Record<string, unknown>>(secret: string, token: string, now: Date): (T & { exp: number }) | null {
+  const [body, sig, extra] = token.split('.');
+  if (!body || !sig || extra !== undefined || !safeEqual(sig, hmac(secret, `signed:${body}`))) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as T & { exp: number };
+    return typeof data.exp === 'number' && data.exp > now.getTime() ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 export const safeEqual = (a: string, b: string): boolean => {
   const ba = Buffer.from(a);
   const bb = Buffer.from(b);

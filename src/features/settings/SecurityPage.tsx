@@ -6,6 +6,7 @@ import { useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import { formatDateTime } from '@/utilities/format';
 import { accountContact, isContactVerified } from '@/models/auth';
+import { PhoneSecurity } from './PhoneSecurity';
 import './settings.css';
 
 /**
@@ -47,11 +48,7 @@ export default function SecurityPage() {
           <LinkButton to={paths.signOut} variant="secondary" iconLeft="logout">{t('dashboard.shell.signOut')}</LinkButton>
         </Card>
 
-        <Card padding="lg" className="settings__card">
-          <h2><Icon name="fingerprint" size={18} /> {t('dashboard.security.twoFactorTitle')}</h2>
-          <p className="muted">{t('dashboard.security.twoFactorText')}</p>
-          <Badge tone="neutral">{t('dashboard.overview.soon')}</Badge>
-        </Card>
+        <PhoneSecurity />
       </div>
     </div>
   );

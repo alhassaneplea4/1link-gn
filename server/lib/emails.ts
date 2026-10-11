@@ -130,6 +130,26 @@ export function moderationWarningMessage(to: string, name: string, note: string,
     : msg(to, 'Avertissement concernant votre page 1Link', { locale, title: `Bonjour ${name}`, paragraphs: ['L’équipe de modération a examiné un signalement concernant votre page.', ...(n ? [`Message de la modération : ${n}`] : []), 'Merci de vérifier que votre contenu respecte les conditions d’utilisation. Sans modification, votre page pourra être suspendue.'] });
 }
 
+export type SecurityNotice = 'two_factor_on' | 'two_factor_off' | 'phone_linked' | 'phone_removed';
+
+export function securityNoticeMessage(to: string, name: string, kind: SecurityNotice, locale: Locale): MailMessage {
+  const fr = {
+    two_factor_on: ['Double authentification activée', 'La double authentification par SMS est maintenant active : un code vous sera demandé à chaque connexion.'],
+    two_factor_off: ['Double authentification désactivée', 'La double authentification par SMS vient d’être désactivée sur votre compte.'],
+    phone_linked: ['Un numéro de téléphone a été ajouté à votre compte', 'Un numéro de téléphone vérifié vient d’être associé à votre compte 1Link.'],
+    phone_removed: ['Le numéro de téléphone de votre compte a été retiré', 'Le numéro de téléphone associé à votre compte 1Link vient d’être retiré (la double authentification est désactivée).'],
+  } as const;
+  const en = {
+    two_factor_on: ['Two-step verification enabled', 'Two-step verification by SMS is now active: a code will be requested every time you sign in.'],
+    two_factor_off: ['Two-step verification disabled', 'Two-step verification by SMS was just turned off on your account.'],
+    phone_linked: ['A phone number was added to your account', 'A verified phone number was just linked to your 1Link account.'],
+    phone_removed: ['The phone number was removed from your account', 'The phone number linked to your 1Link account was just removed (two-step verification is off).'],
+  } as const;
+  const [subject, body] = (locale === 'en' ? en : fr)[kind];
+  const warn = locale === 'en' ? 'If this was not you, reset your password immediately and contact us.' : 'Si ce n’était pas vous, réinitialisez immédiatement votre mot de passe et contactez-nous.';
+  return msg(to, subject, { locale, title: locale === 'en' ? `Hello ${name}` : `Bonjour ${name}`, paragraphs: [body, warn] });
+}
+
 export function otpMessage(code: string, minutes: number, locale: Locale): string {
   return locale === 'en'
     ? `Your 1Link code: ${code}. Valid for ${minutes} minutes. Never share it with anyone.`

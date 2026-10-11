@@ -59,6 +59,8 @@ export const users = pgTable(
     country: text('country'),
     /** Langue de l'interface du compte (fr | en) : langue des e-mails envoyés. */
     locale: text('locale').notNull().default('fr'),
+    /** Double authentification : un code SMS est exigé après le mot de passe (téléphone vérifié requis). */
+    twoFactorSms: boolean('two_factor_sms').notNull().default(false),
     termsAcceptedAt: ts('terms_accepted_at'),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),

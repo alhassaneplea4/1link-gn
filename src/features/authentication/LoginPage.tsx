@@ -8,6 +8,10 @@ import { useSession } from '@/state/session';
 import { isEmail } from '@/utilities/validation';
 import { AuthHeading, MethodSwitch, PasswordInput, afterAuthPath, authErrorKey, useNextPath, type AuthMethod } from './parts';
 import { PhoneAuth } from './PhoneAuth';
+import { TwoFactorStep } from './TwoFactorStep';
+import { explainOtpError } from './otpErrors';
+import { isApiError } from '@/models/api';
+import type { TwoFactorChallenge } from '@/models/auth';
 
 export default function LoginPage() {
   const t = useT('auth', 'common');
@@ -21,6 +25,7 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [method, setMethod] = useState<AuthMethod>('email');
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,13 +38,28 @@ export default function LoginPage() {
     if (Object.keys(next_).length) return;
     setBusy(true);
     try {
-      const session = await signIn(email, password);
-      navigate(afterAuthPath(session, next), { replace: true });
+      const result = await signIn(email, password);
+      if (result.kind === 'two_factor') {
+        setChallenge(result.challenge);
+        setBusy(false);
+        return;
+      }
+      navigate(afterAuthPath(result.session, next), { replace: true });
     } catch (err) {
-      setFormError(t(authErrorKey(err)));
+      const rateLimited = isApiError(err) && (err.message === 'resend_too_soon' || err.message === 'too_many_requests');
+      setFormError(rateLimited ? explainOtpError(t, err) : t(authErrorKey(err)));
       setBusy(false);
     }
   };
+
+  if (challenge) {
+    return (
+      <>
+        <AuthHeading title={t('auth.twoFactor.title')} subtitle={t('auth.twoFactor.subtitle')} />
+        <TwoFactorStep challenge={challenge} onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} onBack={() => { setChallenge(null); setPassword(''); }} />
+      </>
+    );
+  }
 
   return (
     <>

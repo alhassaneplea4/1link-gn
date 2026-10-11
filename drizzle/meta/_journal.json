@@ -15,6 +15,13 @@
       "when": 1791644012999,
       "tag": "0001_user-locale",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791723553343,
+      "tag": "0002_two-factor-sms",
+      "breakpoints": true
     }
   ]
 }

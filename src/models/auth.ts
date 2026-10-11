@@ -29,6 +29,8 @@ export interface SessionUser {
   name: string;
   emailVerified: boolean;
   phoneVerified: boolean;
+  /** Un code SMS est demandé à chaque connexion par mot de passe. */
+  twoFactorSms: boolean;
   category: CategoryId | null;
   onboardingDone: boolean;
   username: string | null;
@@ -57,6 +59,21 @@ export const isContactVerified = (u: Pick<SessionUser, 'emailVerified' | 'phoneV
 export const accountContact = (u: Pick<SessionUser, 'email' | 'phone'>) => u.email ?? u.phone ?? '';
 
 export type OtpChannel = 'whatsapp' | 'sms';
+
+/** Étape intermédiaire de connexion : le mot de passe est correct, un code SMS reste à saisir. */
+export interface TwoFactorChallenge {
+  /** Jeton signé, valable 10 min : lie la saisie du code au mot de passe qui vient d'être validé. */
+  challenge: string;
+  /** Numéro masqué (affichage). */
+  phoneMasked: string;
+  channel: OtpChannel;
+  expiresInSec: number;
+  resendInSec: number;
+  /** UNIQUEMENT en développement local (fournisseur de test). */
+  devCode?: string;
+}
+
+export type SignInResult = { kind: 'session'; session: Session } | { kind: 'two_factor'; challenge: TwoFactorChallenge };
 
 export interface OtpRequestResult {
   channel: OtpChannel;

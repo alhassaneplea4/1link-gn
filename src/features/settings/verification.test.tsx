@@ -46,8 +46,8 @@ describe('vérification de profil — API', () => {
 
     await api.page.requestVerification(input());
     await api.auth.signOut();
-    const session = await api.auth.signIn(a.email!, a.password);
-    expect(session.permissions).toContain('profiles:write');
+    const result = await api.auth.signIn(a.email!, a.password);
+    expect(result.kind === 'session' && result.session.permissions).toContain('profiles:write');
     const list = await api.admin.listVerifications({ page: 1, pageSize: 100, filters: { status: 'pending' } });
     const mineReq = list.items.find((v) => v.username === 'mariama')!;
     expect(mineReq).toBeDefined();
