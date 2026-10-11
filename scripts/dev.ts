@@ -12,6 +12,7 @@ import { startLocalPostgres } from '../server/testing/local-postgres.js';
 
 const API_PORT = Number(process.env.API_PORT ?? 8787);
 const DB_PORT = Number(process.env.DEV_DB_PORT ?? 54329);
+const WEB_PORT = process.env.PORT ?? '5173'; // l'outil d'aperçu attribue un port libre via PORT
 const external = process.env.DATABASE_URL;
 
 let databaseUrl = external ?? '';
@@ -31,14 +32,14 @@ await handle.close();
 const { app } = await createRuntimeApp({
   ...process.env,
   DATABASE_URL: databaseUrl,
-  APP_URL: process.env.APP_URL ?? 'http://localhost:5173',
+  APP_URL: process.env.APP_URL ?? `http://localhost:${WEB_PORT}`,
   ENABLE_DEV_ROUTES: '1',
   NODE_ENV: 'development',
 });
 const server = serve({ fetch: app.fetch, port: API_PORT, hostname: '127.0.0.1' });
 console.log(`[dev] API sur http://127.0.0.1:${API_PORT}/api (e-mails et codes OTP affichés ici, aucun envoi réel)`);
 
-const vite = spawn('npx', ['vite', '--host', 'localhost'], {
+const vite = spawn('npx', ['vite', '--host', 'localhost', '--port', WEB_PORT], {
   stdio: 'inherit',
   shell: true,
   env: { ...process.env, API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}` },
