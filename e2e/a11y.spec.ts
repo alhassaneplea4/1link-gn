@@ -13,7 +13,7 @@ async function audit(page: Page, name: string) {
 }
 
 test.describe('accessibilité (axe)', () => {
-  for (const path of ['/', '/pricing', '/faq', '/auth/login', '/auth/register']) {
+  for (const path of ['/', '/pricing', '/faq', '/legal/privacy', '/legal/terms', '/legal/delete-account', '/auth/login', '/auth/register']) {
     test(`public ${path}`, async ({ page }) => {
       await page.goto(path);
       await audit(page, path);

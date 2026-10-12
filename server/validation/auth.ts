@@ -31,3 +31,4 @@ export const twoFactorToggleBody = z.object({ enabled: z.boolean(), password: z.
 export const forgotBody = z.object({ email });
 export const resetBody = z.object({ token, password: z.string().min(1).max(200) });
 export const verifyEmailBody = z.object({ token });
+export const accountDeleteBody = z.object({ password: z.string().min(1).max(200).optional(), code: z.string().regex(/^\d{6}$/, 'code').optional() });

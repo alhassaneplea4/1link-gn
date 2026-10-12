@@ -1,0 +1,17 @@
+{
+  "appId": "gn.astronet.onelink",
+  "appName": "1Link",
+  "webDir": "www",
+  "backgroundColor": "#2563eb",
+  "server": {
+    "url": "https://1link-gn.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": ["1link-gn.vercel.app"]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

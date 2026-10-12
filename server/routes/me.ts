@@ -12,7 +12,10 @@ import { notify } from '../services/notifications.js';
 import { securityNoticeMessage } from '../lib/emails.js';
 import { verifyPassword } from '../lib/crypto.js';
 import { securityEvent } from '../lib/audit.js';
-import { phoneLinkVerifyBody, phoneRequestBody, passwordConfirmBody, twoFactorToggleBody } from '../validation/auth.js';
+import { accountDeleteBody, phoneLinkVerifyBody, phoneRequestBody, passwordConfirmBody, twoFactorToggleBody } from '../validation/auth.js';
+import { deleteAccount } from '../services/account-deletion.js';
+import { accountDeletedMessage } from '../lib/emails.js';
+import { clearSessionCookie } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
 import { getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
@@ -189,6 +192,34 @@ meRoutes.post('/2fa', async (c) => {
   await securityEvent(deps.db, { kind: 'new_device', subject: body.enabled ? 'Double authentification activée' : 'Double authentification désactivée', userId: auth.user.id, ip: c.get('ip') }, now);
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, body.enabled ? 'two_factor_on' : 'two_factor_off', locale));
   return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+});
+
+// — Suppression du compte —
+
+/** Compte créé par téléphone (sans mot de passe) : un code SMS prouve que c'est bien le titulaire. */
+meRoutes.post('/delete/request', async (c) => {
+  const deps = c.get('deps');
+  const { user } = c.get('auth')!;
+  if (user.passwordHash || !user.phone) throw conflict('password_account');
+  return c.json(await issueOtp(c, deps, user.phone, 'sms'));
+});
+
+/** Efface définitivement le compte et ses données. Exige le mot de passe (ou, sans mot de passe, le code reçu par SMS). */
+meRoutes.post('/delete', async (c) => {
+  const deps = c.get('deps');
+  const { user } = c.get('auth')!;
+  const body = await readJson(c, accountDeleteBody);
+  if (user.passwordHash) {
+    if (!body.password) throw badRequest('password_required', { password: 'required' });
+    await confirmPassword(c, body.password);
+  } else {
+    if (!body.code || !user.phone) throw badRequest('code_required', { code: 'required' });
+    await checkOtp(c, deps, user.phone, body.code);
+  }
+  await deleteAccount(deps, user, c.get('ip'));
+  notify(deps, user, accountDeletedMessage);
+  clearSessionCookie(c, deps);
+  return c.body(null, 204);
 });
 
 // — Images —

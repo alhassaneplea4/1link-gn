@@ -64,6 +64,7 @@ export default function RegisterPage() {
           )}
         </div>
         <Checkbox label={t('auth.register.terms')} checked={form.acceptTerms} onChange={(e) => set('acceptTerms', e.target.checked)} error={errors.terms} />
+        <p className="subtle auth-form__note"><Link to={paths.terms} target="_blank">{t('auth.register.readTerms')}</Link> · <Link to={paths.privacy} target="_blank">{t('auth.register.readPrivacy')}</Link></p>
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.register.submit')}</Button>
       </form>
       )}

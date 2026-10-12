@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, ConfirmDialog, Input, PageHeader, Segmented, Select, Skeleton, Toggle, useToast } from '@/components/ui';
+import { Badge, Button, Card, ConfirmDialog, Input, PageHeader, Segmented, Select, Skeleton, Toggle, useToast } from '@/components/ui';
 import { LOCALES, useLocale, useT } from '@/i18n/core';
 import { CATEGORY_IDS, type CategoryId } from '@/models/category';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -8,6 +8,7 @@ import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { useUi, type ThemePreference } from '@/state/ui';
 import { VerificationCard } from './VerificationCard';
+import { DeleteAccountRow } from './DeleteAccountCard';
 import { formatInternational } from '@/utilities/phone';
 import './settings.css';
 
@@ -79,11 +80,7 @@ export default function SettingsPage() {
             <div><strong>{t('dashboard.settings.unpublishTitle')}</strong><p className="muted">{t('dashboard.settings.unpublishText')}</p></div>
             <Button variant="secondary" disabled={doc?.status !== 'published'} onClick={() => setUnpublishOpen(true)}>{t('dashboard.settings.unpublish')}</Button>
           </div>
-          <div className="settings__danger">
-            <div><strong>{t('dashboard.settings.deleteTitle')}</strong><p className="muted">{t('dashboard.settings.deleteText')}</p></div>
-            <Button variant="danger" disabled>{t('dashboard.settings.delete')}</Button>
-          </div>
-          <Alert tone="info">{t('dashboard.settings.deleteNote')}</Alert>
+          <DeleteAccountRow />
         </Card>
       </div>
 

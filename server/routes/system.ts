@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { lt, sql } from 'drizzle-orm';
 import type { HonoEnv } from '../context.js';
-import { appErrors, authTokens, otpCodes, pageEvents, rateLimits, sessions } from '../db/schema.js';
+import { appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions } from '../db/schema.js';
 import { forbidden, HttpError } from '../lib/errors.js';
 import { safeEqual } from '../lib/crypto.js';
 
@@ -49,6 +49,7 @@ systemRoutes.get('/cron/maintenance', async (c) => {
     otp: await count(db.delete(otpCodes).where(lt(otpCodes.createdAt, ago(day))) as never),
     rateLimits: await count(db.delete(rateLimits).where(lt(rateLimits.windowStart, ago(2 * day))) as never),
     events: await count(db.delete(pageEvents).where(lt(pageEvents.at, ago(config.retentionDays.events * day))) as never),
+    security: await count(db.delete(securityEvents).where(lt(securityEvents.at, ago(365 * day))) as never),
     errors: await count(db.delete(appErrors).where(lt(appErrors.at, ago(config.retentionDays.errors * day))) as never),
   };
   return c.json({ ok: true, purged });

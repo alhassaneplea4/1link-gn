@@ -68,6 +68,8 @@ export default {
     haveAccount: 'Already have an account?',
     login: 'Sign in',
     terms: 'I accept the terms of use and the privacy policy.',
+    readTerms: 'Terms of use',
+    readPrivacy: 'Privacy policy',
     passwordHint: 'At least 8 characters.',
     strength: { label: 'Strength', weak: 'Weak', fair: 'Fair', strong: 'Strong' },
   },

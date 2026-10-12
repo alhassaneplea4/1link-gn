@@ -4,18 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>1Link — Un lien, pour toute votre présence.</title>
-    <meta name="description" content="Créez votre espace numérique personnalisé et rassemblez vos liens, réseaux, services et contacts au même endroit." />
+    <meta name="description" content="Créez votre espace numérique personnalisé et rassemblez vos liens, réseaux, services et contacts au même endroit. Gratuit, en français et en anglais." />
     <meta name="theme-color" content="#2563eb" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://1link-gn.vercel.app/" />
+    <meta property="og:site_name" content="1Link" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://1link-gn.vercel.app/" />
     <meta property="og:title" content="1Link — Un lien, pour toute votre présence." />
     <meta property="og:description" content="Créez votre espace numérique personnalisé et rassemblez vos liens, réseaux, services et contacts au même endroit." />
-    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://1link-gn.vercel.app/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="1Link — Un lien, pour toute votre présence." />
+    <meta name="twitter:description" content="Rassemblez vos liens, réseaux, services et contacts sur une seule page." />
+    <meta name="twitter:image" content="https://1link-gn.vercel.app/og-default.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Organization", "@id": "https://1link-gn.vercel.app/#org", "name": "1Link", "url": "https://1link-gn.vercel.app/", "logo": "https://1link-gn.vercel.app/icon-512.png", "founder": { "@type": "Organization", "name": "ASTRONET GN INC" }, "areaServed": "GN" },
+          { "@type": "WebSite", "@id": "https://1link-gn.vercel.app/#site", "url": "https://1link-gn.vercel.app/", "name": "1Link", "inLanguage": ["fr", "en"], "publisher": { "@id": "https://1link-gn.vercel.app/#org" } },
+          { "@type": "SoftwareApplication", "name": "1Link", "applicationCategory": "BusinessApplication", "operatingSystem": "Web, Android", "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GNF" }, "url": "https://1link-gn.vercel.app/" }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>1Link nécessite JavaScript pour fonctionner.</noscript>
+    <noscript>
+      <h1>1Link — Un lien, pour toute votre présence.</h1>
+      <p>Rassemblez vos liens, réseaux, services et contacts sur une seule page. 1Link nécessite JavaScript pour fonctionner.</p>
+      <p><a href="/legal/privacy">Confidentialité</a> · <a href="/legal/terms">Conditions d’utilisation</a></p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

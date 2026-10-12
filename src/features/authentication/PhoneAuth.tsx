@@ -188,6 +188,7 @@ export function PhoneAuth({ mode, onDone }: Props) {
         </RadioGroup>
       )}
       {mode === 'sign_up' && <Checkbox label={t('auth.register.terms')} checked={terms} onChange={(e) => setTerms(e.target.checked)} error={errors.terms} />}
+      {mode === 'sign_up' && <p className="subtle auth-form__note"><Link to={paths.terms} target="_blank">{t('auth.register.readTerms')}</Link> · <Link to={paths.privacy} target="_blank">{t('auth.register.readPrivacy')}</Link></p>}
       <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} disabled={channels?.length === 0} iconLeft="send">{t('auth.phone.send')}</Button>
       <p className="subtle auth-form__note"><Icon name="info" size={13} /> {t('auth.phone.privacy')}</p>
     </form>

@@ -36,6 +36,9 @@ export const routes: RouteObject[] = [
           { path: 'features', ...page(() => import('@/features/marketing/FeaturesPage'), ['marketing', 'pub', 'editor']) },
           { path: 'pricing', ...page(() => import('@/features/marketing/PricingPage'), ['marketing', 'billing']) },
           { path: 'faq', ...page(() => import('@/features/marketing/FaqPage'), ['marketing']) },
+          { path: 'legal/privacy', ...page(() => import('@/features/legal/Privacy'), ['marketing']) },
+          { path: 'legal/terms', ...page(() => import('@/features/legal/Terms'), ['marketing']) },
+          { path: 'legal/delete-account', ...page(() => import('@/features/legal/DeleteAccountInfo'), ['marketing']) },
         ],
       },
 

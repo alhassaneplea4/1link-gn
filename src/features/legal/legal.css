@@ -1,0 +1,13 @@
+.legal { max-width: 46rem; padding-block: var(--space-12) var(--space-16); }
+.legal__head { display: grid; gap: var(--space-3); margin-bottom: var(--space-8); }
+.legal h1 { font-size: var(--text-4xl); }
+.legal__updated { color: var(--color-text-muted); font-size: var(--text-sm); }
+.legal__intro { font-size: var(--text-lg); color: var(--color-text-muted); }
+.legal__tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.legal__tabs a { padding: 0.45rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border); color: var(--color-text); font-weight: 600; font-size: var(--text-sm); }
+.legal__tabs a[aria-current='page'] { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.legal__section { margin-top: var(--space-8); display: grid; gap: var(--space-3); }
+.legal__section h2 { font-size: var(--text-xl); }
+.legal__section p, .legal__section li { color: var(--color-text-muted); line-height: 1.7; }
+.legal__section ul { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--space-2); }
+.legal__cta { margin-top: var(--space-8); }

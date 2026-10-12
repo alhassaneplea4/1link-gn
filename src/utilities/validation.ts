@@ -44,7 +44,7 @@ export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
   'admin', 'auth', 'api', 'app', 'dashboard', 'onboarding', 'features', 'pricing', 'faq', 'login', 'logout',
   'register', 'signup', 'signin', 'settings', 'support', 'help', 'about', 'contact', 'terms', 'privacy', 'legal',
   'static', 'assets', 'public', 'preview', '404', '403', 'status', 'blog', 'press', 'security', 'billing',
-  '1link', 'onelink', 'root', 'system', 'moderation', 'null', 'undefined', 'www', 'mail', 'demo', 'cgu',
+  '1link', 'onelink', 'root', 'sitemap', 'robots', 'manifest', 'delete-account', 'cookies', 'mentions', 'system', 'moderation', 'null', 'undefined', 'www', 'mail', 'demo', 'cgu',
 ]);
 
 export function validateUsername(v: string): ValidationKey | null {

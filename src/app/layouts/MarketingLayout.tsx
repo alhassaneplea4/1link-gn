@@ -104,6 +104,14 @@ function Footer() {
             {CATEGORY_IDS.map((c) => <li key={c}><Link to="/#audiences">{t(`common.categories.${c}.label`)}</Link></li>)}
           </ul>
         </nav>
+        <nav aria-label={t('marketing.footer.legal')}>
+          <h2>{t('marketing.footer.legal')}</h2>
+          <ul role="list">
+            <li><NavLink to={paths.privacy}>{t('marketing.footer.privacy')}</NavLink></li>
+            <li><NavLink to={paths.terms}>{t('marketing.footer.terms')}</NavLink></li>
+            <li><NavLink to={paths.deleteAccount}>{t('marketing.footer.deleteAccount')}</NavLink></li>
+          </ul>
+        </nav>
         <nav aria-label={t('marketing.footer.account')}>
           <h2>{t('marketing.footer.account')}</h2>
           <ul role="list">

@@ -155,3 +155,9 @@ export function otpMessage(code: string, minutes: number, locale: Locale): strin
     ? `Your 1Link code: ${code}. Valid for ${minutes} minutes. Never share it with anyone.`
     : `Votre code 1Link : ${code}. Valable ${minutes} minutes. Ne le communiquez à personne.`;
 }
+
+export function accountDeletedMessage(to: string, name: string, locale: Locale): MailMessage {
+  return locale === 'en'
+    ? msg(to, 'Your 1Link account was deleted', { locale, title: `Goodbye ${name}`, paragraphs: ['As requested, your 1Link account, your page, your images and your personal data have been deleted.', 'If you did not ask for this, contact us right away.'] })
+    : msg(to, 'Votre compte 1Link a été supprimé', { locale, title: `Au revoir ${name}`, paragraphs: ['À votre demande, votre compte 1Link, votre page, vos images et vos données personnelles ont été supprimés.', 'Si vous n’êtes pas à l’origine de cette demande, contactez-nous immédiatement.'] });
+}

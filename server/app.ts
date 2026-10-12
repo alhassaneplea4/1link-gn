@@ -10,6 +10,7 @@ import { adminRoutes } from './routes/admin.js';
 import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import { publicRoutes } from './routes/public.js';
+import { seoRoutes } from './routes/seo.js';
 import { devRoutes, systemRoutes } from './routes/system.js';
 
 /** Assemble l'API. Toutes les dépendances (base, e-mail, SMS, horloge) sont injectées : les tests exécutent ce même code. */
@@ -29,6 +30,7 @@ export function createApp(deps: Deps) {
   app.route('/admin', adminRoutes);
   app.route('/', publicRoutes);
   app.route('/', systemRoutes);
+  app.route('/', seoRoutes);
   if (deps.config.devRoutes) app.route('/dev', devRoutes);
 
   app.notFound((c) => c.json({ message: 'not_found' }, 404));

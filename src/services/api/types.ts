@@ -44,6 +44,10 @@ export interface AuthApi {
   requestPhoneLink(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
   verifyPhoneLink(input: { phone: string; code: string }): Promise<Session>;
   removePhone(password: string): Promise<Session>;
+  /** Compte sans mot de passe (créé par téléphone) : envoie le code qui autorise la suppression. */
+  requestAccountDeletionCode(): Promise<OtpRequestResult>;
+  /** Supprime définitivement le compte et ses données (mot de passe, ou code SMS pour un compte sans mot de passe). */
+  deleteAccount(input: { password?: string; code?: string }): Promise<void>;
   /** Active/désactive la double authentification par SMS (mot de passe exigé). */
   setTwoFactor(enabled: boolean, password: string): Promise<Session>;
   resetPassword(token: string, password: string): Promise<void>;

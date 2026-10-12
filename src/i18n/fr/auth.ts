@@ -78,6 +78,8 @@ export default {
     haveAccount: 'Vous avez déjà un compte ?',
     login: 'Se connecter',
     terms: 'J’accepte les conditions d’utilisation et la politique de confidentialité.',
+    readTerms: 'Conditions d’utilisation',
+    readPrivacy: 'Politique de confidentialité',
     passwordHint: 'Au moins 8 caractères.',
     strength: { label: 'Robustesse', weak: 'Faible', fair: 'Moyenne', strong: 'Solide' },
   },
