@@ -60,6 +60,7 @@ export default {
   scheduled: { upcoming: 'Programmé : pas encore visible', active: 'Programmé : visible', expired: 'Terminé : n’est plus visible' },
   since: 'Sur 1Link depuis {date}',
   actions: { whatsapp: 'WhatsApp', call: 'Appeler', email: 'E-mail', share: 'Partager', copied: 'Lien copié' },
+  cta: { title: 'Créez votre propre 1Link', text: 'Rassemblez vos liens, réseaux, services et contacts sur une seule page. C’est gratuit et prêt en quelques minutes.', button: 'Créer mon 1Link' },
   share: {
     title: 'Partager cette page',
     description: 'Envoyez le lien ou le QR code à vos contacts.',

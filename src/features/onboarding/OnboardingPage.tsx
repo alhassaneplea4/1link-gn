@@ -13,7 +13,7 @@ import type { MessageKey } from '@/i18n/types';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { composeDocument } from './compose';
-import { ActivityStep, AppearanceStep, CategoryStep, ContentStep, IdentityStep, LinksStep, PreviewStep, PublishStep } from './steps';
+import { ActivityStep, CategoryStep, ContentStep, IdentityStep, LinksStep, PreviewStep, PublishStep } from './steps';
 import { STEPS, restoreOnboarding, snapshotOnboarding, useOnboarding, type OnboardingData } from './store';
 import { validateStep } from './validate';
 import './onboarding.css';
@@ -108,12 +108,11 @@ export default function OnboardingPage() {
     activity: <ActivityStep errors={errors} showErrors={showErrors} />,
     links: <LinksStep errors={errors} showErrors={showErrors} />,
     content: <ContentStep />,
-    appearance: <AppearanceStep />,
     preview: <PreviewStep doc={doc} go={go} />,
     publish: <PublishStep doc={doc} busy={busy} error={publishError} onPublish={() => void finish(true)} onSaveDraft={() => void finish(false)} />,
   }[stepId];
   const last = step === STEPS.length - 1;
-  const optional = stepId === 'links' || stepId === 'content' || stepId === 'appearance';
+  const optional = stepId === 'links' || stepId === 'content';
 
   return (
     <div className="onb">

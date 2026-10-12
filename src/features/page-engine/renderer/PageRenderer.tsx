@@ -126,6 +126,15 @@ export const PageRenderer = memo(function PageRenderer({ page, pageUrl, preview 
               </SectionCard>
             ))}
           </div>
+          {!preview && (
+            <aside className="pgp-cta" aria-labelledby="pgp-cta-title">
+              <div>
+                <h2 id="pgp-cta-title">{t('pub.cta.title')}</h2>
+                <p>{t('pub.cta.text')}</p>
+              </div>
+              <a className="pgp-act is-primary" href="/auth/register">{t('pub.cta.button')}</a>
+            </aside>
+          )}
           {footer && <div className="pg-footer">{footer}</div>}
           {branding && (
             <footer className="pg-brand">

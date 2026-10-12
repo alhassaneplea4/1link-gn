@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge, Button, Card, EmptyState, ErrorState, Icon, LinkButton, PageHeader, ProgressBar, Skeleton, StatCard, useToast } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Icon, LinkButton, Modal, PageHeader, ProgressBar, Skeleton, StatCard, useToast } from '@/components/ui';
 import { PhoneFrame } from '@/components/ui/PhoneFrame';
 import { CATEGORY_CONFIG, type FocusItem } from '@/features/categories/config';
 import { pageReadiness, setupChecklist, setupState } from '@/features/page-engine/document';
@@ -33,6 +33,7 @@ export default function OverviewPage() {
   const doc = useEditor((s) => s.doc);
   const status = useEditor((s) => s.status);
   const [shareOpen, setShareOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const range = useMemo(() => rangeFromPreset('7d'), []);
   const report = useResource(() => api.analytics.getReport(range), [range.from, range.to]);
   const sub = useResource(() => api.billing.getSubscription(), []);
@@ -99,6 +100,7 @@ export default function OverviewPage() {
         actions={
           <>
             <Button variant="secondary" iconLeft="share" onClick={() => setShareOpen(true)}>{t('dashboard.overview.share')}</Button>
+            <Button variant="secondary" iconLeft="eye" onClick={() => setPreviewOpen(true)} aria-label={t('dashboard.overview.previewLabel')}>{t('dashboard.overview.preview')}</Button>
             <LinkButton to={paths.dashboard.page} variant="gradient" iconLeft="pencil">{t('dashboard.overview.editPage')}</LinkButton>
           </>
         }
@@ -242,6 +244,9 @@ export default function OverviewPage() {
         </aside>
       </div>
 
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} size="lg" title={t('dashboard.overview.previewModalTitle')} description={t('dashboard.overview.previewText')}>
+        <div className="ov-preview"><PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" /></div>
+      </Modal>
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} username={doc.username || 'exemple'} published={doc.status === 'published'} />
     </div>
   );

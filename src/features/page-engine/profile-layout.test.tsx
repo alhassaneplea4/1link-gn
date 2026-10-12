@@ -53,6 +53,16 @@ describe('mise en page « profil » de la page publique', () => {
     expect(container.querySelector('[data-block-id="p2"].is-highlighted')).toBeInTheDocument();
   });
 
+  it('invite les visiteurs à créer leur 1Link en bas de la page publique, pas dans l’aperçu', () => {
+    const { container, unmount } = show(doc('creator'));
+    const cta = container.querySelector('.pgp-cta a') as HTMLAnchorElement;
+    expect(cta).toHaveAttribute('href', '/auth/register');
+    expect(cta).toHaveTextContent('Créer mon 1Link');
+    unmount();
+    const preview = show(doc('creator'), { preview: true });
+    expect(preview.container.querySelector('.pgp-cta')).toBeNull();
+  });
+
   it('retombe sur la liste classique sans bloc profil, et groupe les blocs par thème', () => {
     const page = doc('business');
     const noProfile = { ...page, blocks: page.blocks.filter((b) => b.type !== 'profile') };

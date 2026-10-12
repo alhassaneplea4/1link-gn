@@ -287,7 +287,6 @@ export function PreviewStep({ doc, go }: { doc: PageDocument; go: (i: number) =>
       <ul role="list" className="summary">
         <li><Icon name="user" size={16} /><span>{t('onboarding.preview.profile')}</span><Button size="sm" variant="ghost" onClick={() => go(1)}>{t('common.edit')}</Button></li>
         <li><Icon name="layers" size={16} /><span>{t('onboarding.preview.blocks', { count: blocks.length })}</span><Button size="sm" variant="ghost" onClick={() => go(3)}>{t('common.edit')}</Button></li>
-        <li><Icon name="palette" size={16} /><span>{t('onboarding.preview.theme')} : {tr(`common.themes.${doc.appearance.themeId}`)}</span><Button size="sm" variant="ghost" onClick={() => go(5)}>{t('common.edit')}</Button></li>
       </ul>
       <Alert tone="info">{t('onboarding.preview.later')}</Alert>
     </div>

@@ -27,7 +27,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await page.getByRole('button', { name: /Continuer/ }).click();
     await page.getByLabel(/Type de contenu ou niche/).fill('Cuisine');
     await page.getByRole('button', { name: /Continuer/ }).click();
-    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Passer cette étape/ }).click();
+    for (let i = 0; i < 2; i++) await page.getByRole('button', { name: /Passer cette étape/ }).click();
     await expect(page.getByRole('heading', { name: 'Vérifiez votre page' })).toBeVisible();
     await page.getByRole('button', { name: /Continuer/ }).click();
     await expect(page.getByRole('button', { name: 'Publier ma page' })).toBeEnabled(); // aucune confirmation d'e-mail exigée
@@ -67,7 +67,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await page.getByRole('button', { name: /Continuer/ }).click();
     const username = `fanta${unique()}`;
     await page.getByLabel(/Adresse de votre page/).fill(username);
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       await page.getByRole('button', { name: /Continuer/ }).click();
       await page.waitForTimeout(150);
     }
@@ -102,7 +102,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
     await page.getByLabel(/Adresse de votre page/).fill(`kadi${unique()}`);
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       await page.getByRole('button', { name: /Continuer/ }).click();
       await page.waitForTimeout(150);
     }

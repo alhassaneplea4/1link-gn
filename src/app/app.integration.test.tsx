@@ -178,7 +178,7 @@ describe('inscription et onboarding', () => {
     await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
 
     // étapes facultatives
-    for (const heading of ['Vos liens et réseaux', 'Services ou contenus', 'Choisissez un style']) {
+    for (const heading of ['Vos liens et réseaux', 'Services ou contenus']) {
       await screen.findByRole('heading', { name: heading });
       await userEvent.click(screen.getByRole('button', { name: /Passer cette étape/ }));
     }

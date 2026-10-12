@@ -9,7 +9,7 @@ import { THEME_IDS, type ThemeId } from '@/models/appearance';
 import { SOCIAL_PLATFORMS, type SocialPlatform } from '@/models/blocks';
 import { registerReset } from '@/state/lifecycle';
 
-export const STEPS = ['category', 'identity', 'activity', 'links', 'content', 'appearance', 'preview', 'publish'] as const;
+export const STEPS = ['category', 'identity', 'activity', 'links', 'content', 'preview', 'publish'] as const;
 export type StepId = (typeof STEPS)[number];
 
 export interface OnboardingData {
