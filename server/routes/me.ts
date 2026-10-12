@@ -3,7 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { C, Deps, HonoEnv } from '../context.js';
 import { payments, subscriptions, users } from '../db/schema.js';
-import { conflict, forbidden, HttpError, badRequest } from '../lib/errors.js';
+import { conflict, HttpError, badRequest } from '../lib/errors.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { requireAuth } from '../middleware.js';
@@ -21,7 +21,6 @@ import { getOwnerPage, ownerDocument, unpublish, writePage } from '../services/p
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
 import { userReport } from '../services/analytics.js';
 import { storeImage, MAX_IMAGE_BYTES } from '../services/media.js';
-import { isContactVerified } from '../../src/models/auth.js';
 import type { ChangePlanResult, Invoice, Subscription } from '../../src/models/billing.js';
 import type { RangePreset } from '../../src/models/analytics.js';
 import type { PlanId } from '../../src/models/auth.js';
@@ -46,7 +45,6 @@ meRoutes.put('/page/draft', async (c) => {
 meRoutes.post('/page/publish', async (c) => {
   const deps = c.get('deps');
   const auth = c.get('auth')!;
-  if (!isContactVerified({ emailVerified: auth.user.emailVerifiedAt !== null, phoneVerified: auth.user.phoneVerifiedAt !== null })) throw forbidden('email_not_verified');
   const input = await readJson(c, pageInput('publish'), MAX_DOC_BYTES + 50_000);
   const profile = input.blocks.find((b) => b.type === 'profile');
   if (!profile || profile.type !== 'profile' || !profile.data.displayName.trim()) throw badRequest('incomplete', { displayName: 'required' });

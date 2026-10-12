@@ -104,9 +104,9 @@ describe('brouillon', () => {
 });
 
 describe('publication et page publique', () => {
-  it('exige un contact vérifié, publie, masque les blocs cachés, puis dépublie', async () => {
+  it('publie sans exiger la confirmation de l’e-mail, masque les blocs cachés, puis dépublie', async () => {
     const unverified = await signedIn({ emailVerified: false });
-    expect((await unverified.c.post('/api/me/page/publish', doc(uname(), 0))).body.message).toBe('email_not_verified');
+    expect((await unverified.c.post('/api/me/page/publish', doc(uname(), 0))).status).toBe(200);
 
     const { c } = await signedIn();
     const username = uname();

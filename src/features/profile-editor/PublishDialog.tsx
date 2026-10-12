@@ -1,15 +1,11 @@
-import { isContactVerified } from '@/models/auth';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Icon, Input, Modal, Textarea } from '@/components/ui';
 import { pageReadiness } from '@/features/page-engine/document';
 import { ShareDialog } from '@/features/sharing/ShareDialog';
 import { api } from '@/services/api';
 import { env, publicUrl } from '@/app/configuration/env';
-import { paths } from '@/app/configuration/paths';
 import { useT } from '@/i18n/core';
 import { useEditor } from '@/state/editor';
-import { useSession } from '@/state/session';
 import { slugifyUsername, validateUsername } from '@/utilities/validation';
 import type { MessageKey } from '@/i18n/types';
 
@@ -22,7 +18,6 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
   const setMeta = useEditor((s) => s.setMeta);
   const publish = useEditor((s) => s.publish);
   const saving = useEditor((s) => s.save.state === 'saving');
-  const verified = useSession((s) => (s.session ? isContactVerified(s.session.user) : false));
   const [username, setUsername] = useState(doc?.username ?? '');
   const [avail, setAvail] = useState<Availability>('idle');
   const [result, setResult] = useState<{ ok: boolean; mode?: 'demo' | 'live'; error?: string } | null>(null);
@@ -61,7 +56,7 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
 
   if (!doc) return null;
   const readiness = pageReadiness({ ...doc, username: username || doc.username });
-  const canPublish = readiness.incomplete.length === 0 && avail === 'available' && verified && !saving;
+  const canPublish = readiness.incomplete.length === 0 && avail === 'available' && !saving;
   const availMsg: Record<Availability, string | undefined> = {
     idle: undefined, checking: t('editor.publish.checking'), available: undefined,
     taken: t('editor.publish.taken'), reserved: t('common.validation.usernameReserved'), invalid: t('common.validation.usernameFormat'),
@@ -93,11 +88,6 @@ export function PublishDialog({ open, onClose, onFocusBlock }: { open: boolean; 
     <Modal open={open} onClose={onClose} size="lg" title={doc.status === 'published' ? t('editor.publish.titleUpdate') : t('editor.publish.title')} description={t('editor.publish.description')}
       footer={<><Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button><Button variant="gradient" iconLeft="rocket" disabled={!canPublish} loading={saving} onClick={() => void submit()}>{doc.status === 'published' ? t('editor.publish.confirmUpdate') : t('editor.publish.confirm')}</Button></>}>
       <div className="publish">
-        {!verified && (
-          <Alert tone="warning" title={t('editor.publish.unverifiedTitle')} action={<Link className="btn btn--secondary btn--sm" to={paths.verifyEmail}><span className="btn__label">{t('editor.publish.verifyNow')}</span></Link>}>
-            {t('editor.publish.unverifiedText')}
-          </Alert>
-        )}
         {result && !result.ok && <Alert tone="danger" title={t('editor.publish.failed')}>{result.error && /^[a-z_]+$/.test(result.error) ? t(`editor.publish.errors.${result.error in { username_taken: 1, username_invalid: 1, username_reserved: 1, email_not_verified: 1, plan_limit: 1 } ? result.error : 'unknown'}` as MessageKey) : t('editor.publish.errors.unknown')}</Alert>}
 
         <section aria-labelledby="pub-check">

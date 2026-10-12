@@ -60,6 +60,7 @@ export default {
     required: 'This field is required.',
     email: 'Enter a valid email address.',
     url: 'Enter a valid web address (https://…).',
+    profileMissing: 'Add your username at the end of the address.',
     phone: 'Enter a valid number with country code (+224…).',
     passwordShort: 'Password must be at least 8 characters.',
     usernameFormat: '3 to 30 characters: lowercase letters, digits, hyphen or underscore.',

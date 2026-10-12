@@ -1,4 +1,3 @@
-import { isContactVerified } from '@/models/auth';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, LinkButton, SearchBar } from '@/components/ui';
@@ -11,7 +10,7 @@ import { useT } from '@/i18n/core';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { useSession } from '@/state/session';
 import { AppShell, ThemeToggle, type NavEntry } from './AppShell';
-import { AccountMenu, Notifications, VerifyBanner } from './header-parts';
+import { AccountMenu, Notifications } from './header-parts';
 
 /** Recherche globale : sections du dashboard et blocs de la page (les données viennent du store, pas d'un index fictif). */
 function GlobalSearch({ nav }: { nav: NavEntry[] }) {
@@ -67,7 +66,6 @@ export default function DashboardLayout() {
   // Notifications calculées depuis l'état réel (aucune notification fictive).
   const notifications = useMemo(() => {
     const out: { id: string; icon: 'alert' | 'mail' | 'rocket' | 'info'; title: string; text: string; to?: string }[] = [];
-    if (session && !isContactVerified(session.user)) out.push({ id: 'verify', icon: 'mail', title: t('dashboard.notifications.verify'), text: t('dashboard.notifications.verifyText'), to: paths.verifyEmail });
     if (doc) {
       const r = pageReadiness(doc);
       if (doc.status !== 'published') out.push({ id: 'unpublished', icon: 'rocket', title: t('dashboard.notifications.draft'), text: t('dashboard.notifications.draftText'), to: paths.dashboard.page });
@@ -82,7 +80,6 @@ export default function DashboardLayout() {
     <AppShell
       variant="user"
       nav={nav}
-      banners={<VerifyBanner />}
       header={
         <>
           <GlobalSearch nav={nav} />

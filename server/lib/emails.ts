@@ -63,6 +63,21 @@ export function welcomeMessage(to: string, name: string, link: string, locale: L
       });
 }
 
+/** Inscription : accueil seul (aucune confirmation d'adresse n'est exigée pour configurer et publier sa page). */
+export function welcomeSimpleMessage(to: string, name: string, url: string, locale: Locale): MailMessage {
+  return locale === 'en'
+    ? msg(to, 'Welcome to 1Link', {
+        locale, title: `Welcome to 1Link, ${name}!`,
+        paragraphs: ['Your account is ready. 1Link gathers your links, services and contacts on a single page you can share anywhere — WhatsApp, Instagram, TikTok, a business card.', 'Set up your page in a few minutes, then publish it when you are happy with it.'],
+        cta: { label: 'Set up my page', url }, small: 'If you did not create a 1Link account, ignore this message.',
+      })
+    : msg(to, 'Bienvenue sur 1Link', {
+        locale, title: `Bienvenue sur 1Link, ${name} !`,
+        paragraphs: ['Votre compte est prêt. 1Link rassemble vos liens, services et contacts sur une seule page que vous partagez partout : WhatsApp, Instagram, TikTok, carte de visite.', 'Configurez votre page en quelques minutes, puis publiez-la quand elle vous convient.'],
+        cta: { label: 'Configurer ma page', url }, small: 'Si vous n’avez pas créé de compte 1Link, ignorez ce message.',
+      });
+}
+
 /** Renvoi du lien de confirmation (sans le message d'accueil). */
 export function verifyEmailMessage(to: string, name: string, link: string, locale: Locale): MailMessage {
   return locale === 'en'

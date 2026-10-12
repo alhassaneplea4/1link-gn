@@ -13,7 +13,7 @@ import {
   assertCanSignIn, assertStrongPassword, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, findUserByEmail, findUserByPhone, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
-import { passwordChangedMessage } from '../lib/emails.js';
+import { passwordChangedMessage, welcomeSimpleMessage } from '../lib/emails.js';
 import { notify } from '../services/notifications.js';
 import { clearSessionCookie, endSession, endUserSessions, loadSession, startSession } from '../services/sessions.js';
 import { challengeBody, forgotBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, signUpBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
@@ -101,8 +101,8 @@ authRoutes.post('/sign-up', async (c) => {
   await enforce(deps.db, keyFor('signup-ip', c.get('ip')), 10, 3600, deps.now());
   assertStrongPassword(body.password, [body.email, body.email.split('@')[0] ?? '']);
   const user = await createAccount(deps, { name: body.name, email: body.email, password: body.password, country: country(c), locale: c.get('locale') });
-  // L'envoi (SMTP : plusieurs secondes) ne doit pas retarder la réponse ; en cas d'échec l'utilisateur peut redemander le lien.
-  deps.defer(sendVerificationEmail(c, deps, user, true).catch((e) => console.error('[auth] accueil :', (e as Error).message)));
+  // Accueil seul, envoyé après la réponse (SMTP : plusieurs secondes). La confirmation de l'adresse est facultative (Sécurité).
+  notify(deps, user, (to, name, locale) => welcomeSimpleMessage(to, name, `${deps.config.publicUrl}/onboarding`, locale));
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
 });

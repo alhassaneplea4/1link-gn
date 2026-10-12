@@ -144,7 +144,7 @@ describe('Admin Center et rôles', () => {
 });
 
 describe('inscription et onboarding', () => {
-  it('crée un compte réel, parcourt l’assistant, vérifie l’e-mail par le lien reçu, puis publie', async () => {
+  it('crée un compte réel, parcourt l’assistant puis publie directement, sans confirmation d’e-mail', async () => {
     const r = mount('/auth/register');
     await userEvent.type(await screen.findByLabelText(/Nom complet/), 'Awa Test');
     await userEvent.type(screen.getByLabelText(/Adresse e-mail/), 'awa.test@exemple.com');
@@ -185,23 +185,16 @@ describe('inscription et onboarding', () => {
     await screen.findByRole('heading', { name: 'Vérifiez votre page' });
     await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
 
-    // publication : bloquée tant que l’e-mail n’est pas vérifié ; le brouillon est enregistré en base
+    // publication : possible tout de suite (aucune confirmation d’e-mail exigée), page lue depuis la base
     await screen.findByRole('heading', { name: 'Prêt à publier ?' });
-    expect(screen.getByRole('button', { name: 'Publier ma page' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer en brouillon' }));
+    expect(screen.getByRole('button', { name: 'Publier ma page' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Publier ma page' }));
     await waitFor(() => expect(r.state.location.pathname).toBe('/dashboard'));
     expect(await screen.findByRole('heading', { name: /Bonjour, Awa/ })).toBeInTheDocument();
-    expect(screen.queryByText('Votre page est publiée')).not.toBeInTheDocument();
-    expect(screen.getAllByText(/Vérifiez votre adresse e-mail/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Vérifiez votre adresse e-mail/)).not.toBeInTheDocument();
     const page = (await backend.browser.get('/api/me/page')).body;
-    expect(page).toMatchObject({ status: 'draft', category: 'professional', version: 1 });
-
-    // le lien reçu par e-mail (boîte d'envoi du serveur de test) valide l'adresse
-    const mail = backend.app.mailer.outbox.filter((m) => m.to === 'awa.test@exemple.com').at(-1)!;
-    const token = decodeURIComponent(/token=([^\s&]+)/.exec(mail.text)![1]!);
-    await r.navigate(`/auth/verify-email?token=${encodeURIComponent(token)}`);
-    expect(await screen.findByRole('heading', { name: /Adresse e-mail vérifiée/ })).toBeInTheDocument();
-    expect(useSession.getState().session?.user.emailVerified).toBe(true);
+    expect(page).toMatchObject({ status: 'published', category: 'professional' });
+    expect(useSession.getState().session?.user.emailVerified).toBe(false);
   }, 90000);
 });
 

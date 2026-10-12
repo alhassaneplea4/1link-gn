@@ -6,7 +6,7 @@
  * L'éditeur (formulaire, validation, liste) et la page publique s'adaptent sans autre modification.
  */
 import { parseRate } from './money';
-import { BLOCK_TYPES, CURRENCIES, PAYMENT_PROVIDERS, SOCIAL_PLATFORMS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
+import { BLOCK_TYPES, CURRENCIES, PAYMENT_PROVIDERS, type AnyBlock, type Block, type BlockType } from '@/models/blocks';
 import { uid } from '@/utilities/misc';
 import { validateFields, type FieldDef, type FieldErrors } from './schema';
 import { scheduleError } from '../schedule';
@@ -18,8 +18,6 @@ import { ContactRender, LocationRender, QrRender } from './render/places';
 import { VcardRender } from './render/vcard';
 import { PaymentRender, ShopRender } from './render/commerce';
 import { BookingRender } from './render/booking';
-
-const platformOptions = ['link', ...SOCIAL_PLATFORMS] as const;
 
 const text = (name: string, o: { required?: boolean; max?: number } = {}): FieldDef => ({ kind: 'text', name, ...o });
 const area = (name: string, o: { required?: boolean; max?: number } = {}): FieldDef => ({ kind: 'textarea', name, ...o });
@@ -45,7 +43,7 @@ export const blockRegistry: BlockRegistry = {
   }),
   link: def({
     type: 'link', group: 'links', icon: 'link',
-    fields: [text('title', { required: true, max: 80 }), url('url', { required: true }), text('description', { max: 120 }), { kind: 'select', name: 'platform', options: platformOptions }, { kind: 'toggle', name: 'highlight' }],
+    fields: [text('title', { required: true, max: 80 }), url('url', { required: true }), text('description', { max: 120 }), { kind: 'platform', name: 'platform', allowLink: true }, { kind: 'toggle', name: 'highlight' }],
     create: () => ({ title: '', url: '', description: '', platform: 'link', highlight: false }),
     summary: (d) => d.title || d.url,
     Render: LinkRender,
@@ -54,9 +52,9 @@ export const blockRegistry: BlockRegistry = {
     type: 'social', group: 'links', icon: 'share',
     fields: [
       { kind: 'select', name: 'display', options: ['icons', 'list'] },
-      { kind: 'list', name: 'items', max: 12, defaultItem: { platform: 'instagram', url: '' }, itemFields: [{ kind: 'select', name: 'platform', options: SOCIAL_PLATFORMS }, url('url', { required: true })] },
+      { kind: 'list', name: 'items', max: 12, defaultItem: { platform: 'instagram', url: 'https://instagram.com/' }, itemFields: [{ kind: 'platform', name: 'platform' }, url('url', { required: true })] },
     ],
-    create: () => ({ display: 'icons', items: [{ platform: 'instagram', url: '' }] }),
+    create: () => ({ display: 'icons', items: [{ platform: 'instagram', url: 'https://instagram.com/' }] }),
     summary: (d) => d.items.map((i) => i.platform).join(' · '),
     Render: SocialRender,
   }),
@@ -228,6 +226,12 @@ export function validateBlock(block: AnyBlock): FieldErrors {
 }
 
 export const isBlockComplete = (block: AnyBlock) => Object.keys(validateBlock(block)).length === 0;
+
+/**
+ * Affichable aux visiteurs : comme `isBlockComplete`, sauf qu'un réseau resté à l'adresse officielle (nom d'utilisateur oublié)
+ * ne masque pas tout le bloc — seul cet élément est omis au rendu.
+ */
+export const isBlockRenderable = (block: AnyBlock) => Object.values(validateBlock(block)).every((e) => e === 'common.validation.profileMissing');
 
 export function blockSummary(block: AnyBlock): string {
   return (blockRegistry[block.type] as BlockDefinition<BlockType>).summary(block.data as never);

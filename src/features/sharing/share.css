@@ -15,3 +15,11 @@
 .share__copy:hover { background: var(--color-surface-3); color: var(--color-text); }
 .share__note { display: flex; gap: 0.4rem; align-items: flex-start; }
 .share__print { margin-top: var(--space-5); text-align: center; }
+
+/* — Partage d'une page publique (visiteur) — */
+.pshare { display: grid; gap: var(--space-3); justify-items: center; text-align: center; }
+.pshare__qr { padding: 10px; background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+.pshare__url { word-break: break-all; color: var(--color-text-muted); }
+.pshare__note { display: flex; gap: 6px; align-items: flex-start; text-align: left; }
+.pshare__row { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }
+.pshare__apps { list-style: none; padding: 0; margin: 0; display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }

@@ -18,7 +18,18 @@ export default {
     appearance: 'Appearance', preview: 'Preview', publish: 'Publishing',
   },
   category: { title: 'Who are you?', lead: 'Your category adapts the questions, suggested blocks and your dashboard. You can change it later.', legend: 'Profile category' },
+  sections: {
+    photos: { title: 'Photos', hint: 'A cover and a profile photo build trust straight away. You can change them at any time.' },
+    identity: { title: 'Name and address', hint: 'What visitors read first, and the link to your page.' },
+    activity: { title: 'Your activity details', hint: 'A few lines so people understand who you are.' },
+    socials: { title: 'Social networks', hint: 'Type the name of a network (Facebook, Discord, Twitch…): its logo and official address appear, just add your username.' },
+    links: { title: 'Custom links', hint: 'A website, a shop, a video, a document: one button per link.' },
+  },
   identity: {
+    coverTitle: 'Cover photo',
+    coverAdd: 'Add a cover',
+    coverHint: 'Wide (landscape) image. Optional: without a cover, a gradient in your colours is used.',
+    photoTitle: 'Profile photo',
     title: 'Your identity',
     lead: 'How do you want to appear on your page?',
     photo: 'Add a photo or logo',

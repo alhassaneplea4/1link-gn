@@ -14,7 +14,7 @@ export type StepId = (typeof STEPS)[number];
 
 export interface OnboardingData {
   category: CategoryId | null;
-  identity: { displayName: string; username: string; avatarUrl: string };
+  identity: { displayName: string; username: string; avatarUrl: string; coverUrl?: string };
   activity: Partial<Record<'headline' | 'bio' | 'location' | 'phone' | 'email' | 'sector', string>>;
   socials: { platform: SocialPlatform; url: string }[];
   links: { title: string; url: string }[];
@@ -36,9 +36,9 @@ interface State extends OnboardingData {
 
 const empty: OnboardingData = {
   category: null,
-  identity: { displayName: '', username: '', avatarUrl: '' },
+  identity: { displayName: '', username: '', avatarUrl: '', coverUrl: '' },
   activity: {},
-  socials: [{ platform: 'instagram', url: '' }],
+  socials: [{ platform: 'instagram', url: 'https://instagram.com/' }],
   links: [{ title: '', url: '' }],
   items: [{ name: '', description: '', price: '', imageUrl: '' }],
   about: '',
@@ -77,7 +77,7 @@ export function restoreOnboarding(raw: unknown): void {
   const keys = ['headline', 'bio', 'location', 'phone', 'email', 'sector'] as const;
   const restored: Partial<OnboardingData> & { step: number; visited: number } = {
     category: isCategoryId(r.category) ? r.category : null,
-    identity: { displayName: str(identity.displayName, 120), username: str(identity.username, 40), avatarUrl: str(identity.avatarUrl, 2048) },
+    identity: { displayName: str(identity.displayName, 120), username: str(identity.username, 40), avatarUrl: str(identity.avatarUrl, 2048), coverUrl: str(identity.coverUrl, 2048) },
     activity: Object.fromEntries(keys.filter((k) => typeof activity[k] === 'string').map((k) => [k, str(activity[k])])),
     socials: arr(r.socials, (x) => ({ platform: ((SOCIAL_PLATFORMS as readonly string[]).includes(x.platform as string) ? x.platform : 'instagram') as SocialPlatform, url: str(x.url, 2048) }), 12),
     links: arr(r.links, (x) => ({ title: str(x.title, 120), url: str(x.url, 2048) }), 12),

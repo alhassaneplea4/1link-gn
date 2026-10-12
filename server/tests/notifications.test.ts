@@ -12,7 +12,7 @@ const mailsTo = (email: string) => t.mailer.outbox.filter((m) => m.to === email)
 const doc = (username: string, version = 0) => ({ username, category: 'creator', blocks: fixtureContent('A').blocks, appearance: FIXTURE_APPEARANCE, share: { title: '', description: '' }, version });
 
 describe('e-mails de bienvenue et de suivi', () => {
-  it('envoie UN seul message d’accueil (avec le lien de confirmation) à l’inscription, en HTML et en texte', async () => {
+  it('envoie UN seul message d’accueil (sans confirmation d’adresse exigée) à l’inscription, en HTML et en texte', async () => {
     const email = uniqueEmail('accueil');
     const c = t.client({ 'x-real-ip': `203.0.113.${ip++}` });
     await c.post('/api/auth/sign-up', { name: 'Awa Camara', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
@@ -21,8 +21,9 @@ describe('e-mails de bienvenue et de suivi', () => {
     expect(mails).toHaveLength(1);
     expect(mails[0]!.subject).toMatch(/Bienvenue sur 1Link/);
     expect(mails[0]!.text).toContain('Awa Camara');
-    expect(mails[0]!.text).toMatch(/\/auth\/verify-email\?token=/);
-    expect(mails[0]!.html).toContain('<a href="http://localhost:5173/auth/verify-email?token=');
+    expect(mails[0]!.text).not.toMatch(/token=/);
+    expect(mails[0]!.text).toContain('http://localhost:5173/onboarding');
+    expect(mails[0]!.html).toContain('<a href="http://localhost:5173/onboarding"');
     expect(mails[0]!.html).not.toMatch(/<script|onerror=/i);
   });
 

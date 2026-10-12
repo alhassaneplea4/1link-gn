@@ -24,7 +24,18 @@ export default {
     publish: 'Publication',
   },
   category: { title: 'Qui êtes-vous ?', lead: 'Votre catégorie adapte les questions, les blocs suggérés et votre tableau de bord. Vous pourrez la changer plus tard.', legend: 'Catégorie de profil' },
+  sections: {
+    photos: { title: 'Photos', hint: 'Une couverture et une photo de profil donnent tout de suite confiance. Vous pourrez les changer à tout moment.' },
+    identity: { title: 'Nom et adresse', hint: 'Ce que vos visiteurs liront en premier, et le lien de votre page.' },
+    activity: { title: 'Détails de votre activité', hint: 'Quelques lignes pour que l’on comprenne qui vous êtes.' },
+    socials: { title: 'Réseaux sociaux', hint: 'Tapez le nom d’un réseau (Facebook, Discord, Twitch…) : son logo et son adresse officielle s’affichent, ajoutez seulement votre nom d’utilisateur.' },
+    links: { title: 'Liens personnalisés', hint: 'Un site, une boutique, une vidéo, un document : un bouton par lien.' },
+  },
   identity: {
+    coverTitle: 'Photo de couverture',
+    coverAdd: 'Ajouter une couverture',
+    coverHint: 'Image large (format paysage). Facultative : sans couverture, un dégradé à vos couleurs est utilisé.',
+    photoTitle: 'Photo de profil',
     title: 'Votre identité',
     lead: 'Comment souhaitez-vous apparaître sur votre page ?',
     photo: 'Ajouter une photo ou un logo',

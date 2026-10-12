@@ -60,6 +60,7 @@ export default {
     required: 'Ce champ est obligatoire.',
     email: 'Saisissez une adresse e-mail valide.',
     url: 'Saisissez une adresse web valide (https://…).',
+    profileMissing: 'Ajoutez votre nom d’utilisateur à la fin de l’adresse.',
     phone: 'Saisissez un numéro valide, avec l’indicatif (+224…).',
     passwordShort: 'Le mot de passe doit contenir au moins 8 caractères.',
     usernameFormat: '3 à 30 caractères : lettres minuscules, chiffres, tiret ou tiret bas.',

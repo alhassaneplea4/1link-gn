@@ -3,12 +3,14 @@
  * photo de couverture, avatar qui la chevauche, actions rapides, puis sections ordonnées par thème.
  * Elle ne fait que présenter les mêmes blocs que l'éditeur : aucune donnée n'est ajoutée ni inventée.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { intlLocale, useT } from '@/i18n/core';
 import type { AnyBlock, BlockType } from '@/models/blocks';
 import type { CategoryId } from '@/models/category';
 import { initials } from '@/utilities/misc';
+import { qrPngBlob, systemShare } from '@/utilities/share';
+import { PublicShareDialog } from '@/features/sharing/PublicShareDialog';
 import { PgImage } from '../blocks/render/image';
 import { SocialRender } from '../blocks/render/links';
 import { safeHref, telHref, whatsappHref, mailHref } from '../blocks/urls';
@@ -42,6 +44,8 @@ export function groupSections(blocks: readonly AnyBlock[]): Section[] {
 }
 
 interface HeroProps {
+  /** Pseudonyme de la page (nom du fichier du QR code téléchargé). */
+  page: { username: string };
   profile: Extract<AnyBlock, { type: 'profile' }>;
   /** Blocs complets utilisés pour les actions rapides et les icônes de réseaux. */
   blocks: readonly AnyBlock[];
@@ -54,13 +58,11 @@ interface HeroProps {
 
 type Action = { key: string; icon: IconName; label: string; href?: string; blockId?: string; external?: boolean };
 
-export function ProfileHero({ profile, blocks, ctx, category, publishedAt, pageUrl, highlighted }: HeroProps) {
+export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt, pageUrl, highlighted }: HeroProps) {
   const t = useT('pub', 'common');
   const d = profile.data;
   const Heading = ctx.preview ? 'h3' : 'h1';
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const first = <K extends BlockType>(type: K) => blocks.find((b): b is Extract<AnyBlock, { type: K }> => b.type === type);
   const wa = first('whatsapp');
@@ -71,20 +73,12 @@ export function ProfileHero({ profile, blocks, ctx, category, publishedAt, pageU
   if (ph) actions.push({ key: 'ph', icon: 'phone', label: t('pub.actions.call'), href: telHref(ph.data.phone), blockId: ph.id });
   if (em) actions.push({ key: 'em', icon: 'mail', label: t('pub.actions.email'), href: mailHref(em.data.email, em.data.subject), blockId: em.id });
 
+  // « Partager » ouvre directement la feuille de partage du système (toutes les applications) avec le lien ET l'image du QR code ;
+  // quand le système n'en propose pas (ordinateur), la boîte de dialogue de partage s'ouvre à la place.
   const share = async () => {
     if (ctx.preview) return;
-    try {
-      if (typeof navigator.share === 'function') {
-        await navigator.share({ title: d.displayName, url: pageUrl });
-        return;
-      }
-      await navigator.clipboard.writeText(pageUrl);
-      setCopied(true);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCopied(false), 2200);
-    } catch {
-      /* partage annulé par le visiteur ou presse-papiers refusé : rien à signaler */
-    }
+    const outcome = await systemShare({ title: d.displayName, text: t('pub.share.message', { name: d.displayName }), url: pageUrl, qr: await qrPngBlob(pageUrl) });
+    if (outcome === 'unavailable') setShareOpen(true);
   };
 
   const socials = blocks.filter((b): b is Extract<AnyBlock, { type: 'social' }> => b.type === 'social' && b.data.display === 'icons' && b.data.items.some((i) => safeHref(i.url)));
@@ -131,8 +125,12 @@ export function ProfileHero({ profile, blocks, ctx, category, publishedAt, pageU
             </a>
           ))}
           <button type="button" className={`pgp-act ${actions.length === 0 ? 'is-primary' : ''}`} onClick={() => void share()} tabIndex={ctx.preview ? -1 : undefined}>
-            <Icon name={copied ? 'check' : 'share'} size={17} /> <span aria-live="polite">{copied ? t('pub.actions.copied') : t('pub.actions.share')}</span>
+            <Icon name="share" size={17} /> <span>{t('pub.actions.share')}</span>
           </button>
+          <button type="button" className="pgp-act" onClick={() => !ctx.preview && setShareOpen(true)} tabIndex={ctx.preview ? -1 : undefined} aria-label={t('pub.share.qrButton')}>
+            <Icon name="qr" size={17} /> <span>{t('pub.share.qr')}</span>
+          </button>
+          {!ctx.preview && shareOpen && <PublicShareDialog open={shareOpen} onClose={() => setShareOpen(false)} url={pageUrl} name={d.displayName} username={page.username} />}
         </div>
       </div>
       {d.bio && <p className="pgp-bio">{d.bio}</p>}

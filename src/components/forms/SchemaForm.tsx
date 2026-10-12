@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { Button, IconButton, Input, Select, Textarea, Toggle, useToast } from '@/components/ui';
+import { Button, Icon, IconButton, Input, Select, Textarea, Toggle, useToast } from '@/components/ui';
+import { PlatformPicker } from './PlatformPicker';
+import { detectPlatform, urlForPlatform } from '@/models/platforms';
 import { translate, useT, hasMessage } from '@/i18n/core';
 import type { MessageKey } from '@/i18n/types';
 import type { FieldDef, FieldErrors, ListField, ScalarField } from '@/features/page-engine/blocks/schema';
@@ -29,6 +31,7 @@ function ImageControl({ field, label, hint, value, error, onChange, onBlur, id }
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const shape = field.name === 'coverUrl' ? 'cover' : field.name === 'avatarUrl' ? 'avatar' : 'thumb';
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setBusy(true);
@@ -42,14 +45,22 @@ function ImageControl({ field, label, hint, value, error, onChange, onBlur, id }
     }
   };
   return (
-    <div className="image-field">
-      <Input id={id} label={label} hint={hint} error={error} type="text" inputMode="url" placeholder="https://" value={value.startsWith('data:') ? t('editor.form.imageUploaded') : value} readOnly={value.startsWith('data:')} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} optionalLabel={field.required ? undefined : t('editor.form.optional')} required={field.required} />
+    <div className={`image-field image-field--${shape}`}>
+      <span className="field__label" id={`${id}-label`}>{label}{!field.required && <span className="field__optional"> {t('editor.form.optional')}</span>}</span>
+      <div className="image-field__preview" aria-labelledby={`${id}-label`}>
+        {value ? <img src={value} alt="" loading="lazy" /> : <span className="image-field__empty"><Icon name="image-plus" size={22} /> <span>{t(`editor.form.noImage.${shape}`)}</span></span>}
+      </div>
       <div className="image-field__actions">
         <input ref={input} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0])} />
-        <Button size="sm" variant="secondary" iconLeft="upload" loading={busy} onClick={() => input.current?.click()}>{t('editor.form.chooseFile')}</Button>
-        {value && <Button size="sm" variant="ghost" iconLeft="x" onClick={() => onChange('')}>{t('editor.form.removeImage')}</Button>}
-        {value && !value.startsWith('data:') ? null : null}
+        <Button size="sm" variant={value ? 'secondary' : 'gradient'} iconLeft={value ? 'pencil' : 'upload'} loading={busy} onClick={() => input.current?.click()}>{value ? t('editor.form.changeImage') : t('editor.form.chooseFile')}</Button>
+        {value && <Button size="sm" variant="ghost" iconLeft="trash" onClick={() => onChange('')}>{t('editor.form.removeImage')}</Button>}
       </div>
+      <details className="image-field__url">
+        <summary>{t('editor.form.useWebAddress')}</summary>
+        <Input id={id} aria-label={label} error={error} type="text" inputMode="url" placeholder="https://" value={value.startsWith('data:') ? t('editor.form.imageUploaded') : value} readOnly={value.startsWith('data:')} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
+      </details>
+      {error && <p className="field__error" role="alert"><Icon name="alert-circle" size={14} /> {error}</p>}
+      {hint && <p className="field__hint">{hint}</p>}
     </div>
   );
 }
@@ -76,7 +87,12 @@ export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAl
           <Input key={path} id={id} label={label} hint={hint} placeholder={placeholder} required={f.required} optionalLabel={f.required ? undefined : t('common.optional')}
             type={f.kind === 'text' || f.kind === 'number' ? 'text' : f.kind === 'url' ? 'url' : f.kind} inputMode={f.kind === 'tel' ? 'tel' : f.kind === 'url' ? 'url' : f.kind === 'number' ? 'decimal' : undefined} autoComplete="off"
             value={String(val ?? '')} maxLength={'max' in f && f.max ? f.max + 40 : undefined} error={errorFor(path)}
-            onChange={(e) => set({ [f.name]: e.target.value })} onBlur={() => touch(path)} />
+            onChange={(e) => {
+              const v = e.target.value;
+              // Lien d'un réseau collé : la plateforme est reconnue d'après son domaine (l'icône suit).
+              const found = f.kind === 'url' && 'platform' in values ? detectPlatform(v) : null;
+              set(found && found.id !== 'website' && values.platform !== found.id ? { [f.name]: v, platform: found.id } : { [f.name]: v });
+            }} onBlur={() => touch(path)} />
         );
       case 'textarea':
         return (
@@ -91,6 +107,11 @@ export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAl
           <Select key={path} id={id} label={label} hint={hint} value={String(val ?? f.options[0])} onChange={(e) => set({ [f.name]: e.target.value })}>
             {f.options.map((o) => <option key={o} value={o}>{tr(`editor.options.${f.name}.${o}`)}</option>)}
           </Select>
+        );
+      case 'platform':
+        return (
+          <PlatformPicker key={path} id={id} label={label} hint={hint} value={String(val ?? (f.allowLink ? 'link' : 'instagram'))} allowLink={f.allowLink}
+            onChange={(next) => set({ [f.name]: next, ...('url' in values ? { url: urlForPlatform(next, String(values.url ?? '')) } : {}) })} />
         );
       case 'toggle':
         return <Toggle key={path} id={id} label={label} hint={hint} checked={Boolean(val)} onChange={(c) => set({ [f.name]: c })} />;

@@ -196,6 +196,7 @@ describe('amorçage du premier administrateur', () => {
       const verify = async (email: string, ip: string) => {
         const c = app.client({ 'x-real-ip': ip });
         await c.post('/api/auth/sign-up', { name: 'Chef', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+        await c.post('/api/auth/email/resend'); // la confirmation d'adresse est facultative : on demande le lien
         await new Promise((r) => setTimeout(r, 40));
         const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === email).at(-1)!.text)![1]!);
         await c.post('/api/auth/email/verify', { token });
@@ -204,6 +205,9 @@ describe('amorçage du premier administrateur', () => {
       expect((await verify('autre@exemple.test', '198.18.5.1')).adminRole).toBeNull(); // adresse différente
       const chef = await app.client({ 'x-real-ip': '198.18.5.2' }).post('/api/auth/sign-up', { name: 'Chef', email: 'chef@exemple.test', password: 'MotDePasse-Solide-1', acceptTerms: true });
       expect(chef.body.user.adminRole).toBeNull(); // l'inscription seule ne suffit pas : il faut prouver la possession de l'adresse
+      const mine = app.client({ 'x-real-ip': '198.18.5.2' });
+      await mine.post('/api/auth/sign-in', { email: 'chef@exemple.test', password: 'MotDePasse-Solide-1' });
+      await mine.post('/api/auth/email/resend');
       await new Promise((r) => setTimeout(r, 40));
       const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === 'chef@exemple.test').at(-1)!.text)![1]!);
       const c = app.client({ 'x-real-ip': '198.18.5.3' });

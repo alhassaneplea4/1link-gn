@@ -8,6 +8,7 @@ import { useT } from '@/i18n/core';
 import type { MessageKey } from '@/i18n/types';
 import { copyToClipboard } from '@/utilities/misc';
 import { TRACKING_SOURCES, trackedUrl, type TrackingSource } from '@/utilities/tracking';
+import { downloadBlob, isNativeApp, qrPngBlob, systemShare } from '@/utilities/share';
 import './share.css';
 
 /** Partage de la page : copie du lien, QR code, WhatsApp, liens de suivi par canal, impression. */
@@ -22,7 +23,14 @@ export function ShareDialog({ open, onClose, username, published }: { open: bool
     toast.push({ tone: ok ? 'success' : 'error', title: ok ? t('editor.share.copied') : t('editor.share.copyFailed') });
     if (ok) setTimeout(() => setCopied((c) => (c === key ? null : c)), 2200);
   };
-  const canShare = typeof navigator !== 'undefined' && 'share' in navigator;
+  const shareSystem = async () => {
+    const outcome = await systemShare({ title: '1Link', text: t('editor.share.message'), url, qr: await qrPngBlob(url) });
+    if (outcome === 'unavailable') toast.push({ tone: 'info', title: t('editor.share.noSystemShare') });
+  };
+  const downloadQr = async () => {
+    const blob = await qrPngBlob(url);
+    if (blob) downloadBlob(blob, `qr-${username}.png`);
+  };
   return (
     <Modal open={open} onClose={onClose} title={t('editor.share.title')} description={t('editor.share.description')}>
       {!published && <Alert tone="warning" title={t('editor.share.notPublishedTitle')} className="share__alert">{t('editor.share.notPublished')}</Alert>}
@@ -35,7 +43,8 @@ export function ShareDialog({ open, onClose, username, published }: { open: bool
             <a className="btn btn--secondary btn--md" href={`https://wa.me/?text=${encodeURIComponent(trackedUrl(url, 'whatsapp'))}`} target="_blank" rel="noopener noreferrer">
               <span className="btn__label">{t('editor.share.whatsapp')}</span>
             </a>
-            {canShare && <Button variant="secondary" iconLeft="share" onClick={() => void navigator.share({ url, title: '1Link' }).catch(() => undefined)}>{t('editor.share.native')}</Button>}
+            <Button variant="secondary" iconLeft="share" onClick={() => void shareSystem()}>{t('editor.share.native')}</Button>
+            {!isNativeApp() && <Button variant="secondary" iconLeft="download" onClick={() => void downloadQr()}>{t('editor.share.downloadQr')}</Button>}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { createInitialDocument } from '@/features/page-engine/document';
 import type { AnyBlock } from '@/models/blocks';
 import type { PageDocument } from '@/models/page';
 import { isEmail, isPhone, isUrl } from '@/utilities/validation';
+import { isBareBase } from '@/models/platforms';
 import type { OnboardingData } from './store';
 
 const filled = (s: string | undefined) => (s ?? '').trim().length > 0;
@@ -23,11 +24,13 @@ export function composeDocument(d: OnboardingData, fallbackName: string): PageDo
     headline: d.activity.headline ?? '',
     bio: d.activity.bio ?? '',
     avatarUrl: d.identity.avatarUrl,
+    coverUrl: d.identity.coverUrl ?? '',
     location: d.activity.location ?? '',
   });
   blocks.push(profile);
 
-  const socials = d.socials.filter((s) => isUrl(s.url));
+  // Seuls les réseaux dont l'adresse va au-delà de l'adresse officielle (nom d'utilisateur saisi) sont publiés.
+  const socials = d.socials.filter((s) => isUrl(s.url) && !isBareBase(s.platform, s.url));
   if (socials.length) {
     const b = createBlock('social', ctx);
     b.data.items = socials;

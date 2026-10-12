@@ -1,20 +1,19 @@
 import type { MouseEvent, ReactNode } from 'react';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { isBareBase, platformById } from '@/models/platforms';
 import { useT } from '@/i18n/core';
 import type { SocialPlatform } from '@/models/blocks';
 import type { BlockRenderProps, RenderContext } from '../types';
-import { mailHref, platformIcon, safeHref, telHref, whatsappHref } from '../urls';
+import { mailHref, safeHref, telHref, whatsappHref } from '../urls';
 
-export const PLATFORM_NAMES: Record<SocialPlatform, string> = {
-  instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', youtube: 'YouTube', linkedin: 'LinkedIn',
-  x: 'X', whatsapp: 'WhatsApp', telegram: 'Telegram', website: 'Site web',
-};
+export const platformName = (p: SocialPlatform | 'link'): string => platformById(p)?.name ?? p;
 
 interface PgLinkProps {
   href: string | undefined;
   blockId: string;
   ctx: RenderContext;
-  icon: IconName;
+  icon: IconName | ReactNode;
   title: ReactNode;
   description?: string;
   highlight?: boolean;
@@ -41,7 +40,7 @@ export function PgLink({ href, blockId, ctx, icon, title, description, highlight
       {...(external && !ctx.preview ? { target: '_blank', rel: 'noopener noreferrer nofollow' } : {})}
       onClick={onClick}
     >
-      <span className="pg-btn__icon"><Icon name={icon} size={20} /></span>
+      <span className="pg-btn__icon">{typeof icon === 'string' ? <Icon name={icon as IconName} size={20} /> : icon}</span>
       <span className="pg-btn__body">
         <span className="pg-btn__title">{title}</span>
         {description && <span className="pg-btn__desc">{description}</span>}
@@ -53,16 +52,17 @@ export function PgLink({ href, blockId, ctx, icon, title, description, highlight
 
 export function LinkRender({ block, ctx }: BlockRenderProps<'link'>) {
   const d = block.data;
-  return <PgLink href={safeHref(d.url)} blockId={block.id} ctx={ctx} icon={platformIcon(d.platform)} title={d.title} description={d.description} highlight={d.highlight} />;
+  return <PgLink href={safeHref(d.url)} blockId={block.id} ctx={ctx} icon={<BrandIcon platform={d.platform} size={20} />} title={d.title} description={d.description} highlight={d.highlight} />;
 }
 
 export function SocialRender({ block, ctx }: BlockRenderProps<'social'>) {
-  const items = block.data.items.filter((i) => safeHref(i.url));
+  // Un réseau dont l'adresse n'est que l'adresse officielle (nom d'utilisateur manquant) n'est pas affiché aux visiteurs.
+  const items = block.data.items.filter((i) => safeHref(i.url) && (ctx.preview || !isBareBase(i.platform, i.url)));
   if (block.data.display === 'list') {
     return (
       <div className="pg-stack">
         {items.map((i, idx) => (
-          <PgLink key={idx} href={safeHref(i.url)} blockId={block.id} ctx={ctx} icon={i.platform === 'website' ? 'globe' : i.platform} title={PLATFORM_NAMES[i.platform]} />
+          <PgLink key={idx} href={safeHref(i.url)} blockId={block.id} ctx={ctx} icon={<BrandIcon platform={i.platform} size={20} />} title={platformName(i.platform)} />
         ))}
       </div>
     );
@@ -74,11 +74,11 @@ export function SocialRender({ block, ctx }: BlockRenderProps<'social'>) {
           <a
             className="pg-social"
             href={ctx.preview ? undefined : safeHref(i.url)}
-            aria-label={PLATFORM_NAMES[i.platform]}
+            aria-label={platformName(i.platform)}
             {...(!ctx.preview ? { target: '_blank', rel: 'noopener noreferrer nofollow' } : { role: 'link', tabIndex: -1 })}
             onClick={(e) => (ctx.preview ? e.preventDefault() : ctx.onTrack?.(block.id))}
           >
-            <Icon name={i.platform === 'website' ? 'globe' : i.platform} size={20} />
+            <BrandIcon platform={i.platform} size={20} />
           </a>
         </li>
       ))}

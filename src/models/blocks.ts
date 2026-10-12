@@ -6,7 +6,14 @@ export const BLOCK_TYPES = [
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
-export const SOCIAL_PLATFORMS = ['instagram', 'facebook', 'tiktok', 'youtube', 'linkedin', 'x', 'whatsapp', 'telegram', 'website'] as const;
+/**
+ * Plateformes proposées pour les réseaux et les liens. Liste volontairement littérale (ce module est partagé avec le serveur et
+ * doit rester une feuille) ; le catalogue complet — nom, adresse officielle, recherche — est `platforms.ts`, qui doit rester identique
+ * (vérifié par un test).
+ */
+export const SOCIAL_PLATFORMS = [
+  'instagram', 'facebook', 'tiktok', 'youtube', 'whatsapp', 'telegram', 'x', 'linkedin', 'snapchat', 'threads', 'discord', 'twitch', 'pinterest', 'reddit', 'messenger', 'signal', 'line', 'spotify', 'applemusic', 'soundcloud', 'deezer', 'audiomack', 'boomplay', 'vimeo', 'kick', 'github', 'gitlab', 'stackoverflow', 'behance', 'dribbble', 'medium', 'tumblr', 'flickr', 'patreon', 'kofi', 'buymeacoffee', 'calendly', 'googleplay', 'appstore', 'mastodon', 'bluesky', 'vk', 'quora', 'website'
+] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 export interface ProfileData {

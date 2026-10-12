@@ -1,5 +1,6 @@
 import { CATEGORY_CONFIG } from '@/features/categories/config';
 import { validateFields } from '@/features/page-engine/blocks/schema';
+import { isBareBase } from '@/models/platforms';
 import { isUrl, validateUsername } from '@/utilities/validation';
 import type { OnboardingData, StepId } from './store';
 
@@ -25,7 +26,7 @@ export function validateStep(step: StepId, d: OnboardingData): StepErrors {
       break;
     }
     case 'links':
-      d.socials.forEach((s, i) => { if (s.url.trim() && !isUrl(s.url)) errors[`socials.${i}.url`] = 'common.validation.url'; });
+      d.socials.forEach((s, i) => { if (s.url.trim() && !isBareBase(s.platform, s.url) && !isUrl(s.url)) errors[`socials.${i}.url`] = 'common.validation.url'; });
       d.links.forEach((l, i) => {
         const hasTitle = l.title.trim() !== '';
         const hasUrl = l.url.trim() !== '';

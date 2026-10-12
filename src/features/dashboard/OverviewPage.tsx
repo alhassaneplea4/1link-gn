@@ -1,7 +1,6 @@
-import { isContactVerified } from '@/models/auth';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Alert, Badge, Button, Card, EmptyState, ErrorState, Icon, LinkButton, PageHeader, ProgressBar, Skeleton, StatCard, useToast } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Icon, LinkButton, PageHeader, ProgressBar, Skeleton, StatCard, useToast } from '@/components/ui';
 import { PhoneFrame } from '@/components/ui/PhoneFrame';
 import { CATEGORY_CONFIG, type FocusItem } from '@/features/categories/config';
 import { pageReadiness, setupChecklist, setupState } from '@/features/page-engine/document';
@@ -104,12 +103,6 @@ export default function OverviewPage() {
           </>
         }
       />
-
-      {session && !isContactVerified(session.user) && (
-        <Alert tone="info" title={t('dashboard.overview.verifyTitle')} className="ov__alert" action={<LinkButton to={paths.verifyEmail} size="sm" variant="secondary">{t('dashboard.shell.verifyCta')}</LinkButton>}>
-          {t('dashboard.overview.verifyText')}
-        </Alert>
-      )}
 
       <div className="ov-grid">
         {/* Statut de publication */}

@@ -4,7 +4,7 @@ import { useT } from '@/i18n/core';
 import type { AnyBlock } from '@/models/blocks';
 import type { PageDocument } from '@/models/page';
 import { appearanceDataAttrs, appearanceToStyle, loadFont } from '../appearance/css';
-import { blockRegistry, isBlockComplete } from '../blocks/registry';
+import { blockRegistry, isBlockComplete, isBlockRenderable } from '../blocks/registry';
 import type { BlockDefinition, RenderContext } from '../blocks/types';
 import type { BlockType } from '@/models/blocks';
 import { isBlockLive, nextScheduleChange, scheduleState } from '../schedule';
@@ -63,7 +63,8 @@ function useScheduleClock(blocks: readonly AnyBlock[]): number {
 function BlockView({ block, ctx, index, highlighted, now }: { block: AnyBlock; ctx: RenderContext; index: number; highlighted: boolean; now: number }) {
   const t = useT('pub');
   const def = blockRegistry[block.type] as unknown as BlockDefinition<BlockType>;
-  const complete = isBlockComplete(block);
+  // Aperçu de l'éditeur : exigeant (le bloc à compléter est signalé). Page publique : un élément oublié ne masque pas le bloc.
+  const complete = ctx.preview ? isBlockComplete(block) : isBlockRenderable(block);
   const sched = scheduleState(block.schedule, now);
   if (!complete && !ctx.preview) return null;
   const Cmp = def.Render;
@@ -99,15 +100,16 @@ export const PageRenderer = memo(function PageRenderer({ page, pageUrl, preview 
   const profileLayout = layout === 'profile' && visible.some((b) => b.type === 'profile');
   if (profileLayout) {
     const profile = visible.find((b) => b.type === 'profile') as Extract<AnyBlock, { type: 'profile' }>;
-    const complete = visible.filter((b) => isBlockComplete(b));
+    const okBlock = preview ? isBlockComplete : isBlockRenderable;
+    const complete = visible.filter((b) => okBlock(b));
     // Les icônes de réseaux (affichées dans l'en-tête) ne sont pas répétées dans les sections.
     const inHero = (b: AnyBlock) => b.type === 'social' && b.data.display === 'icons';
-    const sections = groupSections(visible.filter((b) => !inHero(b) || !isBlockComplete(b)));
+    const sections = groupSections(visible.filter((b) => !inHero(b) || !okBlock(b)));
     const columns = sections.length > 1 && !lite;
     return (
       <div className={`pg pg--profile ${fullscreen ? 'pg--full' : ''} ${lite ? 'pg--lite' : ''} ${className}`} style={style} {...attrs}>
         <div className="pg__inner">
-          <ProfileHero profile={profile} blocks={complete} ctx={ctx} category={page.category} publishedAt={page.publishedAt} pageUrl={pageUrl} highlighted={highlightBlockId === profile.id} />
+          <ProfileHero page={page} profile={profile} blocks={complete} ctx={ctx} category={page.category} publishedAt={page.publishedAt} pageUrl={pageUrl} highlighted={highlightBlockId === profile.id} />
           <SectionNav sections={sections} preview={preview} />
           <div className={`pgp-sections ${columns ? 'pgp-sections--cols' : ''}`}>
             {sections.map((s) => (

@@ -52,6 +52,9 @@ describe('registre de blocs', () => {
 
   it('valide les éléments de liste par chemin', () => {
     const social = createBlock('social', { category: 'creator' });
+    // Réseau choisi mais adresse laissée à l'adresse officielle : il manque le nom d'utilisateur.
+    expect(validateBlock(social)['items.0.url']).toBe('common.validation.profileMissing');
+    social.data.items[0]!.url = '';
     expect(validateBlock(social)['items.0.url']).toBe('common.validation.required');
   });
 });

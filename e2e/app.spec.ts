@@ -30,7 +30,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Passer cette étape/ }).click();
     await expect(page.getByRole('heading', { name: 'Vérifiez votre page' })).toBeVisible();
     await page.getByRole('button', { name: /Continuer/ }).click();
-    await expect(page.getByRole('button', { name: 'Publier ma page' })).toBeDisabled(); // e-mail non vérifié
+    await expect(page.getByRole('button', { name: 'Publier ma page' })).toBeEnabled(); // aucune confirmation d'e-mail exigée
     await page.getByRole('button', { name: 'Enregistrer en brouillon' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: /Bonjour, Awa/ })).toBeVisible();
@@ -57,14 +57,12 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await other.close();
   });
 
-  test('vérification de l’e-mail par le lien reçu, puis publication réelle', async ({ page, request }) => {
+  test('publication réelle juste après l’inscription, sans confirmation d’e-mail', async ({ page, request }) => {
     const email = uniqueEmail('fanta');
     await registerNew(page, 'Fanta Pub', email);
     const mail = await latestMail(request, email);
-    expect(mail.subject).toMatch(/Bienvenue sur 1Link/); // accueil + confirmation dans un seul message
-    await page.goto(`/auth/verify-email?token=${encodeURIComponent(tokenFrom(mail))}`);
-    await expect(page.getByRole('heading', { name: /Adresse e-mail vérifiée/ })).toBeVisible();
-    await page.goto('/onboarding');
+    expect(mail.subject).toMatch(/Bienvenue sur 1Link/);
+    expect(mail.text).not.toMatch(/token=/); // accueil seul : aucun lien de confirmation à suivre
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
     const username = `fanta${unique()}`;

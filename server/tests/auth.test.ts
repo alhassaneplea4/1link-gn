@@ -119,6 +119,7 @@ describe('protection CSRF', () => {
 describe('vérification de l’e-mail', () => {
   it('valide l’adresse avec le lien reçu, une seule fois', async () => {
     const { c, email } = await signUp();
+    await c.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     const ok = await c.post('/api/auth/email/verify', { token });
@@ -129,7 +130,8 @@ describe('vérification de l’e-mail', () => {
   });
 
   it('n’ouvre pas de session quand le lien est ouvert dans un autre navigateur', async () => {
-    const { email } = await signUp();
+    const { c: owner, email } = await signUp();
+    await owner.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     const other = t.client();
@@ -142,6 +144,7 @@ describe('vérification de l’e-mail', () => {
 
   it('refuse un jeton expiré', async () => {
     const { c, email } = await signUp();
+    await c.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     t.clock.advance(25 * 3_600_000);
