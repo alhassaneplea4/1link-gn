@@ -1,6 +1,6 @@
 /**
  * Partage : QR code en image PNG et feuille de partage du système (toutes les applications installées).
- *  - dans l'application Android (Capacitor) : plugins natifs « Share » + « Filesystem » (le lien ET l'image du QR code) ;
+ *  - dans l'application Android (Capacitor) : plugin natif « OneLinkShare » (le lien ET l'image du QR code) ;
  *  - dans un navigateur : API Web Share quand elle existe (avec l'image si le navigateur sait partager des fichiers) ;
  *  - sinon : `unavailable`, l'appelant affiche alors sa boîte de dialogue (copier, WhatsApp, télécharger le QR…).
  */
@@ -62,15 +62,10 @@ const isCancel = (e: unknown) => /cancel|abort|dismiss/i.test(`${(e as Error)?.n
 /** Ouvre la feuille de partage du système. `unavailable` : rien n'a été ouvert (ordinateur, navigateur sans Web Share). */
 export async function systemShare(p: SharePayload): Promise<ShareOutcome> {
   const cap = capacitor();
-  if (cap?.isNativePlatform?.() && cap.Plugins?.Share?.share) {
+  const native = cap?.Plugins?.OneLinkShare?.share;
+  if (cap?.isNativePlatform?.() && native) {
     try {
-      const files: string[] = [];
-      const write = cap.Plugins.Filesystem?.writeFile;
-      if (p.qr && write) {
-        const res = (await write({ path: 'onelink-qr.png', data: await toBase64(p.qr), directory: 'CACHE' })) as { uri?: string };
-        if (res?.uri) files.push(res.uri);
-      }
-      await cap.Plugins.Share.share({ title: p.title, text: p.text, url: p.url, ...(files.length ? { files } : {}), dialogTitle: p.title });
+      await native({ title: p.title, text: p.text ?? '', url: p.url, ...(p.qr ? { image: await toBase64(p.qr) } : {}) });
       return 'shared';
     } catch (e) {
       return isCancel(e) ? 'cancelled' : 'unavailable';

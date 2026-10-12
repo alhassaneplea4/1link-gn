@@ -10,19 +10,17 @@ afterEach(() => {
 const qr = new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
 
 describe('partage système', () => {
-  it('dans l’application Android : écrit le QR en cache puis ouvre la feuille native avec le lien ET l’image', async () => {
-    const writeFile = vi.fn().mockResolvedValue({ uri: 'file:///cache/onelink-qr.png' });
+  it('dans l’application Android : ouvre la feuille native avec le lien ET l’image du QR', async () => {
     const share = vi.fn().mockResolvedValue({});
-    vi.stubGlobal('Capacitor', { isNativePlatform: () => true, Plugins: { Share: { share }, Filesystem: { writeFile } } });
+    vi.stubGlobal('Capacitor', { isNativePlatform: () => true, Plugins: { OneLinkShare: { share } } });
     expect(isNativeApp()).toBe(true);
     const out = await systemShare({ title: 'Awa', text: 'Découvrez', url: 'https://1link.test/awa', qr });
     expect(out).toBe('shared');
-    expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'onelink-qr.png', directory: 'CACHE', data: expect.any(String) }));
-    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://1link.test/awa', files: ['file:///cache/onelink-qr.png'], title: 'Awa' }));
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: 'Awa', url: 'https://1link.test/awa', text: 'Découvrez', image: expect.stringMatching(/^[A-Za-z0-9+/=]+$/) }));
   });
 
   it('dans l’application : un partage annulé n’est pas une erreur', async () => {
-    vi.stubGlobal('Capacitor', { isNativePlatform: () => true, Plugins: { Share: { share: vi.fn().mockRejectedValue(new Error('Share canceled')) } } });
+    vi.stubGlobal('Capacitor', { isNativePlatform: () => true, Plugins: { OneLinkShare: { share: vi.fn().mockRejectedValue(new Error('Share canceled')) } } });
     expect(await systemShare({ title: 'Awa', url: 'https://1link.test/awa' })).toBe('cancelled');
   });
 
