@@ -32,6 +32,7 @@ function withHead(html: string, title: string, block: string): string {
     .replace(/<title>[\s\S]*?<\/title>/i, '')
     .replace(/<meta\s+(?:name|property)="(?:description|robots|og:[a-z:_]+|twitter:[a-z:_]+)"[^>]*>\s*/gi, '')
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, '')
+    .replace(/<script\s+type="application\/ld\+json">[\s\S]*?<\/script>\s*/gi, '') // données structurées du site : remplacées par celles de la page
     .replace(/<\/head>/i, () => `<title>${esc(title)}</title>\n${block}\n</head>`);
 }
 

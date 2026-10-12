@@ -25,6 +25,7 @@ describe('référencement', () => {
     expect(html).toMatch(/<link rel="canonical" href="http:\/\/localhost:5173\/awa-seo" \/>/);
     expect(html).toContain('<meta name="robots" content="index,follow,max-image-preview:large" />');
     expect(html).toContain('<meta property="og:image" content="http://localhost:5173/og-default.png" />');
+    expect(html.match(/application\/ld\+json/g)).toHaveLength(1);
     const ld = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)![1]!);
     expect(ld).toMatchObject({ '@type': 'ProfilePage', mainEntity: { '@type': 'Person', name: 'Awa Diallo' } });
     expect(html).not.toMatch(/@exemple\.test|\+224 ?6/); // aucune donnée privée
