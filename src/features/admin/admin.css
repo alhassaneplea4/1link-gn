@@ -49,3 +49,6 @@
 .roles thead th.is-me { color: var(--color-primary); }
 .roles .is-me { color: var(--color-text); }
 .mod__item.is-active small { color: var(--color-text-muted); }
+
+/* Mobile : l'en-tête n'affiche plus le titre ni l'état de connexion (déjà visibles ailleurs) ; seul l'espace réservé reste. */
+@media (max-width: 767px) { .adm-title > * { display: none; } }

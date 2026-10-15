@@ -4,6 +4,7 @@
    (aperçu en cadre de téléphone ou page entière) via container queries.
    ========================================================================== */
 .pg {
+  width: 100%; /* le conteneur à requêtes (inline-size) ne doit jamais s'effondrer dans un parent qui s'adapte à son contenu */
   --pg-r: var(--pg-radius, 12px);
   container-type: inline-size;
   container-name: pg;

@@ -4,7 +4,7 @@ export default {
   brand: '1Link Admin Center',
   live: 'Connecté au serveur',
   categoryNone: 'Non renseignée',
-  mySpace: 'Mon espace',
+  mySpace: 'Mon espace 1Link',
   yourRole: 'Votre rôle',
   permissionsCount_one: '{count} permission',
   permissionsCount_other: '{count} permissions',

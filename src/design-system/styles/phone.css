@@ -1,4 +1,4 @@
-.phone { margin: 0; width: min(100%, var(--phone-w, 300px)); }
+.phone { margin: 0; width: var(--phone-w, 300px); max-width: 100%; } /* largeur définie (pas en % : un parent qui s'adapte à son contenu ferait s'effondrer le cadre) */
 .phone__bezel {
   position: relative; border-radius: 2.6rem; padding: 9px; background: linear-gradient(160deg, #1f2937, #0b1020);
   box-shadow: var(--shadow-4), inset 0 0 0 1.5px rgb(255 255 255 / 0.08);
