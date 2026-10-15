@@ -30,6 +30,20 @@ describe('store de l’éditeur', () => {
     expect(types()).toHaveLength(n);
   });
 
+  it('ne signale « modifications non enregistrées » que si le contenu a réellement changé', () => {
+    const profile = useEditor.getState().doc!.blocks.find((b) => b.type === 'profile')!;
+    const original = (profile.data as { headline: string }).headline;
+    // Réécrire la même valeur : rien n'a changé, pas de confirmation à la sortie.
+    useEditor.getState().updateBlock(profile.id, 'profile', { headline: original });
+    expect(useEditor.getState().dirty).toBe(false);
+    // Modifier : c'est signalé.
+    useEditor.getState().updateBlock(profile.id, 'profile', { headline: `${original} (modifié)` });
+    expect(useEditor.getState().dirty).toBe(true);
+    // Remettre la valeur d'origine : plus rien à enregistrer.
+    useEditor.getState().updateBlock(profile.id, 'profile', { headline: original });
+    expect(useEditor.getState().dirty).toBe(false);
+  });
+
   it('refuse un second bloc unique (QR) et la suppression du profil', () => {
     expect(useEditor.getState().addBlock('qr').ok).toBe(true);
     const again = useEditor.getState().addBlock('qr');

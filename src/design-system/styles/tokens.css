@@ -100,6 +100,9 @@
   --container-xl: 80rem;
   --sidebar-w: 16.5rem;
   --header-h: 4rem;
+  /* Zones sûres du téléphone (encoche, barre d'état, barre de gestes) : 0 dans un navigateur de bureau. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* — Rayons — */
   --radius-xs: 0.25rem;

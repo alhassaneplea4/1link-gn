@@ -7,7 +7,7 @@
 @media (min-width: 1300px) { .adm-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .adm-grid { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
 @media (min-width: 1000px) { .adm-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adm-grid--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
-.adm-stack { display: grid; gap: var(--space-4); }
+.adm-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 .adm-section-title { font-size: var(--text-lg); margin-bottom: var(--space-3); }
 .adm-live { display: grid; gap: var(--space-4); }
 .adm-conn { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; justify-content: space-between; }

@@ -1,6 +1,6 @@
 .editor { display: grid; gap: var(--space-4); }
 .etoolbar {
-  position: sticky; top: calc(var(--header-h) + 0.25rem); z-index: var(--z-raised);
+  position: sticky; top: calc(var(--header-h) + var(--safe-top) + 0.25rem); z-index: var(--z-raised);
   display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 0.55rem 0.75rem;
   background: color-mix(in srgb, var(--color-surface) 92%, transparent); backdrop-filter: blur(10px);
   border: var(--border-1); border-radius: var(--radius-lg); box-shadow: var(--shadow-2);
@@ -17,13 +17,13 @@
 .editor__tabs { width: 100%; }
 .editor__tabs .segmented__opt { flex: 1; }
 .editor__grid { display: grid; gap: var(--space-6); align-items: start; }
-.editor__sticky { position: sticky; top: calc(var(--header-h) + 5rem); display: grid; justify-items: center; }
+.editor__sticky { position: sticky; top: calc(var(--header-h) + var(--safe-top) + 5rem); display: grid; justify-items: center; }
 @media (min-width: 1024px) {
   .editor__grid { grid-template-columns: minmax(0, 1fr) 21.5rem; }
 }
 @media (max-width: 1023px) {
   .editor__right { display: grid; justify-items: center; padding-block: var(--space-4); }
-  .etoolbar { top: calc(var(--header-h) + 0.25rem); }
+  .etoolbar { top: calc(var(--header-h) + var(--safe-top) + 0.25rem); }
   .etoolbar__status { order: 3; width: 100%; }
 }
 @media (max-width: 560px) {

@@ -1,7 +1,7 @@
 .shell { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--color-bg-subtle); }
 .sidebar { display: none; }
 .shell__main { min-width: 0; display: flex; flex-direction: column; min-height: 100dvh; padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
-.topbar { position: sticky; top: 0; z-index: var(--z-sticky); height: var(--header-h); display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--gutter); background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: var(--border-1); }
+.topbar { position: sticky; top: 0; z-index: var(--z-sticky); height: calc(var(--header-h) + var(--safe-top)); padding-top: var(--safe-top); display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--gutter); background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: var(--border-1); }
 .content { flex: 1; min-width: 0; outline: 0; }
 .content__inner { width: 100%; max-width: 78rem; margin-inline: auto; padding: var(--space-6) var(--gutter) var(--space-12); }
 .route-fade { animation: ol-rise var(--dur-slow) var(--ease-out) both; }
@@ -78,3 +78,7 @@
 /* Petits écrans : le lien « voir ma page » ne garde que son icône, et la barre du haut ne déborde plus. */
 .topbar__actions { min-width: 0; flex-shrink: 0; }
 @media (max-width: 480px) { .topbar__view .btn__label { display: none; } .topbar { gap: var(--space-2); } }
+
+/* Filet de sécurité mobile : aucun bloc de contenu ne peut élargir la page ni la faire défiler sur le côté. */
+.shell__main { overflow-x: clip; }
+.shell__main > *, .shell__main .card, .shell__main .page-header, .shell__main .page-header__row { min-width: 0; max-width: 100%; }

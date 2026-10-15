@@ -1,5 +1,5 @@
 .onb { min-height: 100dvh; background: var(--color-bg-subtle); background-image: radial-gradient(50rem 24rem at 90% -10%, rgb(124 58 237 / 0.1), transparent), radial-gradient(40rem 22rem at 0% 0%, rgb(37 99 235 / 0.08), transparent); }
-.onb__top { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--gutter); }
+.onb__top { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--space-4) + var(--safe-top)) var(--gutter) var(--space-4); }
 .onb__top-right { display: flex; align-items: center; gap: var(--space-3); }
 .onb__lang { height: 2.25rem; border-radius: var(--radius-sm); border: var(--border-1); background: var(--color-surface); padding: 0 0.5rem; font-size: var(--text-sm); }
 .onb__layout { display: grid; gap: var(--space-5); padding: 0 var(--gutter) var(--space-12); max-width: 84rem; margin-inline: auto; }

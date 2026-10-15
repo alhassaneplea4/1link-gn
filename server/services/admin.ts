@@ -27,7 +27,8 @@ const paged = <T>(r: { rows: unknown[]; total: number; page: number; pageSize: n
 // — Utilisateurs —
 
 const PLAN_EXPR = sql`coalesce(case when s.status in ('active', 'trialing', 'past_due') then s.plan_id end, 'free')`;
-const USER_STATUS_EXPR = sql`case when u.status = 'suspended' then 'suspended' when u.email_verified_at is null and u.phone_verified_at is null then 'pending' else 'active' end`;
+/** Un compte créé est actif immédiatement : seule la suspension le distingue (la confirmation de l'adresse est facultative). */
+const USER_STATUS_EXPR = sql`case when u.status = 'suspended' then 'suspended' else 'active' end`;
 const VIEWS30 = (pageId: string) => sql.raw(`(select count(*) from page_events e where e.page_id = ${pageId} and e.kind = 'view' and e.at >= now() - interval '30 days')::int`);
 const PAGE_STATUS_EXPR = sql`case when u.status = 'suspended' or p.status = 'suspended' then 'suspended' when p.status = 'published' then 'published' else 'draft' end`;
 

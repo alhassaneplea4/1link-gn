@@ -1,6 +1,6 @@
 .authl { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--color-bg); }
 .authl__form { display: flex; flex-direction: column; min-height: 100dvh; padding: var(--space-5) var(--gutter); }
-.authl__top { display: flex; align-items: center; justify-content: space-between; }
+.authl__top { display: flex; align-items: center; justify-content: space-between; padding-top: var(--safe-top); }
 .authl__lang select { height: 2.25rem; border-radius: var(--radius-sm); border: var(--border-1); background: var(--color-surface); padding: 0 0.6rem; font-size: var(--text-sm); }
 .authl__main { flex: 1; display: grid; align-items: center; padding-block: var(--space-8); }
 .authl__card { width: min(100%, 26rem); margin-inline: auto; display: grid; gap: var(--space-5); animation: ol-rise var(--dur-slow) var(--ease-out) both; }

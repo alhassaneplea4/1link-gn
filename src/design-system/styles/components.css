@@ -293,7 +293,7 @@
 .donut__legend b { margin-left: auto; font-variant-numeric: tabular-nums; } .donut__legend small { color: var(--color-text-subtle); width: 2.6rem; text-align: right; }
 
 /* — DataTable — */
-.dtable { display: grid; }
+.dtable { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; max-width: 100%; }
 .dtable__scroll { overflow-x: auto; border: var(--border-1); border-radius: var(--radius-lg); background: var(--color-surface); }
 .dtable__table { width: 100%; font-size: var(--text-sm); }
 .dtable__table th { text-align: left; padding: 0.75rem 1rem; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-subtle); background: var(--color-bg-subtle); border-bottom: var(--border-1); white-space: nowrap; font-weight: var(--weight-bold); }
@@ -311,10 +311,12 @@
   .dtable__scroll { border: 0; background: transparent; overflow: visible; }
   .dtable__table, .dtable__table tbody, .dtable__table tr, .dtable__table td { display: block; width: 100%; }
   .dtable__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .dtable__table tbody { display: grid; gap: 0.75rem; }
+  .dtable__table tbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
   .dtable__table tbody tr { background: var(--color-surface); border: var(--border-1); border-radius: var(--radius-lg); padding: 0.4rem 0; box-shadow: var(--shadow-1); }
   .dtable__table td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 1rem; border: 0; text-align: right !important; }
   .dtable__table td::before { content: attr(data-label); color: var(--color-text-subtle); font-size: var(--text-xs); font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; }
+  .dtable__table td > * { min-width: 0; max-width: 100%; }
+  .dtable__table td .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dtable__table td.is-primary { font-weight: var(--weight-bold); border-bottom: var(--border-1); padding-bottom: 0.7rem; margin-bottom: 0.2rem; }
   .dtable__table td.is-primary::before { display: none; }
   .dtable__table td[colspan] { display: block; text-align: center !important; }

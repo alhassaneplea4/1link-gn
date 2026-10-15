@@ -70,7 +70,9 @@ const initial = {
   lastKey: null, lastAt: 0, selectedId: null, save: { state: 'idle' as SaveState, error: null, fieldError: null, at: null },
 };
 
-const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/** Comparaison de contenu : ignore les horodatages de modification (`updatedAt`) que l'éditeur pose sans changer ce que voient les visiteurs. */
+const stable = (v: unknown) => JSON.stringify(v, (k, x) => (k === 'updatedAt' ? undefined : x));
+const sameJson = (a: unknown, b: unknown) => stable(a) === stable(b);
 
 export const useEditor = create<EditorState>((set, get) => {
   /** Applique une modification en alimentant l'historique. */
@@ -83,7 +85,8 @@ export const useEditor = create<EditorState>((set, get) => {
       doc: next,
       past: coalesce ? s.past : [...s.past, s.doc].slice(-MAX_HISTORY),
       future: [],
-      dirty: true,
+      // Des modifications non enregistrées n'existent que si le document diffère réellement de la version enregistrée.
+      dirty: s.saved ? !sameJson(next, s.saved) : true,
       editSeq: s.editSeq + 1,
       lastKey: key ?? null,
       lastAt: now,

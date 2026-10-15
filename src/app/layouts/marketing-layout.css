@@ -1,7 +1,7 @@
 .marketing { background: var(--color-bg); }
 .mhead { position: fixed; inset: 0 0 auto 0; z-index: var(--z-sticky); transition: background-color var(--dur-base), box-shadow var(--dur-base), border-color var(--dur-base); border-bottom: 1px solid transparent; }
 .mhead.is-scrolled { background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(14px) saturate(1.4); border-bottom-color: var(--color-border); }
-.mhead__bar { height: 4.25rem; display: flex; align-items: center; gap: var(--space-6); }
+.mhead__bar { height: calc(4.25rem + var(--safe-top)); padding-top: var(--safe-top); display: flex; align-items: center; gap: var(--space-6); }
 .mhead__logo { display: inline-flex; border-radius: var(--radius-sm); }
 .mhead__nav { display: none; margin-left: auto; gap: 0.25rem; }
 .mhead__link { padding: 0.5rem 0.9rem; border-radius: var(--radius-full); color: var(--color-text-muted); font-weight: var(--weight-semibold); font-size: var(--text-sm); text-decoration: none; transition: background-color var(--dur-base), color var(--dur-base); }
