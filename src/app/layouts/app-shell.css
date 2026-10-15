@@ -8,7 +8,8 @@
 
 /* — Barre de navigation mobile — */
 .bottomnav { position: fixed; z-index: var(--z-sticky); left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--color-surface) 94%, transparent); backdrop-filter: blur(14px); border-top: var(--border-1); padding-bottom: env(safe-area-inset-bottom); }
-.bottomnav ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); }
+.bottomnav ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.bottomnav li { min-width: 0; }
 .bottomnav__link { width: 100%; display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 3.6rem; padding: 0.4rem 0.2rem; font-size: 0.68rem; font-weight: var(--weight-semibold); color: var(--color-text-subtle); text-decoration: none; position: relative; transition: color var(--dur-base); }
 .bottomnav__link span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bottomnav__link.is-active { color: var(--color-primary); }
@@ -73,3 +74,7 @@
 .sidebar-plan strong { font-size: var(--text-base); }
 .shell--admin .sidebar-plan { background: #151e3b; border-color: #232f57; color: #d6dcf0; }
 
+
+/* Petits écrans : le lien « voir ma page » ne garde que son icône, et la barre du haut ne déborde plus. */
+.topbar__actions { min-width: 0; flex-shrink: 0; }
+@media (max-width: 480px) { .topbar__view .btn__label { display: none; } .topbar { gap: var(--space-2); } }

@@ -142,7 +142,7 @@ export function AudiencesSection() {
             </div>
           </div>
           <div className="aud__phone">
-            <PhoneFrame decorative label={t(`common.categories.${cat}.label`)}><PageRenderer page={doc} pageUrl="https://1link.gn/exemple" preview /></PhoneFrame>
+            <PhoneFrame decorative label={t(`common.categories.${cat}.label`)}><PageRenderer page={doc} pageUrl="https://1link.gn/exemple" preview layout="profile" /></PhoneFrame>
           </div>
         </div>
       </div>

@@ -37,7 +37,7 @@ export function Hero() {
         <div className="hero__visual">
           <div className="hero__halo" aria-hidden="true" />
           <PhoneFrame decorative label={t('marketing.hero.fictional')} tilt className="hero__phone">
-            <PageRenderer page={doc} pageUrl={SAMPLE_URL} preview />
+            <PageRenderer page={doc} pageUrl={SAMPLE_URL} preview layout="profile" />
           </PhoneFrame>
           <div className="floatcard floatcard--click" aria-hidden="true">
             <span className="floatcard__icon"><Icon name="click" size={18} /></span>
@@ -93,7 +93,7 @@ export function DemoSection() {
         </div>
         <div className="demo__phone reveal">
           <PhoneFrame decorative label={t('marketing.demo.previewLabel')}>
-            <PageRenderer page={doc} pageUrl={SAMPLE_URL} preview />
+            <PageRenderer page={doc} pageUrl={SAMPLE_URL} preview layout="profile" />
           </PhoneFrame>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function CustomizeSection() {
     <section className="section section--tint" id="customize" aria-labelledby="custom-title">
       <div className="container container--xl demo demo--reverse">
         <div className="demo__phone reveal">
-          <PhoneFrame decorative label={t('marketing.demo.previewLabel')}><PageRenderer page={doc} pageUrl={SAMPLE_URL} preview /></PhoneFrame>
+          <PhoneFrame decorative label={t('marketing.demo.previewLabel')}><PageRenderer page={doc} pageUrl={SAMPLE_URL} preview layout="profile" /></PhoneFrame>
         </div>
         <div className="demo__copy reveal">
           <p className="eyebrow">{t('marketing.customize.eyebrow')}</p>

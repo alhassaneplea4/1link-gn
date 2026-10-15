@@ -84,6 +84,13 @@ export default {
     pending: 'Pending',
   },
   plans: { free: 'Free', pro: 'Pro', business: 'Business' },
+  badges: {
+    official: { label: '1Link Certified', how: 'Highest level, reserved for the platform’s super administrators.' },
+    team: { label: '1Link Team', how: 'Reserved for members of the administration and moderation team.' },
+    verified: { label: 'Verified profile', how: 'Earned after your identity or activity verification request is reviewed.' },
+    business: { label: 'Business', how: 'Included with the Business plan.' },
+    pro: { label: 'Pro', how: 'Included with the Pro plan.' },
+  },
   categories: {
     individual: { label: 'Individual', short: 'For you', description: 'Gather your personal links, socials and contacts.' },
     creator: { label: 'Creator', short: 'Content & audience', description: 'Showcase your content, collaborations and platforms.' },

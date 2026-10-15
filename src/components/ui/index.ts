@@ -1,5 +1,6 @@
 export * from './Icon';
 export * from './Logo';
+export * from './BadgeMark';
 export * from './Button';
 export * from './forms';
 export * from './display';

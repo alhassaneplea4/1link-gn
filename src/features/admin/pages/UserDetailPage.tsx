@@ -8,12 +8,14 @@ import { paths } from '@/app/configuration/paths';
 import { useT } from '@/i18n/core';
 import { formatDate, formatDateTime, formatNumber } from '@/utilities/format';
 import { StatusBadge, useCanWrite } from '../shared';
+import { BadgeMark } from '@/components/ui';
 
 export default function UserDetailPage() {
   const t = useT('admin', 'common');
   const { id = '' } = useParams();
   const toast = useToast();
   const canWrite = useCanWrite('users');
+  const canBadge = useCanWrite('profiles');
   const res = useResource(() => api.admin.getUser(id), [id]);
   const [confirm, setConfirm] = useState<'suspend' | 'reinstate' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +37,20 @@ export default function UserDetailPage() {
     }
   };
 
+  const toggleVerified = async () => {
+    if (!u) return;
+    setBusy(true);
+    try {
+      await api.admin.setVerifiedBadge(id, !u.profileVerified);
+      toast.push({ tone: 'success', title: u.profileVerified ? t('admin.userDetail.verifiedRevoked') : t('admin.userDetail.verifiedGranted') });
+      res.reload();
+    } catch {
+      toast.push({ tone: 'error', title: t('admin.actionFailed') });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (res.status === 'loading' && !u) return <Skeleton height={320} radius={16} />;
   if (res.status === 'error' || !u) return <ErrorState code={res.error} onRetry={res.reload} />;
   return (
@@ -46,6 +62,19 @@ export default function UserDetailPage() {
         actions={canWrite ? (u.status === 'suspended' ? <Button variant="secondary" iconLeft="user-check" onClick={() => setConfirm('reinstate')}>{t('admin.userDetail.reinstate')}</Button> : <Button variant="danger" iconLeft="ban" onClick={() => setConfirm('suspend')}>{t('admin.userDetail.suspend')}</Button>) : <Badge tone="neutral" icon="lock">{t('admin.readOnly')}</Badge>}
       />
       <div className="adm-detail">
+        <Card padding="lg" data-testid="admin-badges">
+          <h2 className="adm-section-title">{t('admin.userDetail.badges')}</h2>
+          <p className="muted">{t('admin.userDetail.badgesText')}</p>
+          <ul role="list" className="badgelist">
+            {u.badges.length === 0 && <li className="muted">{t('admin.userDetail.noBadge')}</li>}
+            {u.badges.map((b) => <li key={b} className="badgelist__item is-earned"><BadgeMark badge={b} size={26} /><strong>{t(`common.badges.${b}.label`)}</strong></li>)}
+          </ul>
+          {canBadge && u.adminRole === null && (
+            <Button variant={u.profileVerified ? 'secondary' : 'gradient'} iconLeft="check" loading={busy} onClick={() => void toggleVerified()}>
+              {u.profileVerified ? t('admin.userDetail.revokeVerified') : t('admin.userDetail.grantVerified')}
+            </Button>
+          )}
+        </Card>
         <Card padding="lg">
           <h2 className="adm-section-title">{t('admin.userDetail.info')}</h2>
           <dl className="kv">

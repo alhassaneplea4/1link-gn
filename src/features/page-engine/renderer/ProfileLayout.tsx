@@ -12,6 +12,7 @@ import { initials } from '@/utilities/misc';
 import { qrPngBlob, systemShare } from '@/utilities/share';
 import { PublicShareDialog } from '@/features/sharing/PublicShareDialog';
 import { PgImage } from '../blocks/render/image';
+import { ProfileBadges } from '../blocks/render/profile';
 import { SocialRender } from '../blocks/render/links';
 import { safeHref, telHref, whatsappHref, mailHref } from '../blocks/urls';
 import type { RenderContext } from '../blocks/types';
@@ -96,11 +97,7 @@ export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt,
         <div className="pgp-id__text">
           <Heading className="pg-name">
             {d.displayName}
-            {d.verified && (
-              <span className="pg-verified" title={t('pub.verified')}>
-                <Icon name="check" size={12} strokeWidth={3.2} label={t('pub.verified')} />
-              </span>
-            )}
+            <ProfileBadges data={d} />
           </Heading>
           {d.headline && <p className="pg-headline">{d.headline}</p>}
           <ul className="pgp-meta" role="list">
@@ -170,7 +167,7 @@ export function SectionNav({ sections, preview }: { sections: readonly Section[]
     document.getElementById(`pgp-sec-${id}`)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   };
   return (
-    <nav className="pgp-nav" aria-label={t('pub.sections.nav')}>
+    <nav className={`pgp-nav ${preview ? 'is-preview' : ''}`} aria-label={t('pub.sections.nav')}>
       <ul role="list">
         {sections.map((s) => (
           <li key={s.id}>

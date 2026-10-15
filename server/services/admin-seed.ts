@@ -51,8 +51,12 @@ export async function seedPlatformAdmin(db: Db, seed: AdminSeed, scryptLog2N: nu
   const email = seed.email.trim().toLowerCase();
   const [existing] = await db.select().from(users).where(eq(users.email, email));
   if (existing) {
-    if (existing.adminRole === 'super_admin' && existing.status === 'active') return (await ensureAdminPage(db, existing.id, seed, now)) ? 'role_granted' : 'unchanged';
-    await db.update(users).set({ adminRole: 'super_admin', status: 'active', emailVerifiedAt: existing.emailVerifiedAt ?? now, updatedAt: now }).where(eq(users.id, existing.id));
+    if (existing.adminRole === 'super_admin' && existing.status === 'active') {
+      // Certification : le super administrateur porte aussi le badge « Vérifié » (le badge « Officiel » suit son rôle).
+      if (!existing.verified) await db.update(users).set({ verified: true, updatedAt: now }).where(eq(users.id, existing.id));
+      return (await ensureAdminPage(db, existing.id, seed, now)) || !existing.verified ? 'role_granted' : 'unchanged';
+    }
+    await db.update(users).set({ adminRole: 'super_admin', verified: true, status: 'active', emailVerifiedAt: existing.emailVerifiedAt ?? now, updatedAt: now }).where(eq(users.id, existing.id));
     await audit(db, { actorId: null, actorLabel: 'Amorçage', action: 'Rôle super_admin attribué', target: email, ip: null, level: 'warning' }, now);
     await ensureAdminPage(db, existing.id, seed, now);
     return 'role_granted';
@@ -63,7 +67,7 @@ export async function seedPlatformAdmin(db: Db, seed: AdminSeed, scryptLog2N: nu
     .insert(users)
     .values({
       id: newId('usr'), email, passwordHash: await hashPassword(seed.password, scryptLog2N), name: seed.name.trim(), phone: seed.phone && !phoneTaken ? seed.phone : null,
-      emailVerifiedAt: now, adminRole: 'super_admin', onboardingDone: false, termsAcceptedAt: now, createdAt: now, updatedAt: now,
+      emailVerifiedAt: now, adminRole: 'super_admin', verified: true, onboardingDone: false, termsAcceptedAt: now, createdAt: now, updatedAt: now,
     })
     .returning();
   await db.insert(subscriptions).values({ id: newId('sub'), userId: u!.id, planId: 'free', status: 'active', startedAt: now, updatedAt: now });

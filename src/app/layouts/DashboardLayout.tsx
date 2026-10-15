@@ -86,7 +86,7 @@ export default function DashboardLayout() {
           <span className="topbar__grow" />
           <div className="topbar__actions">
             {doc?.username && doc.status === 'published' && (
-              <a className="btn btn--ghost btn--sm" href={`/${doc.username}`} target="_blank" rel="noopener noreferrer"><Icon name="external" size={16} /><span className="btn__label">{t('dashboard.shell.viewPage')}</span></a>
+              <a className="btn btn--ghost btn--sm topbar__view" aria-label={t('dashboard.shell.viewPage')} href={`/${doc.username}`} target="_blank" rel="noopener noreferrer"><Icon name="external" size={16} /><span className="btn__label">{t('dashboard.shell.viewPage')}</span></a>
             )}
             <ThemeToggle />
             <Notifications items={notifications} />

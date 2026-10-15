@@ -23,6 +23,10 @@ export interface AdminUserRow {
 }
 
 export interface AdminUserDetail extends AdminUserRow {
+  /** Badges mérités (offre, vérification, équipe) et état du badge « Vérifié » accordé manuellement. */
+  badges: ('official' | 'team' | 'verified' | 'business' | 'pro')[];
+  profileVerified: boolean;
+  adminRole: string | null;
   country: string;
   blocksCount: number;
   history: { at: string; event: string; actor: string }[];

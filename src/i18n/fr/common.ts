@@ -84,6 +84,13 @@ export default {
     pending: 'En attente',
   },
   plans: { free: 'Free', pro: 'Pro', business: 'Business' },
+  badges: {
+    official: { label: 'Certifié 1Link', how: 'Niveau le plus élevé, réservé aux super administrateurs de la plateforme.' },
+    team: { label: 'Équipe 1Link', how: 'Réservé aux membres de l’équipe d’administration et de modération.' },
+    verified: { label: 'Profil vérifié', how: 'Obtenu après examen de votre demande de vérification d’identité ou d’activité.' },
+    business: { label: 'Business', how: 'Inclus avec l’abonnement Business.' },
+    pro: { label: 'Pro', how: 'Inclus avec l’abonnement Pro.' },
+  },
   categories: {
     individual: {
       label: 'Particulier',

@@ -165,7 +165,7 @@ export default function OnboardingPage() {
         <aside className="onb__preview" aria-label={t('onboarding.livePreview')}>
           <div className="onb__sticky">
             <PhoneFrame label={t('onboarding.livePreview')}>
-              <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview />
+              <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" />
             </PhoneFrame>
             <p className="subtle onb__caption">{t('onboarding.livePreview')}</p>
           </div>

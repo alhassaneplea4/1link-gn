@@ -17,7 +17,7 @@ import { deleteAccount } from '../services/account-deletion.js';
 import { accountDeletedMessage } from '../lib/emails.js';
 import { clearSessionCookie } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
-import { getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
+import { badgesOf, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
 import { userReport } from '../services/analytics.js';
 import { storeImage, MAX_IMAGE_BYTES } from '../services/media.js';
@@ -31,9 +31,9 @@ meRoutes.use('*', requireAuth);
 // — Page —
 
 meRoutes.get('/page', async (c) => {
-  const { user } = c.get('auth')!;
+  const { user, planId } = c.get('auth')!;
   const row = await getOwnerPage(c.get('deps'), user.id);
-  return c.json(row ? ownerDocument(row, user.verified) : null);
+  return c.json(row ? ownerDocument(row, badgesOf(user, planId)) : null);
 });
 
 meRoutes.put('/page/draft', async (c) => {

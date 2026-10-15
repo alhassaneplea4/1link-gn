@@ -29,7 +29,7 @@ export function LivePreview() {
   if (!doc) return null;
   return (
     <PhoneFrame ref={screen} label={t('editor.preview.title')}>
-      <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview branding={branding} highlightBlockId={selectedId} />
+      <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" branding={branding} highlightBlockId={selectedId} />
     </PhoneFrame>
   );
 }

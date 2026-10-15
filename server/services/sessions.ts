@@ -5,6 +5,7 @@ import { pages, sessions, subscriptions, users } from '../db/schema.js';
 import { sha256, newToken } from '../lib/crypto.js';
 import { entitlementsFor, permissionsFor } from '../lib/access.js';
 import type { AdminRole, PlanId, Session } from '../../src/models/auth.js';
+import { badgesFor } from '../../src/models/badges.js';
 import type { CategoryId } from '../../src/models/category.js';
 
 const COOKIE = 'onelink_session';
@@ -84,6 +85,7 @@ export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId'>, 
     user: {
       id: u.id, email: u.email, phone: u.phone, name: u.name, emailVerified: u.emailVerifiedAt !== null, phoneVerified: u.phoneVerifiedAt !== null, twoFactorSms: u.twoFactorSms,
       category: u.category as CategoryId | null, onboardingDone: u.onboardingDone, username: a.username, plan: a.planId, adminRole: u.adminRole as AdminRole | null,
+      badges: badgesFor({ adminRole: u.adminRole, verified: u.verified, plan: a.planId }),
     },
     permissions: permissionsFor(u.adminRole as AdminRole | null),
     entitlements: entitlementsFor(a.planId),

@@ -15,6 +15,7 @@ import type { AnyBlock } from '../../src/models/blocks.js';
 import type { CategoryId } from '../../src/models/category.js';
 import type { PageDocument, PageStatus, PublicPageResult } from '../../src/models/page.js';
 import type { PlanId } from '../../src/models/auth.js';
+import { badgesFor, isVerifiedBy, type BadgeId } from '../../src/models/badges.js';
 
 export type PageRow = typeof pages.$inferSelect;
 
@@ -25,17 +26,20 @@ export function usernameProblem(value: string): 'invalid' | 'reserved' | null {
   return null;
 }
 
-/** Le badge « vérifié » appartient au serveur : toute valeur envoyée par le client est écrasée. */
-const withVerified = (blocks: AnyBlock[], verified: boolean): AnyBlock[] =>
-  blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, verified } } : b));
+/** Les badges appartiennent au serveur : toute valeur envoyée par le client est écrasée. */
+const withBadges = (blocks: AnyBlock[], badges: BadgeId[]): AnyBlock[] =>
+  blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, verified: isVerifiedBy(badges), badges } } : b));
+
+/** Badges d'un compte : rôle, vérification et offre effective. */
+export const badgesOf = (user: { adminRole: string | null; verified: boolean }, plan: string): BadgeId[] => badgesFor({ adminRole: user.adminRole, verified: user.verified, plan });
 
 const stamp = (blocks: AnyBlock[], now: string): AnyBlock[] => blocks.map((b) => (b.updatedAt ? b : { ...b, updatedAt: now }));
 
 /** Document tel que le voit son propriétaire (brouillon courant). */
-export function ownerDocument(row: PageRow, verified: boolean): PageDocument {
+export function ownerDocument(row: PageRow, badges: BadgeId[]): PageDocument {
   const status: PageStatus = row.status === 'suspended' ? 'suspended' : row.published && row.status === 'published' ? 'published' : 'draft';
   return {
-    id: row.id, username: row.username ?? '', category: row.draft.category as CategoryId, status, blocks: withVerified(row.draft.blocks, verified),
+    id: row.id, username: row.username ?? '', category: row.draft.category as CategoryId, status, blocks: withBadges(row.draft.blocks, badges),
     appearance: row.draft.appearance, share: row.draft.share, version: row.version, updatedAt: row.updatedAt.toISOString(), publishedAt: row.publishedAt?.toISOString() ?? null,
   };
 }
@@ -74,8 +78,8 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
   assertUsername(input, opts.publish);
   const now = deps.now();
   const nowIso = now.toISOString();
-  const verified = auth.user.verified;
-  const blocks = stamp(withVerified(input.blocks as AnyBlock[], verified), nowIso);
+  const badges = badgesOf(auth.user, auth.planId);
+  const blocks = stamp(withBadges(input.blocks as AnyBlock[], badges), nowIso);
   const content: PageContent = { blocks, appearance: input.appearance, share: input.share, category: input.category };
 
   let firstPublication = false;
@@ -112,7 +116,7 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
       return saved!;
     });
     if (firstPublication && row.username) notify(deps, auth.user, (to, name, locale) => pageLiveMessage(to, name, `${deps.config.publicUrl}/${row.username}`, locale));
-    return ownerDocument(row, verified);
+    return ownerDocument(row, badges);
   } catch (e) {
     const constraint = uniqueViolation(e);
     if (constraint?.includes('username')) throw conflict('username_taken', { username: 'taken' });
@@ -132,7 +136,7 @@ export async function unpublish(deps: Deps, auth: AuthContext): Promise<PageDocu
     if (existing?.status === 'suspended') throw forbidden('page_suspended');
     throw new HttpError(404, 'no_page');
   }
-  return ownerDocument(row, auth.user.verified);
+  return ownerDocument(row, badgesOf(auth.user, auth.planId));
 }
 
 const pagesVersionBump = () => sql`${pages.version} + 1`;
@@ -140,7 +144,7 @@ const pagesVersionBump = () => sql`${pages.version} + 1`;
 /** Ce que voit un visiteur. Aucun champ privé du compte n'est exposé. */
 export async function resolvePublicPage(deps: Deps, username: string): Promise<PublicPageResult> {
   const [row] = await deps.db
-    .select({ p: pages, userStatus: users.status, verified: users.verified, planId: subscriptions.planId, subStatus: subscriptions.status })
+    .select({ p: pages, userStatus: users.status, verified: users.verified, adminRole: users.adminRole, planId: subscriptions.planId, subStatus: subscriptions.status })
     .from(pages)
     .innerJoin(users, eq(users.id, pages.userId))
     .leftJoin(subscriptions, eq(subscriptions.userId, users.id))
@@ -153,7 +157,7 @@ export async function resolvePublicPage(deps: Deps, username: string): Promise<P
   const paid = row.subStatus === 'active' || row.subStatus === 'trialing' || row.subStatus === 'past_due';
   const plan = (paid ? row.planId : 'free') as PlanId;
   const page: PageDocument = {
-    id: row.p.id, username: row.p.username ?? '', category: snap.category as CategoryId, status: 'published', blocks: withVerified(snap.blocks, row.verified),
+    id: row.p.id, username: row.p.username ?? '', category: snap.category as CategoryId, status: 'published', blocks: withBadges(snap.blocks, badgesOf({ adminRole: row.adminRole, verified: row.verified }, plan)),
     appearance: snap.appearance, share: snap.share, version: row.p.version, updatedAt: (row.p.publishedAt ?? row.p.updatedAt).toISOString(), publishedAt: row.p.publishedAt?.toISOString() ?? null,
   };
   return { state: 'published', page, branding: !entitlementsFor(plan).removeBranding };

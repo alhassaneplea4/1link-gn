@@ -228,7 +228,7 @@ export default function OverviewPage() {
         <aside className="ov-side" aria-label={t('dashboard.overview.previewTitle')}>
           <Card padding="md" className="ov-preview">
             <h2>{t('dashboard.overview.previewTitle')}</h2>
-            <PhoneFrame label={t('dashboard.overview.previewTitle')} className="ov-preview__phone"><PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview /></PhoneFrame>
+            <PhoneFrame label={t('dashboard.overview.previewTitle')} className="ov-preview__phone"><PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" /></PhoneFrame>
             <p className="subtle ov-preview__meta">{doc.publishedAt ? `${t('dashboard.overview.publishedOn')} ${formatDate(doc.publishedAt)}` : t('dashboard.overview.notPublishedYet')}</p>
           </Card>
           <Card padding="md" className="ov-sub">

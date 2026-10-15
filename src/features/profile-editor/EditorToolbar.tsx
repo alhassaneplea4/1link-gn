@@ -99,7 +99,7 @@ export function EditorToolbar({ onFocusBlock, forceErrors }: { onFocusBlock: (id
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title={t('editor.preview.title')} description={t('editor.preview.description')} size="md">
         <div className="preview-modal">
           <PhoneFrame label={t('editor.preview.title')}>
-            <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview branding={!entitlements?.removeBranding} />
+            <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" branding={!entitlements?.removeBranding} />
           </PhoneFrame>
         </div>
       </Modal>

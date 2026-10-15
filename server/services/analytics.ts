@@ -30,7 +30,9 @@ export function normalizeRange(range: DateRange, now: Date, maxDays: number): Da
 }
 
 const scope = (pageId: string | null): SQL => (pageId ? sql`page_id = ${pageId}` : sql`true`);
-const win = (from: string, to: string): SQL => sql`at >= ${from}::date and at < (${to}::date + 1)`;
+/** Jours en UTC (comme les regroupements `at time zone 'UTC'`), quel que soit le fuseau de la session PostgreSQL. */
+const utcStart = (day: string): SQL => sql`((${day}::date)::timestamp at time zone 'UTC')`;
+const win = (from: string, to: string): SQL => sql`at >= ${utcStart(from)} and at < (${utcStart(to)} + interval '1 day')`;
 
 async function totals(db: Executor, pageId: string | null, from: string, to: string) {
   const r = await db.execute<{ views: number; visitors: number; clicks: number }>(sql`
@@ -152,20 +154,20 @@ export async function platformOverview(deps: Deps, requested: Pick<DateRange, 'f
     one<{ users: number; active: number; fresh: number; published: number; subs: number; reports: number; errors: number }>(sql`
       select (select count(*) from users)::int as users,
              (select count(*) from users where last_active_at >= ${nowTs}::timestamptz - interval '30 days')::int as active,
-             (select count(*) from users where created_at >= ${range.from}::date and created_at < (${range.to}::date + 1))::int as fresh,
+             (select count(*) from users where created_at >= ${utcStart(range.from)} and created_at < (${utcStart(range.to)} + interval '1 day'))::int as fresh,
              (select count(*) from pages where status = 'published')::int as published,
              (select count(*) from subscriptions where status in ('active', 'trialing') and plan_id <> 'free')::int as subs,
              (select count(*) from reports where status = 'open')::int as reports,
-             (select count(*) from app_errors where at >= ${range.from}::date and at < (${range.to}::date + 1))::int as errors`),
+             (select count(*) from app_errors where at >= ${utcStart(range.from)} and at < (${utcStart(range.to)} + interval '1 day'))::int as errors`),
     totals(deps.db, null, range.from, range.to),
     deps.db.execute<{ date: string; value: number }>(sql`
       select to_char(d::date, 'YYYY-MM-DD') as date, coalesce(s.n, 0)::int as value
       from generate_series(${range.from}::date, ${range.to}::date, interval '1 day') d
-      left join (select (created_at at time zone 'UTC')::date as day, count(*) n from users where created_at >= ${range.from}::date and created_at < (${range.to}::date + 1) group by 1) s on s.day = d::date
+      left join (select (created_at at time zone 'UTC')::date as day, count(*) n from users where created_at >= ${utcStart(range.from)} and created_at < (${utcStart(range.to)} + interval '1 day') group by 1) s on s.day = d::date
       order by d`),
     deps.db.execute<{ name: string; value: number }>(sql`select coalesce(category, 'none') as name, count(*)::int as value from users group by 1 order by 2 desc`),
     deps.db.execute<{ name: string; value: number }>(sql`select plan_id as name, count(*)::int as value from subscriptions group by 1 order by 2 desc`),
-    one<{ total: number }>(sql`select coalesce(sum(amount), 0)::int as total from payments where status = 'paid' and created_at >= ${range.from}::date and created_at < (${range.to}::date + 1)`),
+    one<{ total: number }>(sql`select coalesce(sum(amount), 0)::int as total from payments where status = 'paid' and created_at >= ${utcStart(range.from)} and created_at < (${utcStart(range.to)} + interval '1 day')`),
     series(deps.db, null, range.from, range.to),
   ]);
   return {

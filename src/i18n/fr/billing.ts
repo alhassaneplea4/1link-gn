@@ -25,6 +25,7 @@ export default {
     themes: 'Thèmes et personnalisation',
     qr: 'QR code',
     analyticsDays: 'Historique des statistiques (jours)',
+    badge: 'Badge sur votre profil',
     noBranding: 'Sans mention 1Link',
     team: 'Gestion d’équipe (bientôt)',
     customDomain: 'Domaine personnalisé (bientôt)',

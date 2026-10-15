@@ -29,6 +29,11 @@ adminRoutes.get('/overview', can('overview:read', 'analytics:read'), async (c) =
 
 adminRoutes.get('/users', can('users:read'), async (c) => c.json(await admin.listUsers(c.get('deps'), parseListQuery(c))));
 adminRoutes.get('/users/:id', can('users:read'), async (c) => c.json(await admin.getUserDetail(c.get('deps'), c.req.param('id'))));
+adminRoutes.patch('/users/:id/badge', can('profiles:write'), async (c) => {
+  const body = await readJson(c, z.object({ verified: z.boolean() }));
+  await admin.setProfileVerified(c, c.get('deps'), c.get('auth')!, c.req.param('id'), body.verified);
+  return c.json({ applied: true });
+});
 adminRoutes.patch('/users/:id/status', can('users:write'), async (c) => {
   const body = await readJson(c, z.object({ status: z.enum(['active', 'suspended']) }));
   await admin.setUserStatus(c, c.get('deps'), c.get('auth')!, c.req.param('id'), body.status);

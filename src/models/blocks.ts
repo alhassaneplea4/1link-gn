@@ -24,6 +24,8 @@ export interface ProfileData {
   coverUrl: string;
   location: string;
   verified: boolean;
+  /** Badges mérités (calculés par le serveur : abonnement, vérification, équipe). */
+  badges?: ('official' | 'team' | 'verified' | 'business' | 'pro')[];
 }
 export interface TextData { title: string; body: string }
 export interface LinkData { title: string; url: string; description: string; platform: SocialPlatform | 'link'; highlight: boolean }

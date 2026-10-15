@@ -38,6 +38,7 @@ export const PLAN_COMPARISON: { key: string; values: Record<'free' | 'pro' | 'bu
   { key: 'themes', values: { free: true, pro: true, business: true } },
   { key: 'qr', values: { free: true, pro: true, business: true } },
   { key: 'analyticsDays', values: { free: '7', pro: '90', business: '365' } },
+  { key: 'badge', values: { free: false, pro: 'Pro', business: 'Business' } },
   { key: 'noBranding', values: { free: false, pro: true, business: true } },
   { key: 'team', values: { free: false, pro: false, business: '5' } },
   { key: 'customDomain', values: { free: false, pro: false, business: true } },

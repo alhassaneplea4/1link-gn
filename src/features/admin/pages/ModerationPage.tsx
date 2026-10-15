@@ -92,7 +92,7 @@ export default function ModerationPage() {
                   <h2 className="adm-section-title">{t('admin.moderation.reviewProfile')}</h2>
                   <div className="mod__preview">
                     {profile.status === 'loading' ? <Skeleton width={240} height={380} radius={32} /> : profile.data && profile.data.state === 'published' ? (
-                      <PhoneFrame label={`@${target.username}`}><PageRenderer page={profile.data.page} pageUrl={pageShareUrl(target.username)} preview /></PhoneFrame>
+                      <PhoneFrame label={`@${target.username}`}><PageRenderer page={profile.data.page} pageUrl={pageShareUrl(target.username)} preview layout="profile" /></PhoneFrame>
                     ) : <EmptyState compact icon="file" title={t('admin.moderation.noPublicPage')} description={profile.data ? t(`pub.states.${(profile.data.state === 'not_found' ? 'notFound' : profile.data.state) as 'notFound'}.title`) : undefined} />}
                   </div>
                   {profile.data?.state === 'published' && <p style={{ marginTop: 'var(--space-3)' }}><Link to={`/${target.username}`} target="_blank" rel="noopener noreferrer">{t('admin.moderation.openPublic')} <Icon name="external" size={14} /></Link></p>}

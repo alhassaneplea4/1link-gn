@@ -278,7 +278,7 @@ describe('amorçage du premier administrateur', () => {
     expect(pub.body.state).toBe('published');
     expect(JSON.stringify(pub.body.page)).not.toContain(seed.phone);
     const profile = pub.body.page.blocks.find((b: { type: string }) => b.type === 'profile').data;
-    expect(profile).toMatchObject({ displayName: seed.name, verified: false });
+    expect(profile).toMatchObject({ displayName: seed.name, verified: true, badges: ['official', 'verified'] }); // super administrateur : certifié au plus haut niveau
     expect(await seedPlatformAdmin(t.db, withPage, 10)).toBe('unchanged');
     expect(await seedPlatformAdmin(t.db, { ...withPage, username: 'autre-nom' }, 10)).toBe('unchanged'); // une page existe déjà : rien n'est ajouté
   });

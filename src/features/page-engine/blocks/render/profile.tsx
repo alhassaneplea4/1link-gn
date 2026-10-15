@@ -1,11 +1,18 @@
+import { BadgeMarks } from '@/components/ui/BadgeMark';
+import type { BadgeId } from '@/models/badges';
 import { Icon } from '@/components/ui/Icon';
-import { useT } from '@/i18n/core';
 import { initials } from '@/utilities/misc';
 import type { BlockRenderProps } from '../types';
 import { PgImage } from './image';
 
+/** Badges du profil (serveur) ; à défaut, la coche « vérifié » historique. */
+export function ProfileBadges({ data }: { data: { verified: boolean; badges?: BadgeId[] } }) {
+  const badges: BadgeId[] = data.badges ?? (data.verified ? ['verified'] : []);
+  if (!badges.length) return null;
+  return <span className="pg-badges"><BadgeMarks badges={badges} size={20} /></span>;
+}
+
 export function ProfileRender({ block, ctx }: BlockRenderProps<'profile'>) {
-  const t = useT('pub');
   const d = block.data;
   const hasCover = Boolean(d.coverUrl);
   // Le titre de niveau 1 appartient à la vraie page publique ; dans un aperçu intégré (landing, éditeur) on évite plusieurs h1.
@@ -23,11 +30,7 @@ export function ProfileRender({ block, ctx }: BlockRenderProps<'profile'>) {
       <div className="pg-profile__text">
         <Heading className="pg-name">
           {d.displayName}
-          {d.verified && (
-            <span className="pg-verified" title={t('pub.verified')}>
-              <Icon name="check" size={12} strokeWidth={3.2} label={t('pub.verified')} />
-            </span>
-          )}
+          <ProfileBadges data={d} />
         </Heading>
         {d.headline && <p className="pg-headline">{d.headline}</p>}
         {d.location && (

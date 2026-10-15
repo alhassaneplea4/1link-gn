@@ -339,3 +339,13 @@
 .pgp-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; padding: 20px; border-radius: calc(var(--pg-r) * 1.2); background: linear-gradient(120deg, color-mix(in srgb, var(--pg-primary) 14%, var(--pg-surface)), color-mix(in srgb, var(--pg-accent) 14%, var(--pg-surface))); border: 1px solid var(--pg-border); text-align: left; }
 .pgp-cta h2 { font-size: 1.1em; font-weight: 800; }
 .pgp-cta p { color: var(--pg-muted); margin-top: 4px; max-width: 46ch; }
+
+/* Cartes produit étroites (grille à 2 colonnes) : le bouton de commande ne doit pas s'étirer sur trois lignes. */
+.pg-product .pg-btn--order { min-height: 44px; padding: 8px 10px; gap: 8px; font-size: 0.86em; }
+.pg-product .pg-btn--order .pg-btn__icon { width: 28px; height: 28px; }
+.pg-product .pg-btn--order .pg-btn__arrow { display: none; }
+
+.pg-badges { display: inline-flex; align-items: center; gap: 2px; }
+
+/* Aperçu (inerte) : la barre n'est pas défilante, donc pas de zone défilante inaccessible au clavier. */
+.pgp-nav.is-preview ul { overflow: hidden; }

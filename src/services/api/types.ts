@@ -100,6 +100,8 @@ export interface AdminApi {
   getReport(id: string): Promise<Report>;
   applyDecision(reportId: string, decision: ModerationDecision, note: string): Promise<MutationOutcome>;
   setUserStatus(userId: string, status: 'active' | 'suspended'): Promise<MutationOutcome>;
+  /** Accorde ou retire le badge « Vérifié ». */
+  setVerifiedBadge(userId: string, verified: boolean): Promise<MutationOutcome>;
   listVerifications(q: ListQuery): Promise<Paged<VerificationRequest>>;
   decideVerification(id: string, decision: VerificationDecision, note: string): Promise<MutationOutcome>;
   listSubscriptions(q: ListQuery): Promise<Paged<SubscriptionRow>>;

@@ -239,6 +239,7 @@ export default {
       submit: 'Send request',
     },
   },
+  badges: { title: 'My badges', text: 'Badges are shown next to your name on your public page.', earned: 'Earned', locked: 'Not earned', seePlans: 'See plans' },
   security: {
     description: 'Protect access to your account.',
     emailTitle: 'Email address',

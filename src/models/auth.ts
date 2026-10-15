@@ -36,6 +36,8 @@ export interface SessionUser {
   username: string | null;
   plan: PlanId;
   adminRole: AdminRole | null;
+  /** Badges de profil mérités, du plus élevé au plus bas (calculés par le serveur). */
+  badges: ('official' | 'team' | 'verified' | 'business' | 'pro')[];
 }
 
 export interface Session {

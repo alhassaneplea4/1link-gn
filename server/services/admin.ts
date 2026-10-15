@@ -1,5 +1,6 @@
 /** Admin Center : listes, détail, modération et statuts — toutes les données viennent de PostgreSQL. */
 import { eq, sql } from 'drizzle-orm';
+import { badgesFor } from '../../src/models/badges.js';
 import type { AuthContext, C, Deps } from '../context.js';
 import { auditLogs, pages, reports, users } from '../db/schema.js';
 import { audit } from '../lib/audit.js';
@@ -18,7 +19,8 @@ import type { PlanId } from '../../src/models/auth.js';
 import type { VerificationRequest } from '../../src/models/verification.js';
 import type { PageStatus } from '../../src/models/page.js';
 
-const iso = (d: unknown) => (d instanceof Date ? d.toISOString() : String(d));
+/** Dates : `db.execute` les renvoie en texte (« 2026-10-15 01:21:18+02 »), les requêtes typées en Date : toujours normalisées en ISO UTC. */
+const iso = (d: unknown) => { const v = d instanceof Date ? d : new Date(String(d)); return Number.isNaN(v.getTime()) ? String(d) : v.toISOString(); };
 const isoOrNull = (d: unknown) => (d ? iso(d) : null);
 const paged = <T>(r: { rows: unknown[]; total: number; page: number; pageSize: number }, map: (row: never) => T): Paged<T> => ({ items: r.rows.map((x) => map(x as never)), total: r.total, page: r.page, pageSize: r.pageSize });
 
@@ -69,7 +71,17 @@ export async function getUserDetail(deps: Deps, id: string): Promise<AdminUserDe
     { at: iso(raw.last_active_at), event: 'Dernière activité', actor: raw.name },
     { at: iso(raw.created_at), event: 'Compte créé', actor: raw.name },
   ].sort((a, b) => b.at.localeCompare(a.at));
-  return { ...userRow(raw), country: raw.country ?? '—', blocksCount: raw.blocks_count, history };
+  const [flags] = await deps.db.select({ verified: users.verified, adminRole: users.adminRole }).from(users).where(eq(users.id, id)).limit(1);
+  const row = userRow(raw);
+  return { ...row, badges: badgesFor({ adminRole: flags?.adminRole ?? null, verified: flags?.verified ?? false, plan: row.plan }), profileVerified: flags?.verified ?? false, adminRole: flags?.adminRole ?? null, country: raw.country ?? '—', blocksCount: raw.blocks_count, history };
+}
+
+/** Accorde ou retire à la main le badge « Vérifié » (en plus de la procédure de demande). Le badge « Officiel » suit le rôle super administrateur. */
+export async function setProfileVerified(c: C, deps: Deps, actor: AuthContext, userId: string, verified: boolean): Promise<void> {
+  const [target] = await deps.db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) throw notFound('user');
+  await deps.db.update(users).set({ verified, updatedAt: deps.now() }).where(eq(users.id, userId));
+  await audit(deps.db, { actorId: actor.user.id, actorLabel: actor.user.name, action: verified ? 'Badge « Vérifié » accordé' : 'Badge « Vérifié » retiré', target: userId, ip: c.get('ip') }, deps.now());
 }
 
 const ROLE_RANK: Record<string, number> = { analyst: 1, finance: 1, support: 1, moderator: 2, admin: 3, super_admin: 4 };

@@ -9,6 +9,7 @@ import { useSession } from '@/state/session';
 import { useUi, type ThemePreference } from '@/state/ui';
 import { VerificationCard } from './VerificationCard';
 import { DeleteAccountRow } from './DeleteAccountCard';
+import { BadgesCard } from './BadgesCard';
 import { formatInternational } from '@/utilities/phone';
 import './settings.css';
 
@@ -71,6 +72,8 @@ export default function SettingsPage() {
           </Select>
           <Toggle label={t('dashboard.settings.emailNotifs')} hint={t('dashboard.settings.soonHint')} checked={false} onChange={() => undefined} disabled />
         </Card>
+
+        <BadgesCard />
 
         <VerificationCard />
 

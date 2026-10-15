@@ -35,7 +35,7 @@ export default function AuthLayout() {
           <p>{t('auth.brand.text')}</p>
         </div>
         <PhoneFrame decorative label={t('auth.brand.example')} tilt className="authl__phone">
-          <PageRenderer page={doc} pageUrl="https://1link.gn/mariama" preview />
+          <PageRenderer page={doc} pageUrl="https://1link.gn/mariama" preview layout="profile" />
         </PhoneFrame>
         <small className="authl__caption">{t('auth.brand.example')}</small>
       </aside>

@@ -61,6 +61,13 @@ export default {
     user: 'Utilisateur', category: 'Catégorie', plan: 'Offre', status: 'Statut', joined: 'Inscription', activity: 'Dernière activité',
   },
   userDetail: {
+    badges: 'Badges',
+    badgesText: 'Les badges Pro et Business suivent l’abonnement, « Officiel » et « Équipe » suivent le rôle. Le badge « Vérifié » s’accorde ici ou par une demande de vérification.',
+    noBadge: 'Aucun badge.',
+    grantVerified: 'Accorder le badge Vérifié',
+    revokeVerified: 'Retirer le badge Vérifié',
+    verifiedGranted: 'Badge Vérifié accordé',
+    verifiedRevoked: 'Badge Vérifié retiré',
     suspended: 'Compte suspendu', reinstated: 'Compte réactivé', info: 'Informations', emailVerified: 'E-mail vérifié', country: 'Pays', blocks: 'Blocs sur la page', views30: 'Vues (30 j)', page: 'Page publique', history: 'Historique',
     suspend: 'Suspendre le compte', reinstate: 'Réactiver le compte',
     suspendTitle: 'Suspendre le compte de {name} ?',

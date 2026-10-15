@@ -245,6 +245,7 @@ export default {
       submit: 'Envoyer la demande',
     },
   },
+  badges: { title: 'Mes badges', text: 'Les badges s’affichent à côté de votre nom sur votre page publique.', earned: 'Obtenu', locked: 'Non obtenu', seePlans: 'Voir les offres' },
   security: {
     description: 'Protégez l’accès à votre compte.',
     emailTitle: 'Adresse e-mail',
