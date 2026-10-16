@@ -1,102 +1,37 @@
-import { CATEGORY_CONFIG } from '@/features/categories/config';
 import { createBlock } from '@/features/page-engine/blocks/registry';
-import { getThemePreset, mergeAppearance } from '@/features/page-engine/appearance/themes';
 import { createInitialDocument } from '@/features/page-engine/document';
+import { DEFAULT_APPEARANCE } from '@/models/themes';
 import type { AnyBlock } from '@/models/blocks';
 import type { PageDocument } from '@/models/page';
-import { isEmail, isPhone, isUrl } from '@/utilities/validation';
-import { isBareBase } from '@/models/platforms';
+import { slugifyUsername } from '@/utilities/validation';
 import type { OnboardingData } from './store';
-import { currentRights } from '@/hooks/useAccess';
-import { allowsBlock, allowsTheme, type PlanRights } from '@/models/access';
 
-const filled = (s: string | undefined) => (s ?? '').trim().length > 0;
-
-/** Transforme les saisies de l'assistant en document de page (utilisé pour l'aperçu en direct ET la publication). */
-export function composeDocument(d: OnboardingData, fallbackName: string): PageDocument {
+/**
+ * Transforme les saisies de l'assistant en document de page (aperçu en direct ET publication) : une page avec son profil
+ * (photo, couverture, nom, titre, secteur). Les blocs (liens, services, contacts…) s'ajoutent ensuite depuis « Ma page ».
+ * Le thème de base est toujours autorisé : le serveur refuse ce que l'offre ne permet pas.
+ */
+export function composeDocument(d: OnboardingData, fallbackName: string, username = ''): PageDocument {
   const category = d.category ?? 'individual';
-  const cfg = CATEGORY_CONFIG[category];
-  const base = createInitialDocument({ username: d.identity.username, category, displayName: d.identity.displayName || fallbackName });
-  const ctx = { category };
-  const blocks: AnyBlock[] = [];
-
-  const profile = createBlock('profile', ctx, 'blk_profile');
+  const displayName = d.identity.displayName.trim() || fallbackName;
+  const base = createInitialDocument({ username, category, displayName });
+  const profile = createBlock('profile', { category }, 'blk_profile');
   Object.assign(profile.data, {
-    displayName: d.identity.displayName || fallbackName,
-    headline: d.activity.headline ?? '',
-    bio: d.activity.bio ?? '',
+    displayName,
+    headline: (d.activity.headline ?? '').trim(),
+    sector: (d.activity.sector ?? '').trim(),
     avatarUrl: d.identity.avatarUrl,
     coverUrl: d.identity.coverUrl ?? '',
-    location: d.activity.location ?? '',
   });
-  blocks.push(profile);
-
-  // Seuls les réseaux dont l'adresse va au-delà de l'adresse officielle (nom d'utilisateur saisi) sont publiés.
-  const socials = d.socials.filter((s) => isUrl(s.url) && !isBareBase(s.platform, s.url));
-  if (socials.length) {
-    const b = createBlock('social', ctx);
-    b.data.items = socials;
-    blocks.push(b);
-  }
-
-  for (const l of d.links.filter((x) => filled(x.title) && isUrl(x.url))) {
-    const b = createBlock('link', ctx);
-    b.data.title = l.title.trim();
-    b.data.url = l.url.trim();
-    blocks.push(b);
-  }
-
-  const items = d.items.filter((i) => filled(i.name));
-  if (items.length && cfg.contentBlock === 'service') {
-    const b = createBlock('service', ctx);
-    b.data.items = items.map((i) => ({ name: i.name.trim(), description: i.description.trim(), price: i.price.trim(), url: '' }));
-    blocks.push(b);
-  } else if (items.length && cfg.contentBlock === 'portfolio') {
-    const b = createBlock('portfolio', ctx);
-    b.data.items = items.map((i) => ({ title: i.name.trim(), description: i.description.trim(), imageUrl: i.imageUrl.trim(), url: '' }));
-    blocks.push(b);
-  } else if (filled(d.about)) {
-    const b = createBlock('text', ctx);
-    b.data.body = d.about.trim();
-    blocks.push(b);
-  }
-
-  const email = d.activity.email?.trim() ?? '';
-  const phone = d.activity.phone?.trim() ?? '';
-  const contactItems = [
-    ...(isEmail(email) ? [{ kind: 'email' as const, label: '', value: email }] : []),
-    ...(isPhone(phone) ? [{ kind: 'phone' as const, label: '', value: phone }, { kind: 'whatsapp' as const, label: '', value: phone }] : []),
-  ];
-  if (contactItems.length) {
-    const b = createBlock('contact', ctx);
-    b.data.items = contactItems;
-    blocks.push(b);
-  }
-  if ((category === 'business' || category === 'organization') && filled(d.activity.location)) {
-    const b = createBlock('location', ctx);
-    b.data.address = d.activity.location!.trim();
-    blocks.push(b);
-  }
-
-  // Un thème que l'offre n'autorise pas est remplacé par le thème de base : le serveur refuserait la publication.
-  const rights = currentRights();
-  const wanted = d.themeId ?? cfg.themeId;
-  let appearance = getThemePreset(allowsTheme(rights, wanted) ? wanted : 'minimal');
-  if (d.primaryColor) appearance = mergeAppearance(appearance, { themeId: 'custom', colors: { primary: d.primaryColor } });
-  return fitToRights({ ...base, blocks, appearance }, rights);
+  const blocks: AnyBlock[] = [profile];
+  return { ...base, blocks, appearance: structuredClone(DEFAULT_APPEARANCE) };
 }
 
-/** Retire ce que l'offre n'autorise pas (types de blocs, nombre de liens, services et contacts) pour que la publication ne soit pas refusée. */
-export function fitToRights(doc: PageDocument, rights: PlanRights): PageDocument {
-  let links = 0;
-  const blocks = doc.blocks.filter((b) => {
-    if (!allowsBlock(rights, b.type)) return false;
-    if (b.type === 'link') return rights.maxLinks === null || ++links <= rights.maxLinks;
-    return true;
-  }).map((b) => {
-    if (b.type === 'service' && rights.maxServices !== null) return { ...b, data: { ...b.data, items: b.data.items.slice(0, rights.maxServices) } };
-    if (b.type === 'contact' && rights.maxContacts !== null) return { ...b, data: { ...b.data, items: b.data.items.slice(0, rights.maxContacts) } };
-    return b;
-  });
-  return { ...doc, blocks };
+/** Adresses candidates dérivées du nom complet (la première disponible est retenue) : « awa-diallo », « awa-diallo-2 »… */
+export function usernameCandidates(displayName: string, random: () => number = Math.random): string[] {
+  // Les mots sont séparés par un tiret (« Awa Diallo » → « awa-diallo »), sans tirets en double ni en bordure.
+  let base = slugifyUsername(displayName.trim().replace(/\s+/g, '-')).replace(/-{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 24).replace(/[-_]+$/g, '');
+  if (base.length < 3) base = `${base}${'membre'.slice(0, 6 - base.length)}`;
+  const suffix = () => Math.floor(random() * 9000 + 1000);
+  return [base, `${base}-2`, `${base}-3`, `${base}-${suffix()}`, `${base}-${suffix()}`, `${base}-${suffix()}`];
 }

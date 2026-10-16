@@ -8,6 +8,7 @@ import { useSession } from '@/state/session';
 import { isEmail } from '@/utilities/validation';
 import { AuthHeading, MethodSwitch, PasswordInput, afterAuthPath, authErrorKey, useNextPath, type AuthMethod } from './parts';
 import { PhoneAuth } from './PhoneAuth';
+import { EmailCodeAuth } from './EmailCodeAuth';
 import { TwoFactorStep } from './TwoFactorStep';
 import { explainOtpError } from './otpErrors';
 import { isApiError } from '@/models/api';
@@ -25,6 +26,8 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [method, setMethod] = useState<AuthMethod>('email');
+  // Par défaut un code est envoyé par e-mail ; le mot de passe reste possible pour les comptes qui en ont un.
+  const [withPassword, setWithPassword] = useState(false);
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
 
   const submit = async (e: FormEvent) => {
@@ -65,13 +68,19 @@ export default function LoginPage() {
     <>
       <AuthHeading title={t('auth.login.title')} subtitle={t('auth.login.subtitle')} />
       <MethodSwitch value={method} onChange={setMethod} />
-      {method === 'phone' ? <PhoneAuth mode="sign_in" onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} /> : (
+      {method === 'phone' ? <PhoneAuth mode="sign_in" onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} /> : !withPassword ? (
+        <>
+          <EmailCodeAuth mode="sign_in" onDone={(session) => navigate(afterAuthPath(session, next), { replace: true })} onTwoFactor={setChallenge} />
+          <p className="auth-alt"><button type="button" className="linklike" onClick={() => setWithPassword(true)}>{t('auth.emailCode.passwordInstead')}</button></p>
+        </>
+      ) : (
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">
         {formError && <Alert tone="danger">{formError}</Alert>}
         <Input label={t('auth.fields.email')} type="email" name="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} required />
         <PasswordInput label={t('auth.fields.password')} name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} required />
         <div className="auth-form__row"><Link to={paths.forgotPassword}>{t('auth.login.forgot')}</Link></div>
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.login.submit')}</Button>
+        <p className="auth-alt"><button type="button" className="linklike" onClick={() => setWithPassword(false)}>{t('auth.emailCode.codeInstead')}</button></p>
       </form>
       )}
       <p className="auth-alt">{t('auth.login.noAccount')} <Link to={paths.register}>{t('auth.login.register')}</Link></p>

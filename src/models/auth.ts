@@ -30,8 +30,14 @@ export interface SessionUser {
   name: string;
   emailVerified: boolean;
   phoneVerified: boolean;
-  /** Un code SMS est demandé à chaque connexion par mot de passe. */
+  /** Un code SMS est demandé à chaque connexion (vérification en deux étapes par SMS). */
   twoFactorSms: boolean;
+  /** Méthodes de vérification en deux étapes activées (toutes désactivées par défaut). */
+  mfa: { sms: boolean; email: boolean; totp: boolean };
+  /** Le compte a un mot de passe (un compte créé par e-mail n'en a pas tant qu'on n'en définit pas). */
+  hasPassword: boolean;
+  /** Suppression de compte demandée le (délai de 15 jours sans activité avant la confirmation finale). */
+  deletionRequestedAt: string | null;
   category: CategoryId | null;
   onboardingDone: boolean;
   username: string | null;
@@ -65,18 +71,45 @@ export const accountContact = (u: Pick<SessionUser, 'email' | 'phone'>) => u.ema
 
 export type OtpChannel = 'whatsapp' | 'sms';
 
-/** Étape intermédiaire de connexion : le mot de passe est correct, un code SMS reste à saisir. */
+export type MfaMethod = 'sms' | 'email' | 'totp';
+
+/** Étape intermédiaire de connexion : la première étape est validée, une seconde vérification reste à saisir. */
 export interface TwoFactorChallenge {
-  /** Jeton signé, valable 10 min : lie la saisie du code au mot de passe qui vient d'être validé. */
+  /** Jeton signé, valable 10 min : lie la saisie du code à la première étape qui vient d'être validée. */
   challenge: string;
-  /** Numéro masqué (affichage). */
-  phoneMasked: string;
-  channel: OtpChannel;
+  /** Méthodes que le compte a activées (et qui ne répètent pas la première étape). */
+  methods: MfaMethod[];
+  /** Méthode proposée en premier (son code a déjà été envoyé pour SMS et e-mail). */
+  method: MfaMethod;
+  /** Numéro masqué (affichage), si la méthode SMS est proposée. */
+  phoneMasked?: string;
+  /** Adresse masquée (affichage), si la méthode e-mail est proposée. */
+  emailMasked?: string;
+  channel?: OtpChannel;
   expiresInSec: number;
   resendInSec: number;
   /** UNIQUEMENT en développement local (fournisseur de test). */
   devCode?: string;
 }
+
+/** Preuve d'identité exigée avant une opération sensible : mot de passe, ou code reçu par e-mail / SMS (compte sans mot de passe). */
+export interface IdentityProof { password?: string; code?: string }
+
+export interface CodeSent { expiresInSec: number; resendInSec: number; devCode?: string }
+
+/** État des méthodes de vérification en deux étapes (Sécurité). */
+export interface MfaStatus {
+  sms: { enabled: boolean; phoneVerified: boolean };
+  email: { enabled: boolean; available: boolean };
+  totp: { enabled: boolean };
+  recoveryLeft: number;
+  hasPassword: boolean;
+}
+
+export interface TotpSetup { secret: string; uri: string }
+
+/** Compte visé par un lien de confirmation de suppression. */
+export interface DeletionTarget { name: string; hasPassword: boolean; contact: string }
 
 export type SignInResult = { kind: 'session'; session: Session } | { kind: 'two_factor'; challenge: TwoFactorChallenge };
 

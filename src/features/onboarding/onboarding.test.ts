@@ -1,78 +1,61 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORY_IDS } from '@/models/category';
-import { composeDocument } from './compose';
+import { composeDocument, usernameCandidates } from './compose';
 import { validateStep } from './validate';
+import { restoreOnboarding, snapshotOnboarding, STEPS, useOnboarding, type OnboardingData } from './store';
 import { isBlockComplete } from '@/features/page-engine/blocks/registry';
-import { CATEGORY_CONFIG } from '@/features/categories/config';
-import type { OnboardingData } from './store';
-import { useSession } from '@/state/session';
 
 const base = (over: Partial<OnboardingData> = {}): OnboardingData => ({
   category: 'professional',
-  identity: { displayName: 'Mamadou Keita', username: 'mamadou-k', avatarUrl: '' },
-  activity: { headline: 'Développeur', bio: 'Bio', location: 'Conakry', email: 'a@b.co', phone: '+224 600 00 00 00' },
-  socials: [{ platform: 'instagram', url: 'https://instagram.com/x' }, { platform: 'tiktok', url: '' }],
-  links: [{ title: 'Portfolio', url: 'https://exemple.com' }, { title: '', url: '' }],
-  items: [{ name: 'Site vitrine', description: 'Rapide', price: 'Sur devis', imageUrl: '' }, { name: '', description: '', price: '', imageUrl: '' }],
-  about: '',
-  themeId: null,
-  primaryColor: null,
+  identity: { displayName: 'Mamadou Keita', avatarUrl: 'https://exemple.com/a.png', coverUrl: 'https://exemple.com/c.png' },
+  activity: { headline: 'Développeur', sector: 'Informatique' },
   ...over,
 });
 
-describe('validation des étapes d’onboarding', () => {
-  it('exige une catégorie', () => {
-    expect(validateStep('category', base({ category: null })).category).toBeDefined();
+describe('assistant en deux étapes', () => {
+  it('ne comporte que le type de compte puis le profil', () => {
+    expect([...STEPS]).toEqual(['category', 'profile']);
+  });
+
+  it('exige un type de compte, puis un nom complet', () => {
+    expect(validateStep('category', base({ category: null }))).toEqual({ category: 'common.validation.required' });
     expect(validateStep('category', base())).toEqual({});
-  });
-  it('contrôle identité et pseudonyme (formats et réservés)', () => {
-    expect(validateStep('identity', base({ identity: { displayName: '', username: 'ab', avatarUrl: '' } }))).toMatchObject({ displayName: expect.any(String), username: expect.any(String) });
-    expect(validateStep('identity', base({ identity: { displayName: 'X', username: 'admin', avatarUrl: '' } })).username).toBe('common.validation.usernameReserved');
-    expect(validateStep('identity', base())).toEqual({});
-  });
-  it('ne demande que les champs pertinents à la catégorie', () => {
-    const none = { headline: '', bio: '', location: '' };
-    expect(validateStep('activity', base({ category: 'individual', activity: none }))).toEqual({});
-    expect(validateStep('activity', base({ category: 'creator', activity: none })).headline).toBe('common.validation.required');
-  });
-  it('valide les liens ligne par ligne et ignore les lignes vides', () => {
-    expect(validateStep('links', base())).toEqual({});
-    const errs = validateStep('links', base({ links: [{ title: 'X', url: 'pas-une-url' }, { title: '', url: 'https://ok.com' }] }));
-    expect(errs['links.0.url']).toBe('common.validation.url');
-    expect(errs['links.1.title']).toBe('common.validation.required');
+    expect(validateStep('profile', base({ identity: { displayName: '  ', avatarUrl: '' } }))).toEqual({ displayName: 'common.validation.required' });
+    expect(validateStep('profile', base())).toEqual({});
+    expect(validateStep('profile', base({ activity: { headline: 'x'.repeat(91), sector: 'y'.repeat(61) } }))).toEqual({ headline: 'common.validation.tooLong', sector: 'common.validation.tooLong' });
   });
 });
 
-const setPlan = (plan: 'free' | 'pro') =>
-  useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: false, analyticsDays: 0, teamSeats: 1 }, access: { phase: 'subscribed', plan, trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, expiresAt: '' } });
-
 describe('composition du document', () => {
-  it('se limite aux droits de l’offre Free : thème de base, liens et blocs autorisés', () => {
-    setPlan('free');
-    const doc = composeDocument(base(), 'Fallback');
-    expect(doc.appearance.themeId).toBe('minimal');
-    expect(doc.blocks.every((b) => ['profile', 'link', 'social', 'service', 'contact'].includes(b.type))).toBe(true);
-  });
-  it('produit des blocs complets, sans lignes vides, avec le thème de la catégorie', () => {
-    setPlan('pro');
-    const doc = composeDocument(base(), 'Fallback');
-    expect(doc.blocks[0]!.type).toBe('profile');
+  it('produit une page avec son seul profil : photo, couverture, nom, titre et secteur', () => {
+    const doc = composeDocument(base(), 'Fallback', 'mamadou-keita');
+    expect(doc.blocks).toHaveLength(1);
+    expect(doc.blocks[0]).toMatchObject({ type: 'profile', data: { displayName: 'Mamadou Keita', headline: 'Développeur', sector: 'Informatique', avatarUrl: 'https://exemple.com/a.png', coverUrl: 'https://exemple.com/c.png' } });
     expect(doc.blocks.every((b) => isBlockComplete(b))).toBe(true);
-    expect(doc.blocks.filter((b) => b.type === 'link')).toHaveLength(1);
-    expect(doc.blocks.find((b) => b.type === 'service')).toBeDefined();
-    expect(doc.blocks.find((b) => b.type === 'contact')).toBeDefined();
-    expect(doc.appearance.themeId).toBe(CATEGORY_CONFIG.professional.themeId);
-    expect(doc.status).toBe('draft');
+    expect(doc).toMatchObject({ username: 'mamadou-keita', category: 'professional', status: 'draft' });
+    expect(doc.appearance.themeId).toBe('minimal'); // thème de base : autorisé par toutes les offres
   });
-  it.each(CATEGORY_IDS)('compose une page valide pour « %s »', (category) => {
-    setPlan('pro');
-    const doc = composeDocument(base({ category }), 'Nom');
-    expect(doc.category).toBe(category);
-    expect(doc.blocks.every((b) => isBlockComplete(b))).toBe(true);
+
+  it('reprend le nom du compte si le nom saisi est vide', () => {
+    expect(composeDocument(base({ identity: { displayName: '', avatarUrl: '' } }), 'Awa Diallo').blocks[0]).toMatchObject({ data: { displayName: 'Awa Diallo' } });
   });
-  it('applique la couleur principale choisie en thème personnalisé', () => {
-    const doc = composeDocument(base({ primaryColor: '#db2777' }), 'Nom');
-    expect(doc.appearance.colors.primary).toBe('#db2777');
-    expect(doc.appearance.themeId).toBe('custom');
+
+  it('propose des adresses dérivées du nom, toujours valides', () => {
+    const c = usernameCandidates('Aïssatou  Diallo !', () => 0.5);
+    expect(c[0]).toBe('aissatou-diallo');
+    expect(c[1]).toBe('aissatou-diallo-2');
+    expect(c.every((x) => /^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(x))).toBe(true);
+    expect(usernameCandidates('é')[0]!.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('reprise du brouillon de l’assistant', () => {
+  it('réinjecte un brouillon valide et ignore un ancien format ou des données corrompues', () => {
+    useOnboarding.getState().reset();
+    restoreOnboarding({ category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '', username: 'ancien' }, activity: { headline: 'Chef', bio: 'ancien champ' }, links: [{ title: 'x' }], step: 1, visited: 1 });
+    expect(snapshotOnboarding(useOnboarding.getState())).toEqual({ category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '' }, activity: { headline: 'Chef' }, step: 1, visited: 1 });
+    useOnboarding.getState().reset();
+    restoreOnboarding({ category: 'inconnue', identity: 42, activity: null, step: 99, visited: -3 });
+    expect(useOnboarding.getState()).toMatchObject({ category: null, step: 1, visited: 0 });
+    useOnboarding.getState().reset();
   });
 });

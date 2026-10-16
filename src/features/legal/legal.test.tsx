@@ -9,6 +9,7 @@ import { useSession } from '@/state/session';
 import { useBackend } from '@/test/backend';
 import { createUser } from '../../../server/testing/fixtures';
 import { users } from '../../../server/db/schema';
+import { processDeletionRequests } from '../../../server/services/account-deletion';
 import { LEGAL } from './content';
 
 const backend = useBackend();
@@ -39,7 +40,7 @@ describe('pages juridiques', () => {
 });
 
 describe('suppression du compte — interface', () => {
-  it('supprime réellement le compte après confirmation par mot de passe', async () => {
+  it('demande la suppression (mot de passe), déconnecte, puis supprime après le lien de confirmation', async () => {
     const u = await createUser(backend.app.db, { name: 'Partante', onboardingDone: true, page: { username: 'partante-ui', published: true } });
     await api.auth.signIn(u.email!, u.password);
     useSession.getState().setSession((await api.auth.getSession())!);
@@ -47,9 +48,9 @@ describe('suppression du compte — interface', () => {
     const router = createMemoryRouter(routes, { initialEntries: ['/dashboard/settings'] });
     render(<RouterProvider router={router} />);
     const row = await screen.findByTestId('delete-account-row');
-    await userEvent.click(within(row).getByRole('button', { name: 'Supprimer définitivement mon compte' }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Demander la suppression' }));
     const dialog = await screen.findByRole('alertdialog');
-    const confirm = within(dialog).getByRole('button', { name: 'Oui, tout supprimer' });
+    const confirm = within(dialog).getByRole('button', { name: 'Demander la suppression' });
     expect(confirm).toBeDisabled(); // pas sans mot de passe
     await userEvent.type(within(dialog).getByLabelText(/Mot de passe actuel/), 'Mauvais-mot-de-passe');
     await userEvent.click(confirm);
@@ -61,6 +62,19 @@ describe('suppression du compte — interface', () => {
     await userEvent.click(confirm);
     await waitFor(() => expect(router.state.location.pathname).toBe('/auth/signed-out'));
     expect(useSession.getState().session).toBeNull();
+    // La demande est enregistrée mais rien n'est effacé tant que le lien de confirmation n'est pas validé.
+    expect((await backend.app.db.select().from(users).where(eq(users.id, u.user.id)))[0]!.deletionRequestedAt).not.toBeNull();
+    expect((await api.page.getPublicPage('partante-ui')).state).toBe('published');
+
+    backend.app.clock.advance(16 * 86_400_000);
+    await processDeletionRequests(backend.app.deps);
+    const mail = backend.app.mailer.outbox.filter((m) => m.to === u.email && /Confirmez la suppression/.test(m.subject)).at(-1)!;
+    const token = decodeURIComponent(/token=([^\s&]+)/.exec(mail.text)![1]!);
+    const confirmRouter = createMemoryRouter(routes, { initialEntries: [`/auth/confirm-deletion?token=${encodeURIComponent(token)}`] });
+    render(<RouterProvider router={confirmRouter} />);
+    await userEvent.type(await screen.findByLabelText(/^Mot de passe/), u.password);
+    await userEvent.click(screen.getByRole('button', { name: 'Supprimer définitivement mon compte' }));
+    expect(await screen.findByRole('heading', { name: 'Compte supprimé' })).toBeInTheDocument();
     expect((await backend.app.db.select().from(users).where(eq(users.id, u.user.id))).length).toBe(0);
     expect((await api.page.getPublicPage('partante-ui')).state).toBe('not_found');
   }, 60000);

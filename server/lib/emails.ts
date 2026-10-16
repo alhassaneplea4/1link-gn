@@ -145,7 +145,7 @@ export function moderationWarningMessage(to: string, name: string, note: string,
     : msg(to, 'Avertissement concernant votre page 1Link', { locale, title: `Bonjour ${name}`, paragraphs: ['L’équipe de modération a examiné un signalement concernant votre page.', ...(n ? [`Message de la modération : ${n}`] : []), 'Merci de vérifier que votre contenu respecte les conditions d’utilisation. Sans modification, votre page pourra être suspendue.'] });
 }
 
-export type SecurityNotice = 'two_factor_on' | 'two_factor_off' | 'phone_linked' | 'phone_removed';
+export type SecurityNotice = 'two_factor_on' | 'two_factor_off' | 'phone_linked' | 'phone_removed' | 'mfa_email_on' | 'mfa_email_off' | 'mfa_totp_on' | 'mfa_totp_off' | 'password_set' | 'deletion_requested' | 'deletion_cancelled';
 
 export function securityNoticeMessage(to: string, name: string, kind: SecurityNotice, locale: Locale): MailMessage {
   const fr = {
@@ -153,12 +153,26 @@ export function securityNoticeMessage(to: string, name: string, kind: SecurityNo
     two_factor_off: ['Double authentification désactivée', 'La double authentification par SMS vient d’être désactivée sur votre compte.'],
     phone_linked: ['Un numéro de téléphone a été ajouté à votre compte', 'Un numéro de téléphone vérifié vient d’être associé à votre compte 1Link.'],
     phone_removed: ['Le numéro de téléphone de votre compte a été retiré', 'Le numéro de téléphone associé à votre compte 1Link vient d’être retiré (la double authentification est désactivée).'],
+    mfa_email_on: ['Vérification par e-mail activée', 'Un code envoyé par e-mail vous sera demandé à chaque connexion.'],
+    mfa_email_off: ['Vérification par e-mail désactivée', 'La vérification en deux étapes par e-mail vient d’être désactivée sur votre compte.'],
+    mfa_totp_on: ['Application d’authentification activée', 'Une application d’authentification est maintenant associée à votre compte : son code vous sera demandé à chaque connexion.'],
+    mfa_totp_off: ['Application d’authentification désactivée', 'L’application d’authentification vient d’être retirée de votre compte.'],
+    password_set: ['Mot de passe défini', 'Un mot de passe vient d’être défini sur votre compte 1Link.'],
+    deletion_requested: ['Suppression de votre compte demandée', 'La suppression de votre compte 1Link a été demandée. Elle ne sera confirmable qu’après 15 jours sans activité : si vous vous reconnectez avant, la demande est annulée.'],
+    deletion_cancelled: ['Suppression de compte annulée', 'Vous vous êtes reconnecté : la demande de suppression de votre compte 1Link est annulée.'],
   } as const;
   const en = {
     two_factor_on: ['Two-step verification enabled', 'Two-step verification by SMS is now active: a code will be requested every time you sign in.'],
     two_factor_off: ['Two-step verification disabled', 'Two-step verification by SMS was just turned off on your account.'],
     phone_linked: ['A phone number was added to your account', 'A verified phone number was just linked to your 1Link account.'],
     phone_removed: ['The phone number was removed from your account', 'The phone number linked to your 1Link account was just removed (two-step verification is off).'],
+    mfa_email_on: ['Email verification enabled', 'A code sent by email will be requested every time you sign in.'],
+    mfa_email_off: ['Email verification disabled', 'Two-step verification by email was just turned off on your account.'],
+    mfa_totp_on: ['Authenticator app enabled', 'An authenticator app is now linked to your account: its code will be requested every time you sign in.'],
+    mfa_totp_off: ['Authenticator app disabled', 'The authenticator app was just removed from your account.'],
+    password_set: ['Password set', 'A password was just set on your 1Link account.'],
+    deletion_requested: ['Account deletion requested', 'Deletion of your 1Link account was requested. It can only be confirmed after 15 days without activity: if you sign in before then, the request is cancelled.'],
+    deletion_cancelled: ['Account deletion cancelled', 'You signed in again: the request to delete your 1Link account is cancelled.'],
   } as const;
   const [subject, body] = (locale === 'en' ? en : fr)[kind];
   const warn = locale === 'en' ? 'If this was not you, reset your password immediately and contact us.' : 'Si ce n’était pas vous, réinitialisez immédiatement votre mot de passe et contactez-nous.';
@@ -169,6 +183,20 @@ export function otpMessage(code: string, minutes: number, locale: Locale): strin
   return locale === 'en'
     ? `Your 1Link code: ${code}. Valid for ${minutes} minutes. Never share it with anyone.`
     : `Votre code 1Link : ${code}. Valable ${minutes} minutes. Ne le communiquez à personne.`;
+}
+
+/** Code à six chiffres (inscription, connexion et double authentification par e-mail). */
+export function emailCodeMessage(to: string, code: string, minutes: number, locale: Locale): MailMessage {
+  return locale === 'en'
+    ? msg(to, `${code} is your 1Link code`, { locale, title: 'Your 1Link verification code', paragraphs: [`Enter this code to continue: ${code}`, `It is valid for ${minutes} minutes and can be used once. Never share it with anyone — the 1Link team will never ask for it.`], small: 'If you did not ask for this code, ignore this message: nobody can sign in without it.' })
+    : msg(to, `${code} est votre code 1Link`, { locale, title: 'Votre code de vérification 1Link', paragraphs: [`Saisissez ce code pour continuer : ${code}`, `Il est valable ${minutes} minutes et ne sert qu’une fois. Ne le communiquez à personne : l’équipe 1Link ne vous le demandera jamais.`], small: 'Si vous n’avez pas demandé ce code, ignorez ce message : personne ne peut se connecter sans lui.' });
+}
+
+/** Lien de confirmation finale de la suppression (envoyé après 15 jours sans activité). */
+export function deletionConfirmMessage(to: string, name: string, link: string, locale: Locale): MailMessage {
+  return locale === 'en'
+    ? msg(to, 'Confirm the deletion of your 1Link account', { locale, title: `Hello ${name}`, paragraphs: ['You asked to delete your 1Link account and 15 days have passed without any activity.', 'To delete it permanently, open the link below and confirm with your password. Your page, images and personal data will be erased and this cannot be undone.', 'If you changed your mind, do nothing: signing in again cancels the request.'], cta: { label: 'Confirm the deletion', url: link }, small: 'This link is valid for 7 days. If you did not ask for this, sign in to your account to cancel the request and change your password.' })
+    : msg(to, 'Confirmez la suppression de votre compte 1Link', { locale, title: `Bonjour ${name}`, paragraphs: ['Vous avez demandé la suppression de votre compte 1Link et 15 jours se sont écoulés sans aucune activité.', 'Pour le supprimer définitivement, ouvrez le lien ci-dessous et confirmez avec votre mot de passe. Votre page, vos images et vos données personnelles seront effacées, sans retour possible.', 'Si vous avez changé d’avis, ne faites rien : vous reconnecter annule la demande.'], cta: { label: 'Confirmer la suppression', url: link }, small: 'Ce lien est valable 7 jours. Si vous n’êtes pas à l’origine de cette demande, connectez-vous à votre compte pour annuler la demande et changer votre mot de passe.' });
 }
 
 export function accountDeletedMessage(to: string, name: string, locale: Locale): MailMessage {

@@ -74,6 +74,7 @@ describe('guards d’accès (expérience uniquement)', () => {
 describe('authentification', () => {
   it('affiche les erreurs de validation et de connexion', async () => {
     mount('/auth/login');
+    await userEvent.click(await screen.findByRole('button', { name: 'Se connecter avec un mot de passe' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Se connecter' }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     await userEvent.type(screen.getByLabelText(/Adresse e-mail/), 'inconnu@exemple.com');
@@ -144,57 +145,50 @@ describe('Admin Center et rôles', () => {
 });
 
 describe('inscription et onboarding', () => {
-  it('crée un compte réel, parcourt l’assistant puis publie directement, sans confirmation d’e-mail', async () => {
+  it('crée un compte avec la seule adresse e-mail (code reçu), choisit le type de compte puis le profil, et arrive sur la vue d’ensemble', async () => {
     const r = mount('/auth/register');
-    await userEvent.type(await screen.findByLabelText(/Nom complet/), 'Awa Test');
-    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), 'awa.test@exemple.com');
-    await userEvent.type(screen.getByLabelText(/^Mot de passe/), 'MotDePasse-Solide-123');
+    await userEvent.type(await screen.findByLabelText(/Adresse e-mail/), 'awa.test@exemple.com');
+    // Les conditions doivent être acceptées avant l'envoi du code.
+    await userEvent.click(screen.getByRole('button', { name: 'Recevoir le code par e-mail' }));
+    expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     await userEvent.click(screen.getByLabelText(/J’accepte/));
-    await userEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recevoir le code par e-mail' }));
+    // Fournisseur de test : le code est révélé par l'interface (« Remplir »).
+    await userEvent.click(await screen.findByRole('button', { name: 'Remplir' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Valider' }));
     await waitFor(() => expect(r.state.location.pathname).toBe('/onboarding'));
+    expect(useSession.getState().session?.user).toMatchObject({ email: 'awa.test@exemple.com', emailVerified: true, hasPassword: false });
 
-    // 1. catégorie (bloquée tant qu’aucune n’est choisie)
+    // 1. type de compte (bloqué tant qu'aucun n'est choisi)
     await userEvent.click(await screen.findByRole('button', { name: /Continuer/ }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText(/Professionnel/));
     await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
 
-    // 2. identité préremplie depuis le compte
-    expect(await screen.findByRole('heading', { name: 'Votre identité' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Nom affiché/)).toHaveValue('Awa Test');
-    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
-
-    // 3. activité : champ « Métier ou titre » obligatoire pour un professionnel
-    await screen.findByRole('heading', { name: 'Votre activité' });
-    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
+    // 2. profil : nom complet prérempli depuis l'adresse, secteur et titre
+    expect(await screen.findByRole('heading', { name: 'Votre profil' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nom complet/)).toHaveValue('Awa Test');
+    await userEvent.clear(screen.getByLabelText(/Nom complet/));
+    await userEvent.click(screen.getByRole('button', { name: 'Valider mon compte' }));
     expect((await screen.findAllByRole('alert')).length).toBeGreaterThan(0);
-    await userEvent.type(screen.getByLabelText(/Métier ou titre/), 'Designer');
-    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
+    await userEvent.type(screen.getByLabelText(/Nom complet/), 'Awa Test');
+    await userEvent.type(screen.getByLabelText(/Secteur d’activité/), 'Design');
+    await userEvent.type(screen.getByLabelText(/^Titre/), 'Designer');
 
     // retour en arrière : les saisies sont conservées
-    await screen.findByRole('heading', { name: 'Vos liens et réseaux' });
     await userEvent.click(screen.getByRole('button', { name: /Retour/ }));
-    expect(await screen.findByLabelText(/Métier ou titre/)).toHaveValue('Designer');
-    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Continuer/ }));
+    expect(await screen.findByLabelText(/^Titre/)).toHaveValue('Designer');
 
-    // étapes facultatives
-    for (const heading of ['Vos liens et réseaux', 'Services ou contenus']) {
-      await screen.findByRole('heading', { name: heading });
-      await userEvent.click(screen.getByRole('button', { name: /Passer cette étape/ }));
-    }
-    await screen.findByRole('heading', { name: 'Vérifiez votre page' });
-    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
-
-    // publication : possible tout de suite (aucune confirmation d’e-mail exigée), page lue depuis la base
-    await screen.findByRole('heading', { name: 'Prêt à publier ?' });
-    expect(screen.getByRole('button', { name: 'Publier ma page' })).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Publier ma page' }));
-    await waitFor(() => expect(r.state.location.pathname).toBe('/dashboard'));
+    // validation : la page est créée et publiée, l'adresse est choisie automatiquement
+    await userEvent.click(screen.getByRole('button', { name: 'Valider mon compte' }));
+    await waitFor(() => expect(r.state.location.pathname).toBe('/dashboard'), { timeout: 20000 });
     expect(await screen.findByRole('heading', { name: /Bonjour, Awa/ })).toBeInTheDocument();
-    expect(screen.queryByText(/Vérifiez votre adresse e-mail/)).not.toBeInTheDocument();
     const page = (await backend.browser.get('/api/me/page')).body;
-    expect(page).toMatchObject({ status: 'published', category: 'professional' });
-    expect(useSession.getState().session?.user.emailVerified).toBe(false);
+    expect(page).toMatchObject({ status: 'published', category: 'professional', username: 'awa-test' });
+    expect(page.blocks).toHaveLength(1);
+    expect(page.blocks[0].data).toMatchObject({ displayName: 'Awa Test', headline: 'Designer', sector: 'Design' });
+    expect(useSession.getState().session?.user.onboardingDone).toBe(true);
   }, 90000);
 });
 

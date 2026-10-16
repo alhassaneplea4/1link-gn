@@ -61,6 +61,17 @@ export const users = pgTable(
     locale: text('locale').notNull().default('fr'),
     /** Double authentification : un code SMS est exigé après le mot de passe (téléphone vérifié requis). */
     twoFactorSms: boolean('two_factor_sms').notNull().default(false),
+    /** Double authentification : un code est envoyé par e-mail après la première étape de connexion. */
+    twoFactorEmail: boolean('two_factor_email').notNull().default(false),
+    /** Application d'authentification (TOTP) : secret chiffré (AES-GCM) ; actif seulement quand `totpEnabledAt` est posé. */
+    totpSecret: text('totp_secret'),
+    totpEnabledAt: ts('totp_enabled_at'),
+    /** Codes de secours : empreintes SHA-256 des codes non utilisés. */
+    recoveryCodes: jsonb('recovery_codes').$type<string[]>(),
+    /** Suppression de compte demandée (délai de 15 jours sans activité avant la confirmation finale). */
+    deletionRequestedAt: ts('deletion_requested_at'),
+    /** Date d'envoi du lien de confirmation finale (valable 7 jours). */
+    deletionNotifiedAt: ts('deletion_notified_at'),
     termsAcceptedAt: ts('terms_accepted_at'),
     /** Fin de l'essai gratuit de 7 jours (une seule fois, posée à l'inscription). */
     freeTrialEndsAt: ts('free_trial_ends_at'),
@@ -113,7 +124,7 @@ export const authTokens = pgTable(
   (t) => [
     uniqueIndex('auth_tokens_hash_uq').on(t.tokenHash),
     index('auth_tokens_user_kind_idx').on(t.userId, t.kind),
-    check('auth_tokens_kind_ck', sql`${t.kind} in ('email_verify', 'password_reset')`),
+    check('auth_tokens_kind_ck', sql`${t.kind} in ('email_verify', 'password_reset', 'account_delete')`),
   ],
 );
 
@@ -131,7 +142,7 @@ export const otpCodes = pgTable(
     ip: text('ip'),
     createdAt: createdAt(),
   },
-  (t) => [index('otp_phone_idx').on(t.phone, t.createdAt), check('otp_channel_ck', sql`${t.channel} in ('whatsapp', 'sms')`)],
+  (t) => [index('otp_phone_idx').on(t.phone, t.createdAt), check('otp_channel_ck', sql`${t.channel} in ('whatsapp', 'sms', 'email')`)],
 );
 
 /** Limiteur de débit à fenêtre fixe, atomique (une seule requête SQL), partagé entre toutes les instances. */

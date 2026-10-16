@@ -86,6 +86,8 @@ export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId' | 
   return {
     user: {
       id: u.id, email: u.email, phone: u.phone, name: u.name, emailVerified: u.emailVerifiedAt !== null, phoneVerified: u.phoneVerifiedAt !== null, twoFactorSms: u.twoFactorSms,
+      mfa: { sms: u.twoFactorSms && Boolean(u.phone && u.phoneVerifiedAt), email: u.twoFactorEmail && Boolean(u.email), totp: Boolean(u.totpEnabledAt && u.totpSecret) },
+      hasPassword: u.passwordHash !== null, deletionRequestedAt: u.deletionRequestedAt?.toISOString() ?? null,
       category: u.category as CategoryId | null, onboardingDone: u.onboardingDone, username: a.username, plan: a.planId, adminRole: u.adminRole as AdminRole | null,
       badges: badgesFor({ adminRole: u.adminRole, verified: u.verified, plan: badgePlanOf(a.access) }),
     },

@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, Card, Icon, Input } from '@/components/ui';
+import { Alert, Badge, Button, Card, ConfirmDialog, Icon, Input } from '@/components/ui';
 import { api } from '@/services/api';
 import { useT } from '@/i18n/core';
 import { useSession } from '@/state/session';
 import type { OtpRequestResult } from '@/models/auth';
 import { DEFAULT_DIAL, formatInternational, normalizePhone } from '@/utilities/phone';
 import { PhoneField } from '@/features/authentication/PhoneField';
-import { PasswordInput } from '@/features/authentication/parts';
+import { useIdentity } from './IdentityField';
 import { explainOtpError } from '@/features/authentication/otpErrors';
 
 type Step = 'idle' | 'phone' | 'code';
@@ -27,7 +27,8 @@ export function PhoneSecurity() {
   const [otp, setOtp] = useState<OtpRequestResult | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [code, setCode] = useState('');
-  const [password, setPassword] = useState('');
+  const [removing, setRemoving] = useState(false);
+  const identity = useIdentity();
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | null>(null);
@@ -48,7 +49,6 @@ export function PhoneSecurity() {
 
   if (!session) return null;
   const { user } = session;
-  const hasPassword = Boolean(user.email); // les comptes créés par téléphone n'ont pas de mot de passe
   const phone = user.phone ?? null;
 
   const run = async (fn: () => Promise<void>) => {
@@ -92,22 +92,11 @@ export function PhoneSecurity() {
     });
   };
 
-  const toggleTwoFactor = (enabled: boolean) => {
-    if (!password) return setFieldError(t('common.validation.required'));
-    setFieldError(undefined);
-    void run(async () => {
-      setSession(await api.auth.setTwoFactor(enabled, password));
-      setPassword('');
-      setNotice(enabled ? t('dashboard.security.twoFactorOn') : t('dashboard.security.twoFactorOff'));
-    });
-  };
-
   const removePhone = () => {
-    if (!password) return setFieldError(t('common.validation.required'));
-    setFieldError(undefined);
     void run(async () => {
-      setSession(await api.auth.removePhone(password));
-      setPassword('');
+      setSession(await api.auth.removePhone(identity.proof));
+      identity.reset();
+      setRemoving(false);
       setNotice(t('dashboard.security.phoneRemoved'));
     });
   };
@@ -135,9 +124,12 @@ export function PhoneSecurity() {
               <p className="muted">{t('dashboard.security.phoneNone')}</p>
             )}
             {!smsAvailable && <Alert tone="warning">{t('auth.phone.errors.unavailable')}</Alert>}
-            <Button variant="secondary" size="sm" iconLeft="phone" disabled={!smsAvailable} onClick={() => { setStep('phone'); setError(null); setNotice(null); }}>
-              {phone ? t('dashboard.security.phoneChange') : t('dashboard.security.phoneAdd')}
-            </Button>
+            <div className="auth-form__split">
+              <Button variant="secondary" size="sm" iconLeft="phone" disabled={!smsAvailable} onClick={() => { setStep('phone'); setError(null); setNotice(null); }}>
+                {phone ? t('dashboard.security.phoneChange') : t('dashboard.security.phoneAdd')}
+              </Button>
+              {phone && user.email && <Button variant="ghost" size="sm" disabled={busy} onClick={() => setRemoving(true)}>{t('dashboard.security.phoneRemove')}</Button>}
+            </div>
           </>
         )}
         {step === 'phone' && (
@@ -170,32 +162,9 @@ export function PhoneSecurity() {
           </form>
         )}
       </Card>
-
-      <Card padding="lg" className="settings__card" data-testid="two-factor-card">
-        <h2><Icon name="fingerprint" size={18} /> {t('dashboard.security.twoFactorTitle')}</h2>
-        <p className="muted">{t('dashboard.security.twoFactorText')}</p>
-        <p className="settings__status">
-          <Badge tone={user.twoFactorSms ? 'success' : 'neutral'} dot>{user.twoFactorSms ? t('dashboard.security.twoFactorActive') : t('dashboard.security.twoFactorInactive')}</Badge>
-        </p>
-        {!hasPassword ? (
-          <p className="subtle">{t('dashboard.security.twoFactorPhoneOnly')}</p>
-        ) : !user.phoneVerified ? (
-          <p className="subtle">{t('dashboard.security.twoFactorNeedsPhone')}</p>
-        ) : (
-          <>
-            <PasswordInput label={t('dashboard.security.confirmWithPassword')} name="current-password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fieldError} />
-            <div className="auth-form__split">
-              <Button
-                variant={user.twoFactorSms ? 'secondary' : 'gradient'} size="sm" loading={busy}
-                onClick={() => toggleTwoFactor(!user.twoFactorSms)}
-              >
-                {user.twoFactorSms ? t('dashboard.security.twoFactorDisable') : t('dashboard.security.twoFactorEnable')}
-              </Button>
-              {phone && <Button variant="ghost" size="sm" disabled={busy} onClick={removePhone}>{t('dashboard.security.phoneRemove')}</Button>}
-            </div>
-          </>
-        )}
-      </Card>
+      <ConfirmDialog open={removing} loading={busy} onCancel={() => { setRemoving(false); identity.reset(); }} onConfirm={removePhone} confirmDisabled={!identity.ready} tone="danger" title={t('dashboard.security.phoneRemove')} description={t('dashboard.security.phoneNone')} confirmLabel={t('dashboard.security.phoneRemove')}>
+        {identity.field}
+      </ConfirmDialog>
     </>
   );
 }

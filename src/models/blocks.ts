@@ -23,6 +23,8 @@ export interface ProfileData {
   avatarUrl: string;
   coverUrl: string;
   location: string;
+  /** Secteur d'activité (ex. « Restauration », « Éducation »). */
+  sector?: string;
   verified: boolean;
   /** Badges mérités (calculés par le serveur : abonnement, vérification, équipe). */
   badges?: ('official' | 'team' | 'verified' | 'business' | 'pro')[];

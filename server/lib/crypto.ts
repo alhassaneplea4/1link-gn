@@ -1,5 +1,5 @@
 /** Primitives cryptographiques (node:crypto uniquement, aucune dépendance native). */
-import { createHash, createHmac, randomBytes, randomInt, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 
 export const newId = (prefix: string) => `${prefix}_${randomBytes(10).toString('hex')}`;
 
@@ -60,3 +60,26 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 /** Vrai si le hash doit être recalculé avec le coût courant. */
 export const needsRehash = (stored: string, log2N: number) => Number(stored.split('$')[1]) < log2N;
+
+// — Chiffrement d'un secret au repos (secret TOTP) : AES-256-GCM, clé dérivée du secret de l'application —
+
+const aesKey = (secret: string) => createHash('sha256').update(`1link:aes:${secret}`).digest();
+
+export function encryptSecret(secret: string, plain: string): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', aesKey(secret), iv);
+  const data = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  return `v1.${iv.toString('base64url')}.${cipher.getAuthTag().toString('base64url')}.${data.toString('base64url')}`;
+}
+
+export function decryptSecret(secret: string, stored: string): string | null {
+  const [v, iv, tag, data, extra] = stored.split('.');
+  if (v !== 'v1' || !iv || !tag || !data || extra !== undefined) return null;
+  try {
+    const decipher = createDecipheriv('aes-256-gcm', aesKey(secret), Buffer.from(iv, 'base64url'));
+    decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+    return Buffer.concat([decipher.update(Buffer.from(data, 'base64url')), decipher.final()]).toString('utf8');
+  } catch {
+    return null;
+  }
+}

@@ -11,6 +11,7 @@ import { RIGHTS } from '../../src/models/access.js';
 import { accessOf, assertNotLocked, badgePlanOf } from './access.js';
 import { assertPageRights } from './page-rights.js';
 import { MAX_DOC_BYTES, type PageInput } from '../validation/page.js';
+import { enforce, keyFor } from '../lib/ratelimit.js';
 import { uniqueViolation } from './accounts.js';
 import { RESERVED_USERNAMES, USERNAME_RE } from '../../src/utilities/validation.js';
 import type { AnyBlock } from '../../src/models/blocks.js';
@@ -167,6 +168,35 @@ export async function resolvePublicPage(deps: Deps, username: string): Promise<P
     appearance: snap.appearance, share: snap.share, version: row.p.version, updatedAt: (row.p.publishedAt ?? row.p.updatedAt).toISOString(), publishedAt: row.p.publishedAt?.toISOString() ?? null,
   };
   return { state: 'published', page, branding: !RIGHTS[plan].removeBranding };
+}
+
+/**
+ * Change l'adresse 1Link (pseudonyme) de la page. L'ancienne adresse cesse aussitôt de fonctionner (les liens déjà partagés
+ * ne redirigent pas) : l'interface demande une confirmation explicite. Au plus 5 changements par jour.
+ */
+export async function changeUsername(deps: Deps, auth: AuthContext, username: string): Promise<PageDocument> {
+  assertNotLocked(auth.access);
+  const v = username.trim().toLowerCase();
+  const problem = usernameProblem(v);
+  if (problem) throw badRequest(`username_${problem}`, { username: problem });
+  await enforce(deps.db, keyFor('username-change', auth.user.id), 5, 86_400, deps.now());
+  const now = deps.now();
+  try {
+    const [row] = await deps.db
+      .update(pages)
+      .set({ username: v, version: pagesVersionBump(), updatedAt: now })
+      .where(and(eq(pages.userId, auth.user.id), ne(pages.status, 'suspended')))
+      .returning();
+    if (!row) {
+      const existing = await getOwnerPage(deps, auth.user.id);
+      if (existing?.status === 'suspended') throw forbidden('page_suspended');
+      throw new HttpError(404, 'no_page');
+    }
+    return ownerDocument(row, badgesOf(auth.user, badgePlanOf(auth.access)));
+  } catch (e) {
+    if (uniqueViolation(e)?.includes('username')) throw conflict('username_taken', { username: 'taken' });
+    throw e;
+  }
 }
 
 export async function usernameAvailability(deps: Deps, username: string, selfUserId: string | null) {

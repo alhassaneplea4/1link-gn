@@ -2,21 +2,23 @@ import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
 import type { C, Deps, HonoEnv, UserRow } from '../context.js';
 import { users } from '../db/schema.js';
-import { hashPassword, needsRehash, signPayload, verifyPassword, verifyPayload } from '../lib/crypto.js';
-import { maskPhone } from '../../src/utilities/phone.js';
+import { hashPassword, needsRehash, verifyPassword } from '../lib/crypto.js';
+import { nameFromEmail } from '../../src/utilities/validation.js';
 import { badRequest, conflict, HttpError, unauthorized } from '../lib/errors.js';
 import { audit, securityEvent } from '../lib/audit.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { optionalAuth, requireAuth } from '../middleware.js';
 import {
-  assertCanSignIn, assertStrongPassword, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, findUserByEmail, findUserByPhone, issueOtp,
+  assertCanSignIn, assertStrongPassword, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, emailCodeKey, findUserByEmail, findUserByPhone, issueEmailCode, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
-import { passwordChangedMessage, welcomeSimpleMessage } from '../lib/emails.js';
+import { challengedUser, enabledMethods, mfaChallenge, sendMfaCode, verifyMfa, type PrimaryFactor } from '../services/mfa.js';
+import { accountDeletedMessage, passwordChangedMessage, securityNoticeMessage, welcomeSimpleMessage } from '../lib/emails.js';
+import { confirmDeletion, deletionTarget } from '../services/account-deletion.js';
 import { notify } from '../services/notifications.js';
 import { clearSessionCookie, endSession, endUserSessions, loadSession, startSession } from '../services/sessions.js';
-import { challengeBody, forgotBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, signUpBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
+import { challengeBody, deleteCodeBody, deleteConfirmBody, emailCodeRequestBody, emailCodeVerifyBody, forgotBody, mfaSendBody, mfaVerifyBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, signUpBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
 
 export const authRoutes = new Hono<HonoEnv>();
 
@@ -25,8 +27,6 @@ async function syncLocale(c: C, deps: Deps, user: UserRow) {
   const locale = c.get('locale');
   if (c.req.header('accept-language') && user.locale !== locale) await deps.db.update(users).set({ locale }).where(eq(users.id, user.id));
 }
-
-const CHALLENGE_TTL_MS = 10 * 60_000;
 
 const country = (c: { req: { header(n: string): string | undefined } }) => c.req.header('x-vercel-ip-country')?.toUpperCase().slice(0, 2) ?? null;
 
@@ -57,42 +57,101 @@ authRoutes.post('/sign-in', async (c) => {
   if (user.passwordHash && needsRehash(user.passwordHash, deps.config.scryptLog2N)) {
     await deps.db.update(users).set({ passwordHash: await hashPassword(body.password, deps.config.scryptLog2N) }).where(eq(users.id, user.id));
   }
-  // Double authentification : le mot de passe seul n'ouvre PAS de session ; un code SMS reste à saisir.
-  if (user.twoFactorSms && user.phone && user.phoneVerifiedAt) {
-    const issued = await issueOtp(c, deps, user.phone, 'sms');
-    const challenge = signPayload(deps.config.secret, { uid: user.id, k: '2fa' }, CHALLENGE_TTL_MS, now);
-    return c.json({ twoFactor: { challenge, phoneMasked: maskPhone(user.phone), channel: issued.channel, expiresInSec: issued.expiresInSec, resendInSec: issued.resendInSec, ...(issued.devCode ? { devCode: issued.devCode } : {}) } });
-  }
-  await syncLocale(c, deps, user);
-  const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
+  return finishSignIn(c, deps, user, 'password');
 });
 
-/** Lit et valide le jeton d'étape 2 (signé, 10 min) puis retourne le compte concerné. */
-async function challengedUser(deps: Deps, challenge: string): Promise<UserRow & { phone: string }> {
-  const claims = verifyPayload<{ uid: string; k: string }>(deps.config.secret, challenge, deps.now());
-  if (!claims || claims.k !== '2fa') throw unauthorized('invalid_challenge');
-  const [user] = await deps.db.select().from(users).where(eq(users.id, claims.uid)).limit(1);
-  if (!user?.phone || !user.twoFactorSms || user.status !== 'active') throw unauthorized('invalid_challenge');
-  return user as UserRow & { phone: string };
+/**
+ * Fin de la première étape de connexion. Quand une vérification en deux étapes est active (SMS, e-mail, application), le défi
+ * est renvoyé à la place d'une session : la première étape seule n'ouvre RIEN. Sinon la session est ouverte (et une éventuelle
+ * demande de suppression de compte est annulée : se reconnecter prouve que le compte est utilisé).
+ */
+async function finishSignIn(c: C, deps: Deps, user: UserRow, primary: PrimaryFactor) {
+  const challenge = await mfaChallenge(c, deps, user, primary);
+  if (challenge) return c.json({ twoFactor: challenge });
+  return openSession(c, deps, user);
 }
 
+async function openSession(c: C, deps: Deps, user: UserRow) {
+  await syncLocale(c, deps, user);
+  if (user.deletionRequestedAt) {
+    await deps.db.update(users).set({ deletionRequestedAt: null, deletionNotifiedAt: null, updatedAt: deps.now() }).where(eq(users.id, user.id));
+    notify(deps, user, (to, name, locale) => securityNoticeMessage(to, name, 'deletion_cancelled', locale));
+  }
+  const expiresAt = await startSession(c, deps, user);
+  return c.json(await buildSession(deps, user.id, expiresAt));
+}
+
+/** Seconde étape : code SMS / e-mail, code de l'application ou code de secours. */
+authRoutes.post('/sign-in/mfa', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, mfaVerifyBody);
+  const { user, primary } = await challengedUser(deps, body.challenge);
+  await verifyMfa(c, deps, user, primary, body.method, body.code);
+  return openSession(c, deps, user);
+});
+
+/** (Re)envoie le code d'une méthode choisie dans le défi (SMS ou e-mail). */
+authRoutes.post('/sign-in/mfa/send', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, mfaSendBody);
+  const { user, primary } = await challengedUser(deps, body.challenge);
+  if (!enabledMethods(user).includes(body.method) || body.method === primary) throw unauthorized('invalid_challenge');
+  const sent = await sendMfaCode(c, deps, user, body.method);
+  if (!sent) throw badRequest('invalid');
+  return c.json(sent);
+});
+
+// Anciennes routes de la double authentification par SMS (conservées pour les clients déjà ouverts).
 authRoutes.post('/sign-in/2fa', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, twoFactorBody);
-  const user = await challengedUser(deps, body.challenge);
-  await checkOtp(c, deps, user.phone, body.code);
-  await syncLocale(c, deps, user);
-  const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
+  const { user, primary } = await challengedUser(deps, body.challenge);
+  await verifyMfa(c, deps, user, primary, 'sms', body.code);
+  return openSession(c, deps, user);
 });
 
 authRoutes.post('/sign-in/2fa/resend', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, challengeBody);
-  const user = await challengedUser(deps, body.challenge);
-  const issued = await issueOtp(c, deps, user.phone, 'sms');
-  return c.json({ channel: issued.channel, expiresInSec: issued.expiresInSec, resendInSec: issued.resendInSec, ...(issued.devCode ? { devCode: issued.devCode } : {}) });
+  const { user } = await challengedUser(deps, body.challenge);
+  const sent = await sendMfaCode(c, deps, user, 'sms');
+  if (!sent) throw unauthorized('invalid_challenge');
+  return c.json({ channel: 'sms', ...sent });
+});
+
+// — Connexion et inscription par code reçu par e-mail (aucun mot de passe) —
+
+/** Réponse identique que l'adresse ait un compte ou non (les comptes suspendus ne reçoivent rien). */
+authRoutes.post('/email-code/request', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, emailCodeRequestBody);
+  const user = await findUserByEmail(deps.db, body.email);
+  const issued = await issueEmailCode(c, deps, body.email, { silent: Boolean(user && user.status !== 'active'), locale: c.get('locale') });
+  return c.json(issued);
+});
+
+/** Le code prouve la possession de l'adresse : il ouvre le compte existant, ou le crée (conditions acceptées). */
+authRoutes.post('/email-code/verify', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, emailCodeVerifyBody);
+  await checkOtp(c, deps, emailCodeKey(body.email), body.code);
+  const now = deps.now();
+  let user = await findUserByEmail(deps.db, body.email);
+  if (user) {
+    assertCanSignIn(user);
+    if (!user.emailVerifiedAt) {
+      await deps.db.update(users).set({ emailVerifiedAt: now, updatedAt: now }).where(eq(users.id, user.id));
+      await maybeBootstrapAdmin(deps, user.id);
+      user = (await findUserByEmail(deps.db, body.email))!;
+    }
+    return finishSignIn(c, deps, user, 'email');
+  }
+  await enforce(deps.db, keyFor('signup-ip', c.get('ip')), 10, 3600, now);
+  user = await createAccount(deps, { name: nameFromEmail(body.email), email: body.email, emailVerified: true, country: country(c), locale: c.get('locale') });
+  await maybeBootstrapAdmin(deps, user.id);
+  notify(deps, user, (to, name, locale) => welcomeSimpleMessage(to, name, `${deps.config.publicUrl}/onboarding`, locale));
+  const expiresAt = await startSession(c, deps, user);
+  return c.json(await buildSession(deps, user.id, expiresAt));
 });
 
 authRoutes.post('/sign-up', async (c) => {
@@ -105,6 +164,33 @@ authRoutes.post('/sign-up', async (c) => {
   notify(deps, user, (to, name, locale) => welcomeSimpleMessage(to, name, `${deps.config.publicUrl}/onboarding`, locale));
   const expiresAt = await startSession(c, deps, user);
   return c.json(await buildSession(deps, user.id, expiresAt));
+});
+
+// — Confirmation finale de la suppression du compte (lien reçu par e-mail après 15 jours sans activité) —
+
+authRoutes.post('/delete/target', async (c) => {
+  const deps = c.get('deps');
+  const { token } = await readJson(c, deleteCodeBody);
+  await enforce(deps.db, keyFor('delete-ip', c.get('ip')), 30, 3600, deps.now());
+  return c.json(await deletionTarget(deps, token));
+});
+
+/** Compte sans mot de passe : un code envoyé à son adresse tient lieu de confirmation. */
+authRoutes.post('/delete/code', async (c) => {
+  const deps = c.get('deps');
+  const { token } = await readJson(c, deleteCodeBody);
+  const info = await deletionTarget(deps, token);
+  if (info.hasPassword || !info.contact.includes('@')) throw conflict('password_account');
+  return c.json(await issueEmailCode(c, deps, info.contact, { locale: c.get('locale') }));
+});
+
+authRoutes.post('/delete/confirm', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, deleteConfirmBody);
+  await enforce(deps.db, keyFor('delete-ip', c.get('ip')), 30, 3600, deps.now());
+  const user = await confirmDeletion(c, deps, body.token, { password: body.password, code: body.code });
+  notify(deps, user, accountDeletedMessage);
+  return c.body(null, 204);
 });
 
 authRoutes.post('/sign-out', optionalAuth, async (c) => {
@@ -133,8 +219,7 @@ authRoutes.post('/otp/verify', async (c) => {
     if (!user) throw new HttpError(404, 'no_account');
     assertCanSignIn(user);
     if (!user.phoneVerifiedAt) await deps.db.update(users).set({ phoneVerifiedAt: now, updatedAt: now }).where(eq(users.id, user.id));
-    const expiresAt = await startSession(c, deps, user);
-    return c.json(await buildSession(deps, user.id, expiresAt));
+    return finishSignIn(c, deps, user, 'sms');
   }
 
   if (await findUserByPhone(deps.db, body.phone)) throw conflict('phone_taken');

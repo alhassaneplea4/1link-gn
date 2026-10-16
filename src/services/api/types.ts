@@ -5,7 +5,7 @@
  */
 import type { Paged, ListQuery } from '@/models/api';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
-import type { OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, SignUpInput } from '@/models/auth';
+import type { CodeSent, DeletionTarget, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, SignUpInput, TotpSetup } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { AnalyticsReport, DateRange } from '@/models/analytics';
 import type { ChangePlanResult, Invoice, Subscription } from '@/models/billing';
@@ -27,9 +27,14 @@ export interface AuthApi {
   getSession(): Promise<Session | null>;
   /** Ouvre une session, ou — si la double authentification SMS est active — demande d'abord le code reçu par SMS. */
   signIn(email: string, password: string): Promise<SignInResult>;
-  /** 2e étape de la connexion : valide le code SMS avec le jeton de l'étape 1. */
-  completeTwoFactor(challenge: string, code: string): Promise<Session>;
-  resendTwoFactor(challenge: string): Promise<OtpRequestResult>;
+  /** 2e étape de la connexion : valide le code (SMS, e-mail, application ou secours) avec le jeton de l'étape 1. */
+  completeTwoFactor(challenge: string, code: string, method?: MfaMethod | 'recovery'): Promise<Session>;
+  /** Renvoie le code d'une méthode (SMS ou e-mail) du défi en cours. */
+  sendTwoFactorCode(challenge: string, method: 'sms' | 'email'): Promise<CodeSent>;
+  /** Inscription ET connexion sans mot de passe : envoie un code à l'adresse. */
+  requestEmailCode(email: string): Promise<CodeSent>;
+  /** Vérifie le code : ouvre le compte existant ou le crée (conditions acceptées). */
+  verifyEmailCode(input: { email: string; code: string }): Promise<SignInResult>;
   signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
   /** Envoie un code à usage unique (WhatsApp ou SMS). Le numéro est au format E.164. */
@@ -43,13 +48,24 @@ export interface AuthApi {
   /** Associe un numéro au compte connecté : envoi du code, puis vérification (preuve de possession). */
   requestPhoneLink(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
   verifyPhoneLink(input: { phone: string; code: string }): Promise<Session>;
-  removePhone(password: string): Promise<Session>;
-  /** Compte sans mot de passe (créé par téléphone) : envoie le code qui autorise la suppression. */
-  requestAccountDeletionCode(): Promise<OtpRequestResult>;
-  /** Supprime définitivement le compte et ses données (mot de passe, ou code SMS pour un compte sans mot de passe). */
-  deleteAccount(input: { password?: string; code?: string }): Promise<void>;
-  /** Active/désactive la double authentification par SMS (mot de passe exigé). */
-  setTwoFactor(enabled: boolean, password: string): Promise<Session>;
+  removePhone(proof: IdentityProof): Promise<Session>;
+  /** Envoie le code de confirmation d'identité (e-mail du compte, sinon SMS) quand le compte n'a pas de mot de passe. */
+  requestIdentityCode(): Promise<CodeSent & { via: 'email' | 'sms' }>;
+  /** Demande la suppression : sessions fermées, confirmation finale possible après 15 jours sans activité. */
+  requestAccountDeletion(proof: IdentityProof): Promise<void>;
+  getDeletionTarget(token: string): Promise<DeletionTarget>;
+  requestDeletionCode(token: string): Promise<CodeSent>;
+  /** Confirmation finale (lien reçu par e-mail) : supprime définitivement le compte et ses données. */
+  confirmAccountDeletion(input: { token: string } & IdentityProof): Promise<void>;
+  getMfa(): Promise<MfaStatus>;
+  setSmsMfa(enabled: boolean, proof: IdentityProof): Promise<Session>;
+  setEmailMfa(enabled: boolean, proof: IdentityProof): Promise<Session>;
+  setupTotp(proof: IdentityProof): Promise<TotpSetup>;
+  enableTotp(code: string): Promise<{ recoveryCodes: string[]; session: Session }>;
+  disableTotp(proof: IdentityProof): Promise<Session>;
+  regenerateRecoveryCodes(proof: IdentityProof): Promise<string[]>;
+  /** Définit (compte créé par code) ou change le mot de passe. */
+  setPassword(newPassword: string, proof: IdentityProof): Promise<Session>;
   resetPassword(token: string, password: string): Promise<void>;
   /** Valide l'e-mail avec le jeton du lien. Retourne la session mise à jour si le lien est ouvert dans la session du même compte, sinon `null`. */
   verifyEmail(token: string): Promise<Session | null>;
@@ -68,6 +84,8 @@ export interface PageApi {
   unpublish(): Promise<PageDocument>;
   getPublicPage(username: string): Promise<PublicPageResult>;
   checkUsername(username: string): Promise<{ available: boolean; reason?: 'taken' | 'reserved' | 'invalid' }>;
+  /** Change l'adresse 1Link de la page (l'ancienne adresse cesse de fonctionner). */
+  changeUsername(username: string): Promise<PageDocument>;
   getVerification(): Promise<VerificationState>;
   requestVerification(input: VerificationInput): Promise<VerificationState>;
   /** Signalement d'une page publique par un visiteur (anonyme). */

@@ -153,7 +153,7 @@ export default {
   blocks: {
     profile: {
       label: 'Profil', description: 'Votre identité : photo, nom, présentation.',
-      fields: { displayName: 'Nom affiché', headline: 'Accroche', bio: 'Présentation', avatarUrl: 'Photo ou logo', coverUrl: 'Image de couverture', location: 'Localisation' },
+      fields: { displayName: 'Nom affiché', headline: 'Accroche', bio: 'Présentation', avatarUrl: 'Photo ou logo', coverUrl: 'Image de couverture', sector: 'Secteur d’activité', location: 'Localisation' },
       hints: { coverUrl: 'Visible avec la disposition « couverture » du profil.' },
     },
     text: { label: 'Texte', description: 'Un paragraphe libre : mission, parcours, annonce.', fields: { title: 'Titre', body: 'Texte' } },

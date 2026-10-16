@@ -153,7 +153,7 @@ export default {
   blocks: {
     profile: {
       label: 'Profile', description: 'Your identity: photo, name, introduction.',
-      fields: { displayName: 'Display name', headline: 'Tagline', bio: 'Introduction', avatarUrl: 'Photo or logo', coverUrl: 'Cover image', location: 'Location' },
+      fields: { displayName: 'Display name', headline: 'Tagline', bio: 'Introduction', avatarUrl: 'Photo or logo', coverUrl: 'Cover image', sector: 'Business sector', location: 'Location' },
       hints: { coverUrl: 'Visible with the “cover” profile layout.' },
     },
     text: { label: 'Text', description: 'A free paragraph: mission, background, announcement.', fields: { title: 'Title', body: 'Text' } },

@@ -101,7 +101,7 @@ export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt,
           </Heading>
           {d.headline && <p className="pg-headline">{d.headline}</p>}
           <ul className="pgp-meta" role="list">
-            {category && <li><Icon name="sparkles" size={13} /> {t(`common.categories.${category}.label`)}</li>}
+            {d.sector ? <li><Icon name="briefcase" size={13} /> {d.sector}</li> : category && <li><Icon name="sparkles" size={13} /> {t(`common.categories.${category}.label`)}</li>}
             {d.location && <li><Icon name="pin" size={13} /> {d.location}</li>}
             {since && <li><Icon name="calendar" size={13} /> {t('pub.since', { date: since })}</li>}
           </ul>

@@ -1,27 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Badge, Button, Icon, Logo, Spinner } from '@/components/ui';
+import { Button, Icon, Logo, Spinner } from '@/components/ui';
 import { api } from '@/services/api';
 import { PhoneFrame } from '@/components/ui/PhoneFrame';
 import { PageRenderer } from '@/features/page-engine/renderer/PageRenderer';
-import { pageReadiness } from '@/features/page-engine/document';
 import { paths } from '@/app/configuration/paths';
 import { pageShareUrl } from '@/app/configuration/env';
 import { useDocumentTitle } from '@/hooks/dom';
-import { useT, useLocale, translate } from '@/i18n/core';
-import type { MessageKey } from '@/i18n/types';
+import { useT, useLocale } from '@/i18n/core';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
-import { composeDocument } from './compose';
-import { ActivityStep, CategoryStep, ContentStep, IdentityStep, LinksStep, PreviewStep, PublishStep } from './steps';
+import { composeDocument, usernameCandidates } from './compose';
+import { CategoryStep, ProfileStep } from './steps';
 import { STEPS, restoreOnboarding, snapshotOnboarding, useOnboarding, type OnboardingData } from './store';
 import { validateStep } from './validate';
 import './onboarding.css';
 
-const STATE_TONE = { not_started: 'neutral', in_progress: 'info', to_complete: 'warning', ready: 'brand', published: 'success' } as const;
+/** Première adresse disponible parmi les candidates dérivées du nom (le serveur reste l'autorité à la publication). */
+async function pickUsername(displayName: string): Promise<string> {
+  const candidates = usernameCandidates(displayName);
+  for (const c of candidates) {
+    const r = await api.page.checkUsername(c).catch(() => null);
+    if (r?.available) return c;
+  }
+  return candidates[candidates.length - 1]!;
+}
 
+/**
+ * Configuration du compte en deux étapes : le type de compte, puis le profil (photo, couverture, nom complet, secteur, titre).
+ * « Valider mon compte » crée et publie la page puis ouvre la vue d'ensemble ; les blocs s'ajoutent ensuite depuis « Ma page ».
+ */
 export default function OnboardingPage() {
-  const t = useT('onboarding', 'common', 'marketing', 'editor');
+  const t = useT('onboarding', 'common', 'editor');
   useDocumentTitle(`${t('onboarding.title')} · 1Link`);
   const navigate = useNavigate();
   const { locales, locale, setLocale } = useLocale();
@@ -59,8 +69,8 @@ export default function OnboardingPage() {
   }, []);
 
   const stepId = STEPS[step] ?? 'category';
-  const doc = useMemo(() => composeDocument(data as OnboardingData, user?.name ?? ''), [data.category, data.identity, data.activity, data.socials, data.links, data.items, data.about, data.themeId, data.primaryColor, user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
-  const errors = useMemo(() => validateStep(stepId, data as OnboardingData), [stepId, data.category, data.identity, data.activity, data.socials, data.links]); // eslint-disable-line react-hooks/exhaustive-deps
+  const doc = useMemo(() => composeDocument(data as OnboardingData, user?.name ?? '', 'exemple'), [data.category, data.identity, data.activity, user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+  const errors = useMemo(() => validateStep(stepId, data as OnboardingData), [stepId, data.category, data.identity, data.activity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus sur le titre de l'étape à chaque changement (lecteurs d'écran + clavier).
   useEffect(() => { heading.current?.focus({ preventScroll: false }); window.scrollTo({ top: 0 }); }, [step]);
@@ -68,14 +78,29 @@ export default function OnboardingPage() {
   if (user?.onboardingDone) return <Navigate to={paths.dashboard.root} replace />;
   if (!restored) return <div className="fullpage-loader" role="status"><Spinner size={28} label={t('common.loading')} /></div>;
 
-  // État global de la configuration affiché dans l'en-tête.
-  const readiness = pageReadiness(doc);
-  const overall = !data.category ? 'not_started' : step >= STEPS.length - 1 ? (readiness.ready ? 'ready' : 'to_complete') : data.visited >= 2 && readiness.incomplete.length > 0 ? 'to_complete' : 'in_progress';
+  const last = step === STEPS.length - 1;
+
+  const validate = async () => {
+    setBusy(true);
+    setPublishError(null);
+    const username = await pickUsername(data.identity.displayName || user?.name || '');
+    const composed = composeDocument(data as OnboardingData, user?.name ?? '', username);
+    // Un brouillon peut déjà exister côté serveur (assistant interrompu) : on repart de sa version pour ne rien écraser par erreur.
+    const existing = await api.page.getMyPage().catch(() => null);
+    useEditor.setState({ status: 'ready', doc: existing ? { ...composed, id: existing.id, version: existing.version, username: existing.username || username } : composed, saved: null, past: [], future: [], dirty: true });
+    const result = await useEditor.getState().publish();
+    setBusy(false);
+    if (!result.ok) { setPublishError(result.error ?? 'unknown'); return; }
+    useOnboarding.getState().reset();
+    void api.page.saveOnboardingState(null).catch(() => undefined);
+    navigate(paths.dashboard.root, { replace: true });
+  };
 
   const next = () => {
     if (Object.keys(errors).length) { setShowErrors(true); return; }
     setShowErrors(false);
-    go(Math.min(STEPS.length - 1, step + 1));
+    if (last) void validate();
+    else go(Math.min(STEPS.length - 1, step + 1));
   };
   const back = () => { setShowErrors(false); go(Math.max(0, step - 1)); };
   const jump = (i: number) => {
@@ -83,36 +108,7 @@ export default function OnboardingPage() {
     if (i <= Math.max(step, data.visited)) { setShowErrors(false); go(i); }
   };
 
-  const finish = async (publish: boolean) => {
-    setBusy(true);
-    setPublishError(null);
-    // Un brouillon peut déjà exister côté serveur (assistant interrompu) : on repart de sa version pour ne rien écraser par erreur.
-    const existing = await api.page.getMyPage().catch(() => null);
-    useEditor.setState({ status: 'ready', doc: existing ? { ...doc, id: existing.id, version: existing.version } : doc, saved: null, past: [], future: [], dirty: true });
-    const result = publish ? await useEditor.getState().publish() : { ok: await useEditor.getState().saveDraft(), error: undefined };
-    setBusy(false);
-    if (!result.ok) { setPublishError(result.error ?? 'unknown'); return; }
-    // Brouillon enregistré sans publication : on marque l'assistant comme terminé côté interface.
-    if (!publish && user) {
-      const s = useSession.getState().session;
-      if (s) useSession.getState().setSession({ ...s, user: { ...s.user, onboardingDone: true, username: doc.username, category: doc.category } });
-    }
-    useOnboarding.getState().reset();
-    void api.page.saveOnboardingState(null).catch(() => undefined);
-    navigate(paths.dashboard.root, { replace: true });
-  };
-
-  const body = {
-    category: <CategoryStep errors={errors} showErrors={showErrors} />,
-    identity: <IdentityStep errors={errors} showErrors={showErrors} />,
-    activity: <ActivityStep errors={errors} showErrors={showErrors} />,
-    links: <LinksStep errors={errors} showErrors={showErrors} />,
-    content: <ContentStep />,
-    preview: <PreviewStep doc={doc} go={go} />,
-    publish: <PublishStep doc={doc} busy={busy} error={publishError} onPublish={() => void finish(true)} onSaveDraft={() => void finish(false)} />,
-  }[stepId];
-  const last = step === STEPS.length - 1;
-  const optional = stepId === 'links' || stepId === 'content';
+  const body = stepId === 'category' ? <CategoryStep errors={errors} showErrors={showErrors} /> : <ProfileStep errors={errors} showErrors={showErrors} />;
 
   return (
     <div className="onb">
@@ -120,7 +116,6 @@ export default function OnboardingPage() {
       <header className="onb__top">
         <Link to={paths.home} aria-label="1Link"><Logo /></Link>
         <div className="onb__top-right">
-          <Badge tone={STATE_TONE[overall]} dot>{translate(`common.status.${{ not_started: 'notStarted', in_progress: 'inProgress', to_complete: 'toComplete', ready: 'ready', published: 'published' }[overall]}` as MessageKey)}</Badge>
           <select className="onb__lang" value={locale} onChange={(e) => void setLocale(e.target.value as typeof locale)} aria-label={t('common.language')}>{locales.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}</select>
         </div>
       </header>
@@ -131,7 +126,7 @@ export default function OnboardingPage() {
           <div className="onb__bar" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={step + 1} aria-label={t('onboarding.stepsLabel')}><span style={{ transform: `scaleX(${(step + 1) / STEPS.length})` }} /></div>
           <ol role="list" className="onb__list">
             {STEPS.map((s, i) => {
-              const done = i < step || (i < data.visited && i !== step);
+              const done = i < step;
               const reachable = i <= Math.max(step, data.visited);
               return (
                 <li key={s}>
@@ -150,22 +145,20 @@ export default function OnboardingPage() {
             <h1 ref={heading} tabIndex={-1} className="onb__title">{t(`onboarding.${stepId}.title`)}</h1>
             <p className="onb__lead">{t(`onboarding.${stepId}.lead`)}</p>
             {body}
+            {publishError && <p className="field__error" role="alert"><Icon name="alert-circle" size={14} /> {t(`editor.publish.errors.${['username_taken', 'username_invalid', 'username_reserved', 'plan_limit'].includes(publishError) ? publishError : 'unknown'}` as 'editor.publish.errors.unknown')}</p>}
           </div>
           <div className="onb__nav">
             <Button variant="ghost" iconLeft="arrow-left" onClick={back} disabled={step === 0 || busy}>{t('common.back')}</Button>
-            {!last && (
-              <div className="onb__nav-right">
-                {optional && <Button variant="ghost" onClick={() => { setShowErrors(false); go(step + 1); }}>{t('onboarding.skip')}</Button>}
-                <Button variant="gradient" iconRight="arrow-right" onClick={next}>{t('common.continue')}</Button>
-              </div>
-            )}
+            <div className="onb__nav-right">
+              <Button variant="gradient" iconRight={last ? 'check' : 'arrow-right'} loading={busy} onClick={next}>{last ? t('onboarding.validate') : t('common.continue')}</Button>
+            </div>
           </div>
         </main>
 
         <aside className="onb__preview" aria-label={t('onboarding.livePreview')}>
           <div className="onb__sticky">
             <PhoneFrame label={t('onboarding.livePreview')}>
-              <PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" />
+              <PageRenderer page={doc} pageUrl={pageShareUrl('exemple')} preview layout="profile" />
             </PhoneFrame>
             <p className="subtle onb__caption">{t('onboarding.livePreview')}</p>
           </div>

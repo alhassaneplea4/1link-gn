@@ -57,6 +57,7 @@ export const routes: RouteObject[] = [
           },
           { path: 'reset-password', ...page(() => import('@/features/authentication/ResetPasswordPage'), ['auth']) },
           { path: 'verify-email', ...page(() => import('@/features/authentication/VerifyEmailPage'), ['auth']) },
+          { path: 'confirm-deletion', ...page(() => import('@/features/authentication/ConfirmDeletionPage'), ['auth']) },
           { path: 'sign-out', ...page(() => import('@/features/authentication/SignOutPage'), ['auth']) },
           { path: 'signed-out', ...page(() => import('@/features/authentication/SignedOutPage'), ['auth']) },
           { path: 'session-expired', ...page(() => import('@/features/authentication/SessionExpiredPage'), ['auth']) },

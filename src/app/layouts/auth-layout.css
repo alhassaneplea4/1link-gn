@@ -46,3 +46,4 @@
 .auth-form__note { display: flex; gap: 0.4rem; align-items: flex-start; font-size: var(--text-xs); }
 .phonefield { display: grid; gap: var(--space-3); }
 .otp-input { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.auth-alt .linklike, .auth-form .linklike { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }

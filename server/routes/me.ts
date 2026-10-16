@@ -10,14 +10,14 @@ import { requireAuth } from '../middleware.js';
 import { checkOtp, issueOtp, buildSession, uniqueViolation } from '../services/accounts.js';
 import { notify } from '../services/notifications.js';
 import { securityNoticeMessage } from '../lib/emails.js';
-import { verifyPassword } from '../lib/crypto.js';
 import { securityEvent } from '../lib/audit.js';
 import { accountDeleteBody, phoneLinkVerifyBody, phoneRequestBody, passwordConfirmBody, twoFactorToggleBody } from '../validation/auth.js';
-import { deleteAccount } from '../services/account-deletion.js';
-import { accountDeletedMessage } from '../lib/emails.js';
+import { requestDeletion } from '../services/account-deletion.js';
+import { confirmIdentity, sendIdentityCode } from '../services/identity.js';
+import { securityRoutes } from './me-security.js';
 import { clearSessionCookie } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
-import { badgesOf, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
+import { badgesOf, changeUsername, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
 import { userReport } from '../services/analytics.js';
 import { storeImage, MAX_IMAGE_BYTES } from '../services/media.js';
@@ -29,6 +29,7 @@ import type { PlanId } from '../../src/models/auth.js';
 
 export const meRoutes = new Hono<HonoEnv>();
 meRoutes.use('*', requireAuth);
+meRoutes.route('/', securityRoutes);
 
 // — Page —
 
@@ -78,6 +79,12 @@ meRoutes.get('/analytics', async (c) => {
   return c.json(await userReport(c.get('deps'), c.get('auth')!, { ...parsed.data, preset: parsed.data.preset as RangePreset }, c.req.header('accept-language') ?? 'fr'));
 });
 
+/** Change l'adresse 1Link (la confirmation est demandée par l'interface ; l'ancienne adresse cesse de fonctionner). */
+meRoutes.patch('/page/username', async (c) => {
+  const body = await readJson(c, z.object({ username: z.string().trim().toLowerCase().max(30) }));
+  return c.json(await changeUsername(c.get('deps'), c.get('auth')!, body.username));
+});
+
 // — Abonnement (aucun paiement n'est traité par la plateforme) —
 
 meRoutes.get('/subscription', async (c) => c.json(await subscriptionOf(c.get('deps'), c.get('auth')!.user.id)));
@@ -122,17 +129,8 @@ meRoutes.put('/onboarding', async (c) => {
 
 // — Téléphone et double authentification par SMS —
 
-/** Re-saisie du mot de passe avant une opération sensible (plafonnée : 10 essais / 15 min). */
-async function confirmPassword(c: C, password: string): Promise<void> {
-  const deps = c.get('deps');
-  const { user } = c.get('auth')!;
-  await enforce(deps.db, keyFor('pw-confirm', user.id), 10, 900, deps.now());
-  if (!user.passwordHash) throw conflict('no_password');
-  if (!(await verifyPassword(password, user.passwordHash))) {
-    await securityEvent(deps.db, { kind: 'failed_login', subject: user.email ?? user.id, userId: user.id, ip: c.get('ip') }, deps.now());
-    throw badRequest('wrong_password', { password: 'wrong' });
-  }
-}
+/** Envoie le code de confirmation d'identité (e-mail du compte, sinon SMS) pour un compte sans mot de passe. */
+meRoutes.post('/identity/code', async (c) => c.json(await sendIdentityCode(c, c.get('deps'), c.get('auth')!.user)));
 
 /** Étape 1 : envoie un code au numéro à associer au compte. */
 meRoutes.post('/phone/request', async (c) => {
@@ -163,10 +161,10 @@ meRoutes.post('/phone/verify', async (c) => {
 meRoutes.post('/phone/remove', async (c) => {
   const deps = c.get('deps');
   const auth = c.get('auth')!;
-  const { password } = await readJson(c, passwordConfirmBody);
+  const proof = await readJson(c, passwordConfirmBody);
   if (!auth.user.phone) throw new HttpError(404, 'no_phone');
   if (!auth.user.email) throw conflict('only_login');
-  await confirmPassword(c, password);
+  await confirmIdentity(c, deps, auth.user, proof);
   const now = deps.now();
   await deps.db.update(users).set({ phone: null, phoneVerifiedAt: null, twoFactorSms: false, updatedAt: now }).where(eq(users.id, auth.user.id));
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_removed', locale));
@@ -178,7 +176,7 @@ meRoutes.post('/2fa', async (c) => {
   const deps = c.get('deps');
   const auth = c.get('auth')!;
   const body = await readJson(c, twoFactorToggleBody);
-  await confirmPassword(c, body.password);
+  await confirmIdentity(c, deps, auth.user, body);
   if (body.enabled && !auth.user.phoneVerifiedAt) throw badRequest('phone_required');
   const now = deps.now();
   await deps.db.update(users).set({ twoFactorSms: body.enabled, updatedAt: now }).where(eq(users.id, auth.user.id));
@@ -189,28 +187,12 @@ meRoutes.post('/2fa', async (c) => {
 
 // — Suppression du compte —
 
-/** Compte créé par téléphone (sans mot de passe) : un code SMS prouve que c'est bien le titulaire. */
+/** Demande la suppression (mot de passe ou code) : sessions fermées ; 15 jours sans connexion, puis lien de confirmation finale. */
 meRoutes.post('/delete/request', async (c) => {
   const deps = c.get('deps');
   const { user } = c.get('auth')!;
-  if (user.passwordHash || !user.phone) throw conflict('password_account');
-  return c.json(await issueOtp(c, deps, user.phone, 'sms'));
-});
-
-/** Efface définitivement le compte et ses données. Exige le mot de passe (ou, sans mot de passe, le code reçu par SMS). */
-meRoutes.post('/delete', async (c) => {
-  const deps = c.get('deps');
-  const { user } = c.get('auth')!;
-  const body = await readJson(c, accountDeleteBody);
-  if (user.passwordHash) {
-    if (!body.password) throw badRequest('password_required', { password: 'required' });
-    await confirmPassword(c, body.password);
-  } else {
-    if (!body.code || !user.phone) throw badRequest('code_required', { code: 'required' });
-    await checkOtp(c, deps, user.phone, body.code);
-  }
-  await deleteAccount(deps, user, c.get('ip'));
-  notify(deps, user, accountDeletedMessage);
+  const proof = await readJson(c, accountDeleteBody);
+  await requestDeletion(c, deps, user, proof);
   clearSessionCookie(c, deps);
   return c.body(null, 204);
 });

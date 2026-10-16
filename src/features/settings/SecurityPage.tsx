@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Badge, Button, Card, Icon, Input, LinkButton, PageHeader } from '@/components/ui';
+import { Badge, Card, Icon, LinkButton, PageHeader } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
@@ -7,6 +6,8 @@ import { useSession } from '@/state/session';
 import { formatDateTime } from '@/utilities/format';
 import { accountContact, isContactVerified } from '@/models/auth';
 import { PhoneSecurity } from './PhoneSecurity';
+import { MfaCard } from './MfaCard';
+import { PasswordCard } from './PasswordCard';
 import './settings.css';
 
 /**
@@ -32,12 +33,9 @@ export default function SecurityPage() {
           {!isContactVerified(user) && <LinkButton to={paths.verifyEmail} variant="gradient" size="sm">{t('dashboard.shell.verifyCta')}</LinkButton>}
         </Card>
 
-        <Card padding="lg" className="settings__card">
-          <h2><Icon name="key" size={18} /> {t('dashboard.security.passwordTitle')}</h2>
-          <Input label={t('auth.fields.password')} type="password" value="" placeholder="••••••••" disabled readOnly />
-          <Button variant="secondary" disabled>{t('dashboard.security.changePassword')}</Button>
-          <Link to={paths.forgotPassword} className="subtle">{t('auth.login.forgot')}</Link>
-        </Card>
+        <PasswordCard />
+
+        <MfaCard />
 
         <Card padding="lg" className="settings__card">
           <h2><Icon name="monitor" size={18} /> {t('dashboard.security.sessionTitle')}</h2>

@@ -4,6 +4,7 @@ import type { HonoEnv } from '../context.js';
 import { appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions } from '../db/schema.js';
 import { forbidden, HttpError } from '../lib/errors.js';
 import { safeEqual } from '../lib/crypto.js';
+import { processDeletionRequests } from '../services/account-deletion.js';
 
 export const systemRoutes = new Hono<HonoEnv>();
 
@@ -52,7 +53,8 @@ systemRoutes.get('/cron/maintenance', async (c) => {
     security: await count(db.delete(securityEvents).where(lt(securityEvents.at, ago(365 * day))) as never),
     errors: await count(db.delete(appErrors).where(lt(appErrors.at, ago(config.retentionDays.errors * day))) as never),
   };
-  return c.json({ ok: true, purged });
+  const deletions = await processDeletionRequests(c.get('deps'));
+  return c.json({ ok: true, purged, deletions });
 });
 
 /** Outils de test et de développement local (boîte d'envoi simulée). Désactivés en production par la configuration. */

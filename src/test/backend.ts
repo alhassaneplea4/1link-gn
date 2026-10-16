@@ -42,6 +42,8 @@ export function useBackend(): Backend {
 
 /** Se connecte par le formulaire e-mail / mot de passe (comme un utilisateur). */
 export async function loginThroughForm(email: string, password: string) {
+  // La connexion par défaut envoie un code par e-mail : ces tests passent par le mot de passe (comptes qui en ont un).
+  await userEvent.click(await screen.findByRole('button', { name: 'Se connecter avec un mot de passe' }));
   await userEvent.type(await screen.findByLabelText(/Adresse e-mail/), email);
   await userEvent.type(screen.getByLabelText(/^Mot de passe/), password);
   await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));

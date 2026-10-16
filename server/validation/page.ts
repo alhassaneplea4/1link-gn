@@ -30,7 +30,7 @@ function build(mode: PageMode) {
   const list = <T extends z.ZodType>(item: T, max: number) => z.array(item).max(max).default([]);
 
   const data: { [K in BlockType]: z.ZodType<BlockDataMap[K], unknown> } = {
-    profile: z.object({ displayName: str(60), headline: str(90), bio: str(320), avatarUrl: image, coverUrl: image, location: str(60), verified: z.boolean().default(false) }),
+    profile: z.object({ displayName: str(60), headline: str(90), bio: str(320), avatarUrl: image, coverUrl: image, location: str(60), sector: str(60), verified: z.boolean().default(false) }),
     text: z.object({ title: str(80), body: str(1200) }),
     link: z.object({ title: str(80), url: link, description: str(120), platform: z.enum(['link', ...SOCIAL_PLATFORMS]).default('link'), highlight: z.boolean().default(false) }),
     social: z.object({ items: list(z.object({ platform: z.enum(SOCIAL_PLATFORMS), url: link }), 12), display: z.enum(['icons', 'list']).default('icons') }),

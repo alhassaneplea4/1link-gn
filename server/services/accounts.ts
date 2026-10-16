@@ -7,7 +7,7 @@ import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, ver
 import { activity, audit } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, HttpError, tooMany } from '../lib/errors.js';
 import { enforce, hit, keyFor } from '../lib/ratelimit.js';
-import { pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
+import { emailCodeMessage, pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
 import { asLocale } from './notifications.js';
 import { toSession } from './sessions.js';
 import type { Session, SessionUser } from '../../src/models/auth.js';
@@ -20,6 +20,9 @@ export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_MAX_PER_HOUR = 5;
 const VERIFY_TOKEN_TTL_MS = 24 * 3_600_000;
 const RESET_TOKEN_TTL_MS = 3_600_000;
+const DELETE_TOKEN_TTL_MS = 7 * 86_400_000;
+export type AuthTokenKind = 'email_verify' | 'password_reset' | 'account_delete';
+const TOKEN_TTL: Record<AuthTokenKind, number> = { email_verify: VERIFY_TOKEN_TTL_MS, password_reset: RESET_TOKEN_TTL_MS, account_delete: DELETE_TOKEN_TTL_MS };
 
 /** Erreur PostgreSQL « violation d'unicité » (code 23505), éventuellement enveloppée par le pilote. */
 export function uniqueViolation(e: unknown): string | null {
@@ -62,6 +65,8 @@ export interface NewAccount {
   phone?: string;
   password?: string;
   phoneVerified?: boolean;
+  /** L'adresse a été prouvée (code reçu par e-mail). */
+  emailVerified?: boolean;
   country?: string | null;
   locale?: 'fr' | 'en';
 }
@@ -76,7 +81,7 @@ export async function createAccount(deps: Deps, input: NewAccount): Promise<User
         .insert(users)
         .values({
           id: newId('usr'), email: input.email?.trim().toLowerCase() ?? null, phone: input.phone ?? null, passwordHash, name: input.name.trim(),
-          phoneVerifiedAt: input.phoneVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now, locale: input.locale ?? 'fr', freeTrialEndsAt: freeTrialEnd(now),
+          phoneVerifiedAt: input.phoneVerified ? now : null, emailVerifiedAt: input.emailVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now, locale: input.locale ?? 'fr', freeTrialEndsAt: freeTrialEnd(now),
         })
         .returning();
       await tx.insert(subscriptions).values({ id: newId('sub'), userId: user!.id, planId: 'free', status: 'active', startedAt: now, updatedAt: now });
@@ -112,18 +117,18 @@ export const assertCanSignIn = (user: UserRow) => {
 
 // — Jetons à usage unique —
 
-export async function issueAuthToken(db: Executor, userId: string, kind: 'email_verify' | 'password_reset', now: Date): Promise<string> {
+export async function issueAuthToken(db: Executor, userId: string, kind: AuthTokenKind, now: Date): Promise<string> {
   const token = newToken();
   await db.delete(authTokens).where(and(eq(authTokens.userId, userId), eq(authTokens.kind, kind), isNull(authTokens.usedAt)));
   await db.insert(authTokens).values({
     id: newId('tok'), userId, kind, tokenHash: sha256(token), createdAt: now,
-    expiresAt: new Date(now.getTime() + (kind === 'email_verify' ? VERIFY_TOKEN_TTL_MS : RESET_TOKEN_TTL_MS)),
+    expiresAt: new Date(now.getTime() + TOKEN_TTL[kind]),
   });
   return token;
 }
 
 /** Consomme le jeton (une seule fois). `invalid_token` s'il est inconnu, `token_expired` s'il est périmé ou déjà utilisé. */
-export async function consumeAuthToken(deps: Deps, token: string, kind: 'email_verify' | 'password_reset'): Promise<string> {
+export async function consumeAuthToken(deps: Deps, token: string, kind: AuthTokenKind): Promise<string> {
   const now = deps.now();
   const result = await deps.db.transaction(async (tx) => {
     const [row] = await tx.select().from(authTokens).where(and(eq(authTokens.tokenHash, sha256(token)), eq(authTokens.kind, kind))).for('update').limit(1);
@@ -225,6 +230,45 @@ export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChan
   const issued: OtpIssued = { channel: delivered, expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC };
   if (deps.otp.provider === 'dev') issued.devCode = code;
   return issued;
+}
+
+/** Clé d'un code envoyé par e-mail dans `otp_codes` (la colonne `phone` sert de clé générique). */
+export const emailCodeKey = (email: string) => `mail:${email.trim().toLowerCase()}`;
+
+export interface EmailCodeIssued { expiresInSec: number; resendInSec: number; devCode?: string }
+
+/**
+ * Code à usage unique envoyé par e-mail (inscription et connexion sans mot de passe, double authentification).
+ * Mêmes garde-fous que les codes SMS : renvoi toutes les 30 s, 5 par heure, 5 essais, 5 minutes de validité.
+ * Sans fournisseur d'e-mail : `mail_unavailable` (jamais de faux envoi).
+ */
+export async function issueEmailCode(c: C, deps: Deps, email: string, options: { silent?: boolean; name?: string; locale?: 'fr' | 'en' } = {}): Promise<EmailCodeIssued> {
+  const now = deps.now();
+  const to = email.trim().toLowerCase();
+  const key = emailCodeKey(to);
+  if (deps.mailer.provider === 'none') throw new HttpError(503, 'mail_unavailable');
+  await enforce(deps.db, keyFor('mailcode-ip', c.get('ip')), 20, 3600, now, 'too_many_requests');
+  const resend = await hit(deps.db, keyFor('mailcode-resend', to), 1, OTP_RESEND_SEC, now);
+  if (!resend.allowed) throw tooMany('resend_too_soon', resend.retryAfterSec);
+  const hourly = await hit(deps.db, keyFor('mailcode-hour', to), OTP_MAX_PER_HOUR, 3600, now);
+  if (!hourly.allowed) throw tooMany('too_many_requests', hourly.retryAfterSec);
+  const dev = deps.mailer.provider === 'dev';
+  // Même forme de réponse qu'un envoi réel : rien ne distingue une adresse inconnue d'un compte existant.
+  if (options.silent) return { expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC, ...(dev ? { devCode: randomCode() } : {}) };
+  const code = randomCode();
+  const id = newId('otp');
+  await deps.db.transaction(async (tx) => {
+    await tx.update(otpCodes).set({ consumedAt: now }).where(and(eq(otpCodes.phone, key), isNull(otpCodes.consumedAt)));
+    await tx.insert(otpCodes).values({ id, phone: key, codeHash: codeHash(deps, key, code), channel: 'email', expiresAt: new Date(now.getTime() + OTP_TTL_SEC * 1000), ip: c.get('ip'), createdAt: now });
+  });
+  try {
+    await deps.mailer.send(emailCodeMessage(to, code, OTP_TTL_SEC / 60, options.locale ?? pickLocale(c.req.header('accept-language'))));
+  } catch (e) {
+    await deps.db.delete(otpCodes).where(eq(otpCodes.id, id));
+    console.error('[mail] échec de l’envoi du code :', (e as Error).message);
+    throw new HttpError(503, 'mail_unavailable');
+  }
+  return { expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC, ...(dev ? { devCode: code } : {}) };
 }
 
 /** Vérifie un code. Le compteur d'essais est écrit AVANT de répondre (une réponse ne peut pas annuler un essai). */

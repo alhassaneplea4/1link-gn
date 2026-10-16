@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { routes } from '@/app/routes/router';
@@ -34,10 +34,18 @@ describe('double authentification — interface', () => {
     expect(card).toHaveTextContent('+224');
     expect(useSession.getState().session?.user).toMatchObject({ phone: '+224622334455', phoneVerified: true });
 
-    await userEvent.type(await screen.findByLabelText(/Mot de passe actuel/), u.password);
-    await userEvent.click(screen.getByRole('button', { name: 'Activer la double authentification' }));
-    expect(await screen.findByText('Double authentification activée.')).toBeInTheDocument();
+    // Vérification en deux étapes : désactivée par défaut, activée après confirmation du mot de passe.
+    const mfa = await screen.findByTestId('mfa-card');
+    const sms = mfa.querySelector('[data-method="sms"]') as HTMLElement;
+    expect(within(sms).getByText('Désactivée')).toBeInTheDocument();
+    expect(useSession.getState().session?.user.mfa).toEqual({ sms: false, email: false, totp: false });
+    await userEvent.click(within(sms).getByRole('button', { name: 'Activer' }));
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.type(within(dialog).getByLabelText(/Mot de passe actuel/), u.password);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Activer' }));
+    await waitFor(() => expect(useSession.getState().session?.user.mfa.sms).toBe(true));
     expect(useSession.getState().session?.user.twoFactorSms).toBe(true);
+    expect(await within(sms).findByText('Activée')).toBeInTheDocument();
   }, 60000);
 
   it('la connexion s’arrête à l’étape du code SMS puis ouvre la session', async () => {

@@ -33,6 +33,7 @@ export function ProfileRender({ block, ctx }: BlockRenderProps<'profile'>) {
           <ProfileBadges data={d} />
         </Heading>
         {d.headline && <p className="pg-headline">{d.headline}</p>}
+        {d.sector && <p className="pg-location"><Icon name="briefcase" size={14} /> {d.sector}</p>}
         {d.location && (
           <p className="pg-location">
             <Icon name="pin" size={14} /> {d.location}

@@ -62,3 +62,17 @@ export const slugifyUsername = (v: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, '')
     .slice(0, 30);
+
+/** Nom provisoire tiré de l'adresse (« awa.diallo@… » → « Awa Diallo ») : la personne le complète à la configuration du profil. */
+export function nameFromEmail(email: string): string {
+  const local = (email.split('@')[0] ?? '').replace(/[._-]+/g, ' ').replace(/\d+/g, ' ').trim();
+  const words = local.split(/\s+/).filter(Boolean).slice(0, 3);
+  const name = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return (name || 'Nouveau membre').slice(0, 80);
+}
+
+/** Adresse partiellement masquée pour l'affichage (« a***@gmail.com »). */
+export function maskEmail(email: string): string {
+  const [local = '', domain = ''] = email.split('@');
+  return `${local.slice(0, 1)}${'•'.repeat(Math.max(2, Math.min(5, local.length - 1)))}@${domain}`;
+}

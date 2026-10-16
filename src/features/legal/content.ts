@@ -231,17 +231,17 @@ const termsEn: LegalDocument = {
 
 const deleteFr: LegalDocument = {
   title: 'Supprimer mon compte',
-  updated: 'Dernière mise à jour : 12 octobre 2026',
-  intro: 'Vous pouvez supprimer votre compte 1Link et vos données à tout moment, vous-même et immédiatement.',
+  updated: 'Dernière mise à jour : 16 octobre 2026',
+  intro: 'Vous pouvez supprimer votre compte 1Link et vos données à tout moment. La suppression se fait en deux temps, pour éviter toute erreur : votre demande, puis une confirmation finale après 15 jours sans activité.',
   sections: [
     {
       title: 'Depuis l’application ou le site',
-      items: ['Connectez-vous à votre compte.', 'Ouvrez Tableau de bord → Paramètres.', 'Dans la zone « Supprimer mon compte », cliquez sur « Supprimer définitivement mon compte » puis confirmez avec votre mot de passe (ou, si votre compte a été créé avec un numéro de téléphone, avec le code reçu par SMS).'],
+      items: ['Connectez-vous à votre compte.', 'Ouvrez Tableau de bord → Paramètres.', 'Dans la zone sensible « Supprimer mon compte », cliquez sur « Demander la suppression » puis confirmez avec votre mot de passe (ou, si votre compte n’a pas de mot de passe, avec le code reçu par e-mail). Vous êtes alors déconnecté.', 'Pendant 15 jours, ne vous reconnectez pas : se reconnecter annule la demande.', 'Après 15 jours sans activité, un e-mail contient un lien de confirmation valable 7 jours. Ouvrez-le et validez votre mot de passe : le compte est alors supprimé définitivement.'],
     },
     {
       title: 'Ce qui est supprimé',
       items: ['Votre compte et vos informations de connexion (nom, e-mail, téléphone).', 'Votre page publique, son adresse et toutes ses statistiques.', 'Vos images téléversées.', 'Vos sessions, vos codes et vos traces de sécurité liées à votre e-mail ou numéro.'],
-      paragraphs: ['La suppression est immédiate et définitive : elle ne peut pas être annulée. Un e-mail de confirmation vous est envoyé.'],
+      paragraphs: ['Une fois la confirmation finale validée, la suppression est immédiate et définitive : elle ne peut pas être annulée. Un e-mail de confirmation vous est envoyé.'],
     },
     {
       title: 'Ce qui peut être conservé',
@@ -256,17 +256,17 @@ const deleteFr: LegalDocument = {
 
 const deleteEn: LegalDocument = {
   title: 'Delete my account',
-  updated: 'Last updated: 12 October 2026',
-  intro: 'You can delete your 1Link account and your data at any time, by yourself and immediately.',
+  updated: 'Last updated: 16 October 2026',
+  intro: 'You can delete your 1Link account and your data at any time. Deletion takes two steps, to avoid mistakes: your request, then a final confirmation after 15 days without activity.',
   sections: [
     {
       title: 'From the app or the website',
-      items: ['Sign in to your account.', 'Open Dashboard → Settings.', 'In the “Delete my account” area, click “Permanently delete my account” then confirm with your password (or, if your account was created with a phone number, with the code received by SMS).'],
+      items: ['Sign in to your account.', 'Open Dashboard → Settings.', 'In the sensitive “Delete my account” area, click “Request deletion” then confirm with your password (or, if your account has no password, with the code received by email). You are then signed out.', 'For 15 days, do not sign in again: signing in cancels the request.', 'After 15 days without activity, an email contains a confirmation link valid for 7 days. Open it and validate your password: the account is then permanently deleted.'],
     },
     {
       title: 'What is deleted',
       items: ['Your account and sign-in details (name, email, phone).', 'Your public page, its address and all its statistics.', 'Your uploaded images.', 'Your sessions, codes and security traces tied to your email or number.'],
-      paragraphs: ['Deletion is immediate and permanent: it cannot be undone. A confirmation email is sent to you.'],
+      paragraphs: ['Once the final confirmation is validated, deletion is immediate and permanent: it cannot be undone. A confirmation email is sent to you.'],
     },
     {
       title: 'What may be kept',

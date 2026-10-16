@@ -12,6 +12,7 @@ export const paths = {
   forgotPassword: '/auth/forgot-password',
   resetPassword: '/auth/reset-password',
   verifyEmail: '/auth/verify-email',
+  confirmDeletion: '/auth/confirm-deletion',
   signOut: '/auth/sign-out',
   signedOut: '/auth/signed-out',
   sessionExpired: '/auth/session-expired',
