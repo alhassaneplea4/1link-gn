@@ -7,6 +7,8 @@ Plateforme de présence numérique (« Un lien, pour toute votre présence. »),
 - **Honnêteté** : ne jamais simuler un paiement, un envoi d'e-mail/SMS ou une décision. Sans fournisseur : l'API répond `mail_unavailable` / `otp_unavailable`.
 - **Pas de transaction financière sur la plateforme** (commande par WhatsApp, moyens de paiement affichés seulement).
 - **Langues : français et anglais** uniquement (Admin Center : français).
+- **Offres** (Free, Basique, Pro, Business) : droits dans `src/models/access.ts`, appliqués par le serveur ; essai gratuit de 7 jours puis 15 jours à la souscription (une fois chacun). Voir le skill `1link-plans-trials`.
+- **Authentification** : inscription par code e-mail (sans mot de passe), MFA désactivée par défaut, suppression de compte différée. Voir le skill `1link-auth-mfa`.
 - **Le serveur est l'autorité** (droits, limites d'offre, badge vérifié, unicité) ; l'interface ne fait que refléter.
 - Après chaque modification : typecheck + tests → commit (message en français + ligne `Co-Authored-By`) → push sur `origin main`. Jamais de `--force`.
 
@@ -18,4 +20,5 @@ Plateforme de présence numérique (« Un lien, pour toute votre présence. »),
 - Dates renvoyées par `db.execute(sql…)` : **texte** (pas `Date`) → utiliser `new Date(x)`.
 - Les scripts de modification multi-lignes : les écrire dans un fichier `.mjs` (les heredocs/`node -e` abîment backslashes et apostrophes).
 - Des `postgres.exe` orphelins après un test interrompu : `taskkill /F /IM postgres.exe`. Un vieux `vite preview` sur le port 4173 fausse les e2e.
-- Skills du projet : `.claude/skills/` (backend, base de données, déploiement, tests, sécurité).
+- Skills du projet : `.claude/skills/` (backend, base de données, déploiement, tests, sécurité, offres/essais, authentification/MFA).
+- Heredocs `<<'EOF'` : les antislashs des regex y sont altérés (`\s` → `s`) ; écrire les scripts avec l'outil Write ou corriger avec Edit.

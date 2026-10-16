@@ -7,7 +7,6 @@ import { useT } from '@/i18n/core';
 import { paths } from '@/app/configuration/paths';
 import { isApiError } from '@/models/api';
 import { useSession } from '@/state/session';
-import { resetUserScopedState } from '@/state/lifecycle';
 import { formatDate } from '@/utilities/format';
 import { explainOtpError } from '@/features/authentication/otpErrors';
 import { useIdentity } from './IdentityField';
@@ -32,13 +31,13 @@ export function DeleteAccountRow() {
   const confirm = async () => {
     setBusy(true);
     setError(null);
+    useSession.getState().setLeaving(true);
     try {
       await api.auth.requestAccountDeletion(identity.proof);
-      // Les sessions sont fermées par le serveur : on quitte d'abord l'espace protégé, puis on vide l'état local.
-      await navigate(paths.signedOut, { replace: true });
-      resetUserScopedState();
-      useSession.setState({ status: 'anonymous', session: null });
+      // Les sessions sont fermées par le serveur : la page « déconnecté » vide l'état local une fois affichée.
+      void navigate(paths.signedOut, { replace: true });
     } catch (e) {
+      useSession.getState().setLeaving(false);
       setError(isApiError(e) && e.message === 'admin_account' ? t('dashboard.settings.deleteAccount.admin') : isApiError(e) && e.message === 'payments_exist' ? t('dashboard.settings.deleteAccount.payments') : explainOtpError(t, e));
       setBusy(false);
     }

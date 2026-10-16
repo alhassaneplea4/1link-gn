@@ -61,7 +61,7 @@ describe('suppression du compte — interface', () => {
     await userEvent.type(within(dialog).getByLabelText(/Mot de passe actuel/), u.password);
     await userEvent.click(confirm);
     await waitFor(() => expect(router.state.location.pathname).toBe('/auth/signed-out'));
-    expect(useSession.getState().session).toBeNull();
+    await waitFor(() => expect(useSession.getState().session).toBeNull()); // la page « déconnecté » vide l'état local
     // La demande est enregistrée mais rien n'est effacé tant que le lien de confirmation n'est pas validé.
     expect((await backend.app.db.select().from(users).where(eq(users.id, u.user.id)))[0]!.deletionRequestedAt).not.toBeNull();
     expect((await api.page.getPublicPage('partante-ui')).state).toBe('published');

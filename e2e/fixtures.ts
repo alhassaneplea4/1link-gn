@@ -63,24 +63,35 @@ export const test = base.extend<{ seed: Seed }, { database: Db }>({
 
 export { expect };
 
-/** Connexion par le formulaire, comme un utilisateur. */
+/** Connexion par le formulaire avec mot de passe, comme un utilisateur (la connexion par défaut envoie un code par e-mail). */
 export async function signIn(page: Page, who: Pick<Account, 'email' | 'password'>) {
   await page.goto('/auth/login');
+  await page.getByRole('button', { name: 'Se connecter avec un mot de passe' }).click();
   await page.getByLabel(/Adresse e-mail/).fill(who.email);
   await page.getByLabel(/^Mot de passe/).fill(who.password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await page.waitForURL(/\/(dashboard|admin|onboarding)/);
 }
 
-/** Inscription par e-mail (parcours réel : le compte est créé en base). */
-export async function registerNew(page: Page, name: string, email: string) {
+/** Inscription par e-mail, sans mot de passe : un code est envoyé à l'adresse (parcours réel : le compte est créé en base). */
+export async function registerNew(page: Page, email: string) {
   await page.goto('/auth/register');
-  await page.getByLabel(/Nom complet/).fill(name);
   await page.getByLabel(/Adresse e-mail/).fill(email);
-  await page.getByLabel(/^Mot de passe/).fill('MotDePasse-Solide-123');
   await page.getByLabel(/J’accepte/).check();
-  await page.getByRole('button', { name: 'Créer mon compte' }).click();
+  await page.getByRole('button', { name: 'Recevoir le code par e-mail' }).click();
+  await page.getByRole('button', { name: 'Remplir' }).click(); // fournisseur de test : le code est révélé par l'interface
+  await page.getByRole('button', { name: 'Valider' }).click();
   await expect(page).toHaveURL(/\/onboarding/);
+}
+
+/** Connexion d'un compte SANS mot de passe : code reçu par e-mail. */
+export async function signInByCode(page: Page, email: string) {
+  await page.goto('/auth/login');
+  await page.getByLabel(/Adresse e-mail/).fill(email);
+  await page.getByRole('button', { name: 'Recevoir le code par e-mail' }).click();
+  await page.getByRole('button', { name: 'Remplir' }).click();
+  await page.getByRole('button', { name: 'Valider' }).click();
+  await page.waitForURL(/\/(dashboard|admin|onboarding)/);
 }
 
 /** Dernier message « envoyé » à une adresse (boîte d'envoi du serveur de test : aucun e-mail réel n'est expédié). */

@@ -60,7 +60,7 @@ Voir **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** : base Neon, variables d'envir
 
 ## Fonctions orientées marché guinéen / africain
 Boutique **commande WhatsApp** (aucune transaction sur la plateforme), moyens de paiement affichés (Orange Money, MTN MoMo…), carte de contact **vCard**, **mode économe en données**,
-connexion par **téléphone** (WhatsApp/SMS), **double authentification SMS** et mot de passe oublié par SMS, prix multi-devises pour la diaspora, prise de rendez-vous par WhatsApp, programmation de blocs, affiche et cartes imprimables avec liens de suivi par canal, badge **Profil vérifié**, interface en **français et anglais**.
+connexion par **téléphone** (WhatsApp/SMS), **vérification en deux étapes** (SMS, e-mail, application d'authentification, codes de secours), inscription par **code e-mail** sans mot de passe, offres **Free / Basique / Pro / Business** avec essais, et mot de passe oublié par SMS, prix multi-devises pour la diaspora, prise de rendez-vous par WhatsApp, programmation de blocs, affiche et cartes imprimables avec liens de suivi par canal, badge **Profil vérifié**, interface en **français et anglais**.
 
 ## Documentation
 - [Déploiement Vercel + PostgreSQL](docs/DEPLOYMENT.md)

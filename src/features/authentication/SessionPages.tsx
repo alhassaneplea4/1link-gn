@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Icon, LinkButton } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
@@ -31,6 +31,8 @@ export function SignOutContent() {
 export function SignedOutContent() {
   const t = useT('auth');
   useDocumentTitle(`${t('auth.signedOut.title')} · 1Link`);
+  // Départ volontaire (suppression demandée) : la session serveur est fermée, on vide l'état local depuis cette page publique.
+  useEffect(() => { if (useSession.getState().status !== 'anonymous') useSession.getState().clearLocal(); }, []);
   return (
     <div className="auth-state">
       <span className="auth-state__icon auth-state__icon--ok"><Icon name="check-circle" size={28} /></span>

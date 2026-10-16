@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { pages, users } from '../server/db/schema.js';
 import { uniqueEmail } from '../server/testing/fixtures.js';
-import { expect, latestMail, registerNew, signIn, test as base, tokenFrom, type Account } from './fixtures';
+import { expect, latestMail, registerNew, signIn, signInByCode, test as base, tokenFrom, type Account } from './fixtures';
 
 const test = base.extend<{ mariama: Account }>({
   // Créatrice (offre Pro, page publiée) déjà connectée par le formulaire de connexion.
@@ -15,70 +15,63 @@ const test = base.extend<{ mariama: Account }>({
 const unique = () => Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(2, 5);
 
 test.describe('inscription et onboarding (compte réel en base)', () => {
-  test('parcours complet par catégorie jusqu’au brouillon', async ({ page, seed }) => {
+  test('adresse e-mail seule + code, type de compte, profil, puis vue d’ensemble', async ({ page, seed }) => {
     const email = uniqueEmail('awa');
-    await registerNew(page, 'Awa Test', email);
+    await registerNew(page, email);
     await page.getByRole('button', { name: /Continuer/ }).click();
-    await expect(page.getByRole('alert')).toBeVisible(); // catégorie obligatoire
+    await expect(page.getByRole('alert')).toBeVisible(); // type de compte obligatoire
     await page.getByLabel(/Créateur/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
-    await expect(page.getByLabel(/Nom affiché/)).toHaveValue('Awa Test');
-    await page.getByLabel(/Adresse de votre page/).fill(`awa${unique()}`); // unique : la base est partagée entre les projets desktop et mobile
-    await page.getByRole('button', { name: /Continuer/ }).click();
-    await page.getByLabel(/Type de contenu ou niche/).fill('Cuisine');
-    await page.getByRole('button', { name: /Continuer/ }).click();
-    for (let i = 0; i < 2; i++) await page.getByRole('button', { name: /Passer cette étape/ }).click();
-    await expect(page.getByRole('heading', { name: 'Vérifiez votre page' })).toBeVisible();
-    await page.getByRole('button', { name: /Continuer/ }).click();
-    await expect(page.getByRole('button', { name: 'Publier ma page' })).toBeEnabled(); // aucune confirmation d'e-mail exigée
-    await page.getByRole('button', { name: 'Enregistrer en brouillon' }).click();
+    await expect(page.getByRole('heading', { name: 'Votre profil' })).toBeVisible();
+    await page.getByLabel(/Nom complet/).fill(`Awa Test ${unique()}`);
+    await page.getByLabel(/Secteur d’activité/).fill('Cuisine');
+    await page.getByLabel(/^Titre/).fill('Cheffe créatrice');
+    await page.getByRole('button', { name: 'Valider mon compte' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: /Bonjour, Awa/ })).toBeVisible();
-    // le brouillon est bien en base, pas dans le navigateur
+    // la page est en base (publiée, avec son seul profil), pas dans le navigateur
     const [user] = await seed.db.select().from(users).where(eq(users.email, email));
     const [row] = await seed.db.select().from(pages).where(eq(pages.userId, user!.id));
-    expect(row).toMatchObject({ status: 'draft', version: 1 });
+    expect(row).toMatchObject({ status: 'published', version: 1 });
+    expect(row!.draft.blocks).toHaveLength(1);
+    expect(user).toMatchObject({ onboardingDone: true, passwordHash: null });
     expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).not.toMatch(/onboarding|blocks|draft/);
   });
 
   test('reprise de l’assistant sur un autre appareil (brouillon conservé côté serveur)', async ({ page, browser, seed }) => {
     const email = uniqueEmail('reprise');
-    await registerNew(page, 'Reprise Test', email);
+    await registerNew(page, email);
     await page.getByLabel(/Professionnel/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
-    await page.getByLabel(/Adresse de votre page/).fill(`reprise${unique()}`);
-    await expect.poll(async () => { const [u] = await seed.db.select().from(users).where(eq(users.email, email)); return u?.onboardingState; }).toMatchObject({ category: 'professional' });
+    await page.getByLabel(/Secteur d’activité/).fill('Informatique');
+    await expect.poll(async () => { const [u] = await seed.db.select().from(users).where(eq(users.email, email)); return u?.onboardingState; }).toMatchObject({ category: 'professional', activity: { sector: 'Informatique' } });
     const other = await browser.newContext();
     const p2 = await other.newPage();
-    await signIn(p2, { email, password: 'MotDePasse-Solide-123' });
+    await signInByCode(p2, email);
     await expect(p2).toHaveURL(/\/onboarding/);
-    await expect(p2.getByRole('heading', { name: 'Votre identité' })).toBeVisible();
-    await expect(p2.getByLabel(/Adresse de votre page/)).toHaveValue(/^reprise/);
+    await expect(p2.getByRole('heading', { name: 'Votre profil' })).toBeVisible();
+    await expect(p2.getByLabel(/Secteur d’activité/)).toHaveValue('Informatique');
     await other.close();
   });
 
-  test('publication réelle juste après l’inscription, sans confirmation d’e-mail', async ({ page, request }) => {
+  test('page visible par tous dès la validation, sans confirmation d’e-mail à faire', async ({ page, request, seed }) => {
     const email = uniqueEmail('fanta');
-    await registerNew(page, 'Fanta Pub', email);
+    await registerNew(page, email);
     const mail = await latestMail(request, email);
-    expect(mail.subject).toMatch(/Bienvenue sur 1Link/);
-    expect(mail.text).not.toMatch(/token=/); // accueil seul : aucun lien de confirmation à suivre
+    expect(mail.subject).toMatch(/Bienvenue sur 1Link|est votre code/);
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
-    const username = `fanta${unique()}`;
-    await page.getByLabel(/Adresse de votre page/).fill(username);
-    for (let i = 0; i < 5; i++) {
-      await page.getByRole('button', { name: /Continuer/ }).click();
-      await page.waitForTimeout(150);
-    }
-    await expect(page.getByRole('heading', { name: 'Prêt à publier ?' })).toBeVisible();
-    await page.getByRole('button', { name: 'Publier ma page' }).click();
+    const name = `Fanta Pub ${unique()}`;
+    await page.getByLabel(/Nom complet/).fill(name);
+    await page.getByRole('button', { name: 'Valider mon compte' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText('Votre page est publiée')).toBeVisible();
-    // la page est visible par n'importe qui, depuis la base
+    const [user] = await seed.db.select().from(users).where(eq(users.email, email));
+    const [row] = await seed.db.select().from(pages).where(eq(pages.userId, user!.id));
+    expect(row!.username).toMatch(/^fanta-pub/); // adresse choisie automatiquement à partir du nom
     const visitor = await page.context().browser()!.newContext();
     const vp = await visitor.newPage();
-    await vp.goto(`/${username}`);
+    await vp.goto(`/${row!.username}`);
     await expect(vp.getByRole('heading', { level: 1 })).toContainText('Fanta Pub');
     await visitor.close();
   });
@@ -88,7 +81,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await expect(page.getByRole('heading', { name: /Vérification impossible/ })).toBeVisible();
   });
 
-  test('inscription par téléphone (code à usage unique) puis publication sans e-mail', async ({ page }) => {
+  test('inscription par téléphone (code à usage unique) puis validation du profil sans e-mail', async ({ page }) => {
     await page.goto('/auth/register');
     await page.getByRole('radio', { name: 'Téléphone' }).click();
     await page.getByLabel(/Nom complet/).fill('Kadiatou Tel');
@@ -101,13 +94,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await expect(page).toHaveURL(/\/onboarding/);
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
-    await page.getByLabel(/Adresse de votre page/).fill(`kadi${unique()}`);
-    for (let i = 0; i < 5; i++) {
-      await page.getByRole('button', { name: /Continuer/ }).click();
-      await page.waitForTimeout(150);
-    }
-    await expect(page.getByRole('heading', { name: 'Prêt à publier ?' })).toBeVisible();
-    await page.getByRole('button', { name: 'Publier ma page' }).click(); // numéro vérifié par le code : pas d'e-mail requis
+    await page.getByRole('button', { name: 'Valider mon compte' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText('Votre page est publiée')).toBeVisible();
   });
@@ -196,8 +183,9 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     await page.getByRole('button', { name: /^Rendez-vous/ }).first().click();
     await page.getByLabel(/Numéro WhatsApp qui reçoit les demandes/).fill('+224 622 00 00 00');
     await page.getByRole('button', { name: /Mettre à jour/ }).first().click();
-    await page.getByRole('button', { name: 'Publier les modifications' }).click();
-    await expect(page.getByRole('heading', { name: 'Publication effectuée' })).toBeVisible();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Publier', exact: true }).click();
+    await expect(page.locator('.toasts').getByText('Publication effectuée')).toBeVisible();
+    await expect(page.locator('.toasts').getByRole('link', { name: 'Voir' })).toHaveAttribute('href', `/${username}`);
     await page.goto(`/${username}`);
     await page.getByRole('button', { name: /Demander un rendez-vous/ }).click();
     await page.getByLabel(/Votre nom/).fill('Awa Test');
@@ -278,12 +266,12 @@ test.describe('dashboard, éditeur, apparence, analytics', () => {
     await expect(page.getByText(/date de début doit précéder/)).toBeVisible();
   });
 
-  test('abonnement : un changement de plan n’est jamais présenté comme réussi sans paiement', async ({ page, mariama }) => {
+  test('abonnement : un changement d’offre déjà payée n’est jamais présenté comme réussi sans paiement confirmé', async ({ page, mariama }) => {
     void mariama;
     await page.goto('/dashboard/subscription');
-    await page.getByRole('button', { name: /Passer à Business/ }).click();
+    await page.getByRole('button', { name: /Business/ }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Continuer' }).click();
-    await expect(page.getByText('Paiements non connectés')).toBeVisible();
+    await expect(page.getByText('Activation après paiement')).toBeVisible();
   });
 
   test('déconnexion avec confirmation : la session est détruite côté serveur', async ({ page, request, mariama }) => {
@@ -434,6 +422,7 @@ test.describe('vérification de profil', () => {
 test.describe('états d’erreur et formulaires', () => {
   test('connexion : validation et identifiants refusés', async ({ page }) => {
     await page.goto('/auth/login');
+    await page.getByRole('button', { name: 'Se connecter avec un mot de passe' }).click();
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page.getByRole('alert').first()).toBeVisible();
     await page.getByLabel(/Adresse e-mail/).fill('inconnu@exemple.com');

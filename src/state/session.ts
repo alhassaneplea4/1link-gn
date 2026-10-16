@@ -20,6 +20,11 @@ interface SessionState {
   signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
   setSession(session: Session): void;
+  /** Départ volontaire en cours (demande de suppression) : un 401 reçu pendant ce temps n'est pas une « session expirée ». */
+  leaving: boolean;
+  setLeaving(v: boolean): void;
+  /** Quitte l'espace connecté en vidant l'état local (la session serveur est déjà fermée). */
+  clearLocal(): void;
   markExpired(): void;
   can(permission: Permission): boolean;
 }
@@ -27,6 +32,7 @@ interface SessionState {
 export const useSession = create<SessionState>((set, get) => ({
   status: 'loading',
   session: null,
+  leaving: false,
 
   async init() {
     try {
@@ -66,8 +72,15 @@ export const useSession = create<SessionState>((set, get) => ({
 
   setSession: (session) => set({ status: 'authenticated', session }),
 
+  setLeaving: (v) => set({ leaving: v }),
+
+  clearLocal() {
+    resetUserScopedState();
+    set({ status: 'anonymous', session: null, leaving: false });
+  },
+
   markExpired() {
-    if (get().status !== 'authenticated') return;
+    if (get().status !== 'authenticated' || get().leaving) return;
     resetUserScopedState();
     set({ status: 'expired', session: null });
   },

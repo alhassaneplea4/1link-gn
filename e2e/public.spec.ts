@@ -48,7 +48,7 @@ test.describe('navigation publique', () => {
   test('pages /pricing et /faq', async ({ page }) => {
     await page.goto('/pricing');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Commencez gratuitement');
-    await expect(page.getByText('Tarifs indicatifs').first()).toBeVisible();
+    await expect(page.getByText('Tarifs en francs guinéens').first()).toBeVisible();
     await page.goto('/faq');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Questions fréquentes');
   });

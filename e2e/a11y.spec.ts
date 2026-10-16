@@ -42,6 +42,24 @@ test.describe('accessibilité (axe)', () => {
     });
   }
 
+  for (const path of ['/auth/login', '/auth/register']) {
+    test(`public ${path} (code par e-mail, puis saisie du code)`, async ({ page }) => {
+      await page.goto(path);
+      await audit(page, `${path} e-mail`);
+      await page.getByLabel(/Adresse e-mail/).fill('contraste@exemple.test');
+      if (path.endsWith('register')) await page.getByLabel(/J’accepte/).check();
+      await page.getByRole('button', { name: 'Recevoir le code par e-mail' }).click();
+      await expect(page.getByRole('button', { name: 'Remplir' })).toBeVisible();
+      await audit(page, `${path} code e-mail`);
+    });
+  }
+
+  test('public /auth/confirm-deletion (lien invalide)', async ({ page }) => {
+    await page.goto('/auth/confirm-deletion?token=invalide-invalide-invalide');
+    await expect(page.getByRole('heading', { name: 'Lien invalide ou expiré' })).toBeVisible();
+    await audit(page, 'confirmation de suppression');
+  });
+
   test('public /auth/forgot-password (onglet téléphone)', async ({ page }) => {
     await page.goto('/auth/forgot-password');
     await page.getByRole('radio', { name: 'Téléphone' }).click();

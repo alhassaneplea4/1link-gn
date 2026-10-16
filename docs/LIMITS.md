@@ -17,7 +17,9 @@ Ce document est volontairement sans fard : il distingue ce qui **fonctionne rée
 ## Choix produit : volontairement non fournis
 - **Aucune transaction financière sur la plateforme.** Paiements d'abonnement : `unavailable / payments_not_connected` ; les offres payantes s'attribuent manuellement (`npm run admin -- set-plan`).
   La boutique ouvre une conversation WhatsApp ; les moyens de paiement sont seulement affichés. Les tables `payments` / `subscriptions` sont prêtes pour un futur prestataire (Mobile Money, carte).
-- **Pas encore implémentés côté compte** : changement de mot de passe connecté, authentification à deux facteurs, suppression de compte, domaine personnalisé, équipe — affichés « bientôt ».
+- **Pas encore implémentés côté compte** : domaine personnalisé, équipe — affichés « bientôt ».
+- **Paiements** : aucune passerelle connectée. Souscrire ouvre un essai de 15 jours (une fois) ; ensuite l'équipe active l'abonnement après réception d'un paiement (Mobile Money, virement) depuis l'Admin Center.
+- **Suppression de compte** : demande puis confirmation finale après 15 jours sans activité (lien valable 7 jours) ; un compte ayant des paiements passe par le support (pièces comptables à conserver).
   Les tickets d'assistance (table + lecture admin) n'ont pas encore de formulaire de création côté utilisateur.
 - Paramètres de l'Admin Center (rubrique *Paramètres*) : en lecture seule.
 
