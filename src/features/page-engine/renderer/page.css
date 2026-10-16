@@ -144,8 +144,29 @@
 .pg-work__body { padding: 10px 12px 12px; }
 .pg-work h3 { font-size: 0.92em; font-weight: 750; }
 .pg-work p { font-size: 0.8em; color: var(--pg-muted); margin-top: 2px; }
-.pg-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.pg-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--pg-r) * 0.6); }
+/* — Galerie : carrousel (5 images au plus) et visionneuse plein écran — */
+.pg-carousel { display: grid; gap: 0.5rem; }
+.pg-carousel__track { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.pg-carousel__track::-webkit-scrollbar { display: none; }
+.pg-carousel__slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: center; display: grid; gap: 0.4rem; }
+.pg-carousel__open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: calc(var(--pg-r) * 0.8); overflow: hidden; }
+.pg-carousel__open img, .pg-carousel__open .pg-imgate { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.pg-carousel__caption { font-size: 0.85rem; color: var(--pg-muted, inherit); text-align: center; margin: 0; }
+.pg-carousel__bar { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.pg-carousel__nav { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit; opacity: 0.75; cursor: pointer; }
+.pg-carousel__nav:disabled { opacity: 0.25; cursor: default; }
+.pg-carousel__dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.4rem; }
+.pg-carousel__dots button { width: 0.55rem; height: 0.55rem; padding: 0; border-radius: 50%; border: 0; background: currentColor; opacity: 0.3; cursor: pointer; }
+.pg-carousel__dots button.is-active { opacity: 1; transform: scale(1.25); }
+.pg-lightbox { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 3.5rem 1rem 1rem; background: rgb(0 0 0 / 0.92); color: #fff; }
+.pg-lightbox__figure { margin: 0; display: grid; gap: 0.75rem; max-width: min(96vw, 64rem); max-height: 100%; justify-items: center; }
+.pg-lightbox__figure img { max-width: 100%; max-height: calc(100dvh - 9rem); object-fit: contain; border-radius: 8px; }
+.pg-lightbox__caption { display: grid; gap: 0.15rem; text-align: center; font-size: 1rem; max-width: 40rem; } .pg-lightbox__caption small { opacity: 0.7; }
+.pg-lightbox__close { position: absolute; top: calc(0.75rem + var(--safe-top, 0px)); right: 0.75rem; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 0; background: rgb(255 255 255 / 0.16); color: #fff; cursor: pointer; }
+.pg-lightbox__close:hover, .pg-lightbox__nav:hover:not(:disabled) { background: rgb(255 255 255 / 0.3); }
+.pg-lightbox__nav { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 0; background: rgb(255 255 255 / 0.16); color: #fff; cursor: pointer; }
+.pg-lightbox__nav:disabled { opacity: 0.25; cursor: default; }
+.pg-lightbox__nav--prev { left: 0.5rem; } .pg-lightbox__nav--next { right: 0.5rem; }
 .pg-video { position: relative; aspect-ratio: 16 / 9; border-radius: var(--pg-r); overflow: hidden; background: linear-gradient(135deg, #111827, #312e81); }
 .pg-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .pg-video__play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; }
@@ -170,7 +191,7 @@
 /* — Grille de liens (≥ 2 colonnes quand la place le permet) — */
 @container pg (min-width: 460px) {
   .pg[data-links='grid'][data-cols='2'] .pg-linkrun { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pg-gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pg-carousel__slide { flex-basis: 70%; }
 }
 @container pg (max-width: 320px) {
   .pg[data-profile='left'] .pg-profile { flex-direction: column; text-align: center; }

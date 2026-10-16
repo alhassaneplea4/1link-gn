@@ -59,6 +59,16 @@ export default {
   },
   scheduled: { upcoming: 'Programmé : pas encore visible', active: 'Programmé : visible', expired: 'Terminé : n’est plus visible' },
   since: 'Sur 1Link depuis {date}',
+  gallery: {
+    label: 'Galerie d’images',
+    slide: 'Image {n} sur {total}',
+    open: 'Voir l’image {n} en taille réelle',
+    prev: 'Image précédente',
+    next: 'Image suivante',
+    go: 'Aller à l’image {n}',
+    viewer: 'Visionneuse d’images',
+    close: 'Fermer l’image',
+  },
   actions: { whatsapp: 'WhatsApp', call: 'Appeler', email: 'E-mail', share: 'Partager', copied: 'Lien copié' },
   cta: { title: 'Créez votre propre 1Link', text: 'Rassemblez vos liens, réseaux, services et contacts sur une seule page. C’est gratuit et prêt en quelques minutes.', button: 'Créer mon 1Link' },
   share: {

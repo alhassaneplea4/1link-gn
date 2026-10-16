@@ -249,6 +249,8 @@
 .toast--info > svg { color: var(--color-primary); }
 .toast__body { flex: 1; display: grid; gap: 0.1rem; font-size: var(--text-sm); min-width: 0; }
 .toast__body span { color: var(--color-text-muted); }
+.toast__action { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem; font-weight: var(--weight-semibold); color: var(--color-primary); text-decoration: none; }
+.toast__action:hover { text-decoration: underline; }
 .toast__close { color: var(--color-text-subtle); padding: 0.2rem; border-radius: var(--radius-xs); }
 
 /* — Statistiques, graphiques — */

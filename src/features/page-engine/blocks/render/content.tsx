@@ -87,22 +87,6 @@ export function PortfolioRender({ block, ctx }: BlockRenderProps<'portfolio'>) {
   );
 }
 
-export function GalleryRender({ block, ctx }: BlockRenderProps<'gallery'>) {
-  const { title, images } = block.data;
-  return (
-    <section className="pg-section">
-      {title && <h2 className="pg-h2">{title}</h2>}
-      <ul className="pg-gallery" role="list">
-        {images.map((img, i) => (
-          <li key={i}>
-            <PgImage src={img.url} alt={img.alt} width={320} height={320} ctx={ctx} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 /** Vidéo « clic pour charger » : aucune iframe tierce (poids, vie privée) avant l'action de l'utilisateur. */
 export function VideoRender({ block, ctx }: BlockRenderProps<'video'>) {
   const t = useT('pub');

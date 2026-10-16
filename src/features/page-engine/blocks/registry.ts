@@ -13,7 +13,8 @@ import { scheduleError } from '../schedule';
 import type { BlockDefinition, BlockGroup, BlockRegistry, CreateContext } from './types';
 import { ProfileRender } from './render/profile';
 import { CtaRender, EmailRender, LinkRender, PhoneRender, SocialRender, WhatsappRender } from './render/links';
-import { DividerRender, GalleryRender, PortfolioRender, ServiceRender, TextRender, VideoRender } from './render/content';
+import { DividerRender, PortfolioRender, ServiceRender, TextRender, VideoRender } from './render/content';
+import { GalleryRender } from './render/gallery';
 import { ContactRender, LocationRender, QrRender } from './render/places';
 import { VcardRender } from './render/vcard';
 import { PaymentRender, ShopRender } from './render/commerce';
@@ -82,7 +83,7 @@ export const blockRegistry: BlockRegistry = {
     type: 'gallery', group: 'content', icon: 'image',
     fields: [
       text('title', { max: 80 }),
-      { kind: 'list', name: 'images', max: 12, defaultItem: { url: '', alt: '' }, itemFields: [image('url', { required: true }), text('alt', { required: true, max: 120 })] },
+      { kind: 'list', name: 'images', max: 5, defaultItem: { url: '', alt: '' }, itemFields: [image('url', { required: true }), text('alt', { required: true, max: 120 })] },
     ],
     create: () => ({ title: '', images: [{ url: '', alt: '' }] }),
     summary: (d) => d.title || `${d.images.length}`,

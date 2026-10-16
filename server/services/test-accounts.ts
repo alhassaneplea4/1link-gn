@@ -177,7 +177,7 @@ function blocksFor(spec: Spec, img: Imgs, stamp: string): AnyBlock[] {
         b({ id: 'blk_about', type: 'text', visible: true, data: { title: 'Un peu de moi', body: 'Passionnée de couleurs et de cuisine, je partage mes projets, mes recettes et mes coups de cœur.\n\nN’hésitez pas à me écrire pour collaborer sur un projet créatif.' } }),
         b({ id: 'blk_l1', type: 'link', visible: true, data: { title: 'Mon portfolio', url: 'https://exemple.com/portfolio', description: 'Projets de design récents', platform: 'link', highlight: true } }),
         b({ id: 'blk_l2', type: 'link', visible: true, data: { title: 'Ma playlist du moment', url: 'https://exemple.com/playlist', description: 'Ce que j’écoute en dessinant', platform: 'link', highlight: false } }),
-        b({ id: 'blk_gal', type: 'gallery', visible: true, data: { title: 'Instantanés', images: img.thumbs.slice(0, 6).map((url, i) => ({ url, alt: `Création ${i + 1}` })) } }),
+        b({ id: 'blk_gal', type: 'gallery', visible: true, data: { title: 'Instantanés', images: img.thumbs.slice(0, 5).map((url, i) => ({ url, alt: `Création ${i + 1}` })) } }),
         b({ id: 'blk_wa', type: 'whatsapp', visible: true, data: { label: 'Écrivez-moi sur WhatsApp', phone: '+224 600 00 00 01', message: 'Bonjour Fatoumata !' } }),
       ];
     case 'createur':

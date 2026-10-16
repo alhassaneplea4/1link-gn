@@ -36,7 +36,7 @@ function build(mode: PageMode) {
     social: z.object({ items: list(z.object({ platform: z.enum(SOCIAL_PLATFORMS), url: link }), 12), display: z.enum(['icons', 'list']).default('icons') }),
     service: z.object({ title: str(80), items: list(z.object({ name: str(80), description: str(240), price: str(40), url: link }), 12) }),
     portfolio: z.object({ title: str(80), items: list(z.object({ title: str(80), description: str(200), imageUrl: image, url: link }), 12) }),
-    gallery: z.object({ title: str(80), images: list(z.object({ url: image, alt: str(120) }), 12) }),
+    gallery: z.object({ title: str(80), images: list(z.object({ url: image, alt: str(120) }), strict ? 5 : 12) }),
     video: z.object({ title: str(80), url: link }),
     contact: z.object({ title: str(80), items: list(z.object({ kind: z.enum(['email', 'phone', 'whatsapp', 'address', 'website']), label: str(60), value: str(160) }), 8) }),
     email: z.object({ label: str(60), email, subject: str(120) }),

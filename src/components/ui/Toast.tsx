@@ -10,8 +10,10 @@ export interface ToastInput {
   description?: string;
   /** ms avant fermeture automatique ; 0 = persistant. */
   duration?: number;
+  /** Lien d'action, affiché sous le message (ex. « Voir » après une publication) ; s'ouvre dans un nouvel onglet. */
+  action?: { label: string; href: string; icon?: IconName };
 }
-interface ToastItem extends Required<Pick<ToastInput, 'tone' | 'title'>> { id: number; description?: string }
+interface ToastItem extends Required<Pick<ToastInput, 'tone' | 'title'>> { id: number; description?: string; action?: ToastInput['action'] }
 
 const ICONS: Record<ToastTone, IconName> = { success: 'check-circle', error: 'x-circle', info: 'info', warning: 'alert' };
 const Ctx = createContext<{ push: (t: ToastInput) => void } | null>(null);
@@ -24,7 +26,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback(
     (input: ToastInput) => {
       const id = ++seq.current;
-      setItems((l) => [...l.slice(-3), { id, tone: input.tone ?? 'info', title: input.title, description: input.description }]);
+      setItems((l) => [...l.slice(-3), { id, tone: input.tone ?? 'info', title: input.title, description: input.description, action: input.action }]);
       const duration = input.duration ?? (input.tone === 'error' ? 8000 : 4800);
       if (duration > 0) setTimeout(() => dismiss(id), duration);
     },
@@ -43,6 +45,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <div className="toast__body">
                   <strong>{x.title}</strong>
                   {x.description && <span>{x.description}</span>}
+                  {x.action && (
+                    <a className="toast__action" href={x.action.href} target="_blank" rel="noopener noreferrer">
+                      <Icon name={x.action.icon ?? 'arrow-right'} size={14} strokeWidth={2.6} /> {x.action.label}
+                    </a>
+                  )}
                 </div>
                 <button type="button" className="toast__close" onClick={() => dismiss(x.id)} aria-label={t('common.close')}>
                   <Icon name="x" size={16} />

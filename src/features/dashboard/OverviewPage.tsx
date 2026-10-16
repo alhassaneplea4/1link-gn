@@ -18,6 +18,7 @@ import { useT } from '@/i18n/core';
 import type { MessageKey } from '@/i18n/types';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
+import { ChangeLinkDialog } from './ChangeLinkDialog';
 import { formatCompact, formatDate, formatPercent, formatRelative } from '@/utilities/format';
 import './dashboard.css';
 
@@ -34,6 +35,7 @@ export default function OverviewPage() {
   const status = useEditor((s) => s.status);
   const [shareOpen, setShareOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const range = useMemo(() => rangeFromPreset('7d'), []);
   const report = useResource(() => api.analytics.getReport(range), [range.from, range.to]);
   const sub = useResource(() => api.billing.getSubscription(), []);
@@ -125,6 +127,7 @@ export default function OverviewPage() {
             <LinkButton to={paths.dashboard.page} variant={state === 'ready' || unpublished ? 'gradient' : 'secondary'} iconLeft={state === 'published' && !unpublished ? 'pencil' : 'rocket'}>
               {state === 'published' ? (unpublished ? t('dashboard.overview.publishChanges') : t('dashboard.overview.editPage')) : state === 'ready' ? t('dashboard.overview.publishNow') : t('dashboard.overview.continueSetup')}
             </LinkButton>
+            {doc.username && <Button variant="secondary" iconLeft="link" onClick={() => setLinkOpen(true)}>{t('dashboard.overview.link.button')}</Button>}
           </div>
         </Card>
 
@@ -247,6 +250,7 @@ export default function OverviewPage() {
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} size="lg" title={t('dashboard.overview.previewModalTitle')} description={t('dashboard.overview.previewText')}>
         <div className="ov-preview"><PageRenderer page={doc} pageUrl={pageShareUrl(doc.username || 'exemple')} preview layout="profile" /></div>
       </Modal>
+      {doc.username && <ChangeLinkDialog open={linkOpen} onClose={() => setLinkOpen(false)} current={doc.username} />}
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} username={doc.username || 'exemple'} published={doc.status === 'published'} />
     </div>
   );
