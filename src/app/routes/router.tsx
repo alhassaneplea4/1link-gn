@@ -82,7 +82,6 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, ...page(() => import('@/features/dashboard/OverviewPage'), ['dashboard', 'editor', 'analytics', 'pub', 'marketing']) },
                   { path: 'page', ...page(() => import('@/features/profile-editor/EditorPage'), ['editor', 'pub']) },
-                  { path: 'content', ...page(() => import('@/features/dashboard/ContentPage'), ['dashboard', 'editor', 'pub']) },
                   { path: 'appearance', ...page(() => import('@/features/appearance/AppearancePage'), ['appearance', 'editor', 'pub']) },
                   { path: 'analytics', ...page(() => import('@/features/analytics/AnalyticsPage'), ['analytics']) },
                   { path: 'subscription', ...page(() => import('@/features/subscriptions/SubscriptionPage'), ['billing', 'marketing', 'dashboard']) },

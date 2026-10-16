@@ -8,7 +8,9 @@ import { useDocumentTitle } from '@/hooks/dom';
 import { paths } from '@/app/configuration/paths';
 import { useT } from '@/i18n/core';
 import type { AnalyticsReport, DateRange, RangePreset } from '@/models/analytics';
-import { useSession } from '@/state/session';
+import { useAccess } from '@/hooks/useAccess';
+import { PlanGateNotice } from '@/features/subscriptions/PlanNotice';
+import { minimumPlanFor } from '@/models/access';
 import { formatCompact, formatDate, formatNumber, formatPercent } from '@/utilities/format';
 import { customRange, isoDay, rangeDays, rangeFromPreset } from './ranges';
 import './analytics.css';
@@ -35,21 +37,34 @@ function downloadCsv(report: AnalyticsReport, header: string[]) {
 export default function AnalyticsPage() {
   const t = useT('analytics', 'common');
   useDocumentTitle(`${t('analytics.title')} · 1Link`);
-  const entitlements = useSession((s) => s.session?.entitlements);
+  const { rights } = useAccess();
+  const allowed = rights.analytics;
   const [preset, setPreset] = useState<RangePreset>('7d');
   const [custom, setCustom] = useState({ from: isoDay(new Date(Date.now() - 13 * 86_400_000)), to: isoDay(new Date()) });
   const [kind, setKind] = useState<'line' | 'bar'>('line');
   const today = isoDay(new Date());
   const customError = preset === 'custom' ? (custom.from > custom.to ? t('analytics.range.invalidOrder') : custom.to > today ? t('analytics.range.future') : rangeDays(customRange(custom.from, custom.to)) > 366 ? t('analytics.range.tooLong') : undefined) : undefined;
   const range: DateRange = useMemo(() => (preset === 'custom' ? customRange(custom.from, custom.to) : rangeFromPreset(preset)), [preset, custom]);
-  const enabled = !customError;
+  const enabled = !customError && allowed !== null;
   const res = useResource(() => (enabled ? api.analytics.getReport(range) : Promise.reject(new Error('invalid'))), [range.from, range.to, enabled]);
   const report = res.data;
   const lab = useMemo(() => (report ? labels(report) : null), [report]);
-  const tooLongForPlan = entitlements && rangeDays(range) > entitlements.analyticsDays;
+  const tooLongForPlan = allowed && rangeDays(range) > allowed.maxDays;
   const empty = report ? report.totals.views === 0 && report.totals.clicks === 0 : false;
   const loading = res.status === 'loading' && enabled;
   const err = res.status === 'error' && enabled ? res.error : null;
+
+  if (!allowed) {
+    return (
+      <div className="an">
+        <PageHeader title={t('analytics.title')} description={t('analytics.subtitle')} />
+        <PlanGateNotice plan={minimumPlanFor((r) => r.analytics !== null)} />
+      </div>
+    );
+  }
+  const presets = PRESETS.filter((p) => allowed.presets.includes(p));
+  const detail = allowed.breakdowns;
+  const detailPlan = minimumPlanFor((r) => r.analytics?.breakdowns === true);
 
   return (
     <div className="an">
@@ -59,7 +74,7 @@ export default function AnalyticsPage() {
       />
 
       <div className="an-filters">
-        <Segmented label={t('analytics.range.label')} value={preset} onChange={setPreset} options={[...PRESETS.map((p) => ({ value: p as RangePreset, label: t(`analytics.range.${p}`) })), { value: 'custom' as RangePreset, label: t('analytics.range.custom') }]} />
+        <Segmented label={t('analytics.range.label')} value={preset} onChange={setPreset} options={[...presets.map((p) => ({ value: p as RangePreset, label: t(`analytics.range.${p}`) })), ...(allowed.presets.includes('custom') ? [{ value: 'custom' as RangePreset, label: t('analytics.range.custom') }] : [])]} />
         {preset === 'custom' && (
           <div className="an-filters__custom">
             <Input label={t('analytics.range.from')} type="date" max={today} value={custom.from} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} />
@@ -69,7 +84,7 @@ export default function AnalyticsPage() {
         {res.refreshing && <span className="subtle an-filters__refresh" role="status">{t('common.loading')}</span>}
       </div>
 
-      {tooLongForPlan && <Alert tone="info" className="an-alert" action={<Link className="btn btn--secondary btn--sm" to={paths.dashboard.subscription}><span className="btn__label">{t('analytics.planLimit.cta')}</span></Link>}>{t('analytics.planLimit.text', { days: entitlements!.analyticsDays })}</Alert>}
+      {tooLongForPlan && <Alert tone="info" className="an-alert" action={<Link className="btn btn--secondary btn--sm" to={paths.dashboard.subscription}><span className="btn__label">{t('analytics.planLimit.cta')}</span></Link>}>{t('analytics.planLimit.text', { days: allowed.maxDays })}</Alert>}
 
       {empty && !loading ? (
         <EmptyState icon="chart" title={t('analytics.empty.title')} description={t('analytics.empty.text')} />
@@ -91,7 +106,8 @@ export default function AnalyticsPage() {
             {report && lab && <TimeChart kind={kind} label={t('analytics.evolution')} x={lab.short} xLong={lab.long} height={280} series={[{ id: 'views', label: t('analytics.metrics.views'), values: report.series.map((p) => p.views) }, { id: 'visitors', label: t('analytics.metrics.visitors'), values: report.series.map((p) => p.visitors) }, { id: 'clicks', label: t('analytics.metrics.clicks'), values: report.series.map((p) => p.clicks) }]} />}
           </ChartCard>
 
-          <div className="an-cols">
+          {!detail && <PlanGateNotice plan={detailPlan} />}
+          {detail && <div className="an-cols">
             <ChartCard title={t('analytics.topLinks')} description={t('analytics.topLinksDesc')} loading={loading} error={err} onRetry={res.reload} empty={report?.topLinks.length === 0} emptyLabel={t('analytics.noLinks')}>
               {report && <HBarList items={report.topLinks.slice(0, 6).map((l) => ({ label: l.label, value: l.clicks, sub: `${t('analytics.metrics.ctr')} ${formatPercent(l.ctr, 1)}` }))} />}
             </ChartCard>
@@ -104,7 +120,7 @@ export default function AnalyticsPage() {
             <ChartCard title={t('analytics.countries')} description={report?.geoApproximate ? t('analytics.geoApprox') : undefined} loading={loading} error={err} onRetry={res.reload} footer={report?.geoApproximate ? <span>{t('analytics.geoNote')}</span> : undefined}>
               {report && <HBarList showShare items={report.countries.map((c) => ({ label: c.name, value: c.value }))} />}
             </ChartCard>
-          </div>
+          </div>}
           {report && <p className="subtle an-foot">{t('analytics.visitorsNote', { n: formatCompact(report.totals.visitors) })}</p>}
         </>
       )}

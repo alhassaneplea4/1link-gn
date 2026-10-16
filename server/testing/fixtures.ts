@@ -39,6 +39,11 @@ export interface UserFixture {
   phone?: string | null;
   password?: string;
   plan?: PlanId;
+  /** Fin de l'essai gratuit (défaut : dans 7 jours ; `null` = essai terminé). */
+  freeTrialEndsAt?: Date | null;
+  paidTrialUsed?: boolean;
+  /** État de l'abonnement payant (défaut : actif, sans échéance). */
+  subscription?: { status?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'pending'; trialEndsAt?: Date | null; renewsAt?: Date | null };
   adminRole?: AdminRole | null;
   category?: CategoryId | null;
   emailVerified?: boolean;
@@ -64,9 +69,10 @@ export async function createUser(db: Db, f: UserFixture = {}) {
       id: newId('usr'), email, phone: f.phone ?? null, passwordHash: email ? await hashPassword(password, 10) : null, name,
       emailVerifiedAt: f.emailVerified === false || !email ? null : now, phoneVerifiedAt: f.phoneVerified ? now : null, category: f.category ?? (f.page ? 'creator' : null),
       onboardingDone: f.onboardingDone ?? Boolean(f.page), adminRole: f.adminRole ?? null, status: f.suspended ? 'suspended' : 'active', verified: f.verified ?? false, createdAt: now, updatedAt: now, lastActiveAt: now,
+      freeTrialEndsAt: f.freeTrialEndsAt === undefined ? new Date(now.getTime() + 7 * 86_400_000) : f.freeTrialEndsAt, paidTrialUsedAt: f.paidTrialUsed ? now : null,
     })
     .returning();
-  await db.insert(subscriptions).values({ id: newId('sub'), userId: user!.id, planId: f.plan ?? 'free', status: 'active', period: 'monthly', startedAt: now, updatedAt: now });
+  await db.insert(subscriptions).values({ id: newId('sub'), userId: user!.id, planId: f.plan ?? 'free', status: f.subscription?.status ?? 'active', period: 'monthly', trialEndsAt: f.subscription?.trialEndsAt ?? null, renewsAt: f.subscription?.renewsAt ?? null, startedAt: now, updatedAt: now });
   let page;
   if (f.page) {
     const content = f.page.content ?? fixtureContent(name, (f.category ?? 'creator') as CategoryId);

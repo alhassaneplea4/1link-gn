@@ -75,6 +75,7 @@ const admin: AdminApi = {
   getReport: (id) => request('GET', `/admin/reports/${seg(id)}`),
   applyDecision: (id, decision, note) => request('POST', `/admin/reports/${seg(id)}/decision`, { body: { decision, note } }),
   setVerifiedBadge: (id, verified) => request('PATCH', `/admin/users/${seg(id)}/badge`, { body: { verified } }),
+  activateSubscription: (id, input) => request('POST', `/admin/users/${seg(id)}/subscription`, { body: input }),
   setUserStatus: (id, status) => request('PATCH', `/admin/users/${seg(id)}/status`, { body: { status } }),
   listVerifications: (l) => request('GET', '/admin/verifications', { query: q(l) }),
   decideVerification: (id, decision, note) => request('POST', `/admin/verifications/${seg(id)}/decision`, { body: { decision, note } }),

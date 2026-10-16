@@ -11,6 +11,7 @@ import { requireAnyPermission, requireAuth } from '../middleware.js';
 import * as admin from '../services/admin.js';
 import { platformOverview } from '../services/analytics.js';
 import { decideVerification } from '../services/verification.js';
+import { activateSubscription } from '../services/billing.js';
 import type { RealtimeEvent } from '../../src/models/admin.js';
 import type { Permission } from '../../src/models/auth.js';
 
@@ -38,6 +39,11 @@ adminRoutes.patch('/users/:id/status', can('users:write'), async (c) => {
   const body = await readJson(c, z.object({ status: z.enum(['active', 'suspended']) }));
   await admin.setUserStatus(c, c.get('deps'), c.get('auth')!, c.req.param('id'), body.status);
   return c.json({ applied: true });
+});
+
+adminRoutes.post('/users/:id/subscription', can('subscriptions:write'), async (c) => {
+  const body = await readJson(c, z.object({ planId: z.enum(['basic', 'pro', 'business']), period: z.enum(['monthly', 'yearly']), method: z.enum(['mobile_money', 'card', 'bank']), reference: z.string().trim().max(80).default('') }));
+  return c.json(await activateSubscription(c, c.get('deps'), c.get('auth')!, c.req.param('id'), body));
 });
 
 adminRoutes.get('/profiles', can('profiles:read'), async (c) => c.json(await admin.listProfiles(c.get('deps'), parseListQuery(c))));

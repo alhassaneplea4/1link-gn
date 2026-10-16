@@ -77,6 +77,8 @@ export default {
     recommended: 'Recommended for you',
     singletonExists: 'Already on your page',
     planLimit: 'Your plan’s block limit has been reached.',
+    planBlock: 'Available with the {plan} plan',
+    planLinks: 'Link limit of {max} reached with your plan',
     groups: { identity: 'Identity', links: 'Links & actions', content: 'Content', contact: 'Contact & place', layout: 'Layout' },
   },
   share: {

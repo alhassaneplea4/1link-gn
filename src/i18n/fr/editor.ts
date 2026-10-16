@@ -77,6 +77,8 @@ export default {
     recommended: 'Recommandés pour vous',
     singletonExists: 'Déjà présent sur votre page',
     planLimit: 'Limite de blocs de votre offre atteinte.',
+    planBlock: 'Disponible avec l’offre {plan}',
+    planLinks: 'Limite de {max} liens atteinte avec votre offre',
     groups: { identity: 'Identité', links: 'Liens & actions', content: 'Contenus', contact: 'Contact & lieu', layout: 'Mise en page' },
   },
   share: {

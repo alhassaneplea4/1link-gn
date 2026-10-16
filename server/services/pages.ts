@@ -7,7 +7,9 @@ import { activity } from '../lib/audit.js';
 import { pageLiveMessage } from '../lib/emails.js';
 import { notify } from './notifications.js';
 import { conflict, forbidden, HttpError, badRequest } from '../lib/errors.js';
-import { entitlementsFor } from '../lib/access.js';
+import { RIGHTS } from '../../src/models/access.js';
+import { accessOf, assertNotLocked, badgePlanOf } from './access.js';
+import { assertPageRights } from './page-rights.js';
 import { MAX_DOC_BYTES, type PageInput } from '../validation/page.js';
 import { uniqueViolation } from './accounts.js';
 import { RESERVED_USERNAMES, USERNAME_RE } from '../../src/utilities/validation.js';
@@ -50,7 +52,7 @@ export async function getOwnerPage(deps: Deps, userId: string): Promise<PageRow 
 }
 
 function assertEntitlements(plan: PlanId, input: PageInput) {
-  if (input.blocks.length > entitlementsFor(plan).maxBlocks) throw badRequest('plan_limit', { blocks: 'plan_limit' });
+  if (input.blocks.length > RIGHTS[plan].maxBlocks) throw badRequest('plan_limit', { blocks: 'plan_limit' });
   if (Buffer.byteLength(JSON.stringify(input)) > MAX_DOC_BYTES) throw new HttpError(413, 'payload_too_large');
   const ids = new Set<string>();
   for (const b of input.blocks) {
@@ -74,11 +76,12 @@ interface WriteOptions {
 
 /** Écrit le brouillon (et l'instantané publié si `publish`) avec verrou optimiste sur `version`. */
 export async function writePage(deps: Deps, auth: AuthContext, input: PageInput, opts: WriteOptions): Promise<PageDocument> {
+  assertNotLocked(auth.access);
   assertEntitlements(auth.planId, input);
   assertUsername(input, opts.publish);
   const now = deps.now();
   const nowIso = now.toISOString();
-  const badges = badgesOf(auth.user, auth.planId);
+  const badges = badgesOf(auth.user, badgePlanOf(auth.access));
   const blocks = stamp(withBadges(input.blocks as AnyBlock[], badges), nowIso);
   const content: PageContent = { blocks, appearance: input.appearance, share: input.share, category: input.category };
 
@@ -87,6 +90,7 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
     const row = await deps.db.transaction(async (tx) => {
       const [existing] = await tx.select().from(pages).where(eq(pages.userId, auth.user.id)).for('update').limit(1);
       if (existing?.status === 'suspended' && opts.publish) throw forbidden('page_suspended');
+      assertPageRights(RIGHTS[auth.planId], input, existing?.draft.appearance ?? null);
       const username = input.username || existing?.username || null;
       if (opts.publish && !username) throw badRequest('username_invalid', { username: 'invalid' });
       const snapshot: PageContent | null = opts.publish ? { ...content, blocks: content.blocks.filter((b) => b.visible) } : (existing?.published ?? null);
@@ -136,7 +140,7 @@ export async function unpublish(deps: Deps, auth: AuthContext): Promise<PageDocu
     if (existing?.status === 'suspended') throw forbidden('page_suspended');
     throw new HttpError(404, 'no_page');
   }
-  return ownerDocument(row, badgesOf(auth.user, auth.planId));
+  return ownerDocument(row, badgesOf(auth.user, badgePlanOf(auth.access)));
 }
 
 const pagesVersionBump = () => sql`${pages.version} + 1`;
@@ -144,7 +148,7 @@ const pagesVersionBump = () => sql`${pages.version} + 1`;
 /** Ce que voit un visiteur. Aucun champ privé du compte n'est exposé. */
 export async function resolvePublicPage(deps: Deps, username: string): Promise<PublicPageResult> {
   const [row] = await deps.db
-    .select({ p: pages, userStatus: users.status, verified: users.verified, adminRole: users.adminRole, planId: subscriptions.planId, subStatus: subscriptions.status })
+    .select({ p: pages, userStatus: users.status, verified: users.verified, adminRole: users.adminRole, planId: subscriptions.planId, subStatus: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, renewsAt: subscriptions.renewsAt, freeTrialEndsAt: users.freeTrialEndsAt, paidTrialUsedAt: users.paidTrialUsedAt })
     .from(pages)
     .innerJoin(users, eq(users.id, pages.userId))
     .leftJoin(subscriptions, eq(subscriptions.userId, users.id))
@@ -154,13 +158,15 @@ export async function resolvePublicPage(deps: Deps, username: string): Promise<P
   if (row.userStatus !== 'active' || row.p.status === 'suspended') return { state: 'suspended' };
   const snap = row.p.published;
   if (!snap || row.p.status !== 'published') return { state: 'draft' };
-  const paid = row.subStatus === 'active' || row.subStatus === 'trialing' || row.subStatus === 'past_due';
-  const plan = (paid ? row.planId : 'free') as PlanId;
+  const access = accessOf({ adminRole: row.adminRole, freeTrialEndsAt: row.freeTrialEndsAt, paidTrialUsedAt: row.paidTrialUsedAt }, { planId: row.planId, status: row.subStatus, trialEndsAt: row.trialEndsAt, renewsAt: row.renewsAt }, deps.now());
+  // Essai terminé sans abonnement : la page n'est plus servie tant qu'une offre n'est pas souscrite.
+  if (access.locked) return { state: 'unavailable' };
+  const plan = access.plan;
   const page: PageDocument = {
-    id: row.p.id, username: row.p.username ?? '', category: snap.category as CategoryId, status: 'published', blocks: withBadges(snap.blocks, badgesOf({ adminRole: row.adminRole, verified: row.verified }, plan)),
+    id: row.p.id, username: row.p.username ?? '', category: snap.category as CategoryId, status: 'published', blocks: withBadges(snap.blocks, badgesOf({ adminRole: row.adminRole, verified: row.verified }, badgePlanOf(access))),
     appearance: snap.appearance, share: snap.share, version: row.p.version, updatedAt: (row.p.publishedAt ?? row.p.updatedAt).toISOString(), publishedAt: row.p.publishedAt?.toISOString() ?? null,
   };
-  return { state: 'published', page, branding: !entitlementsFor(plan).removeBranding };
+  return { state: 'published', page, branding: !RIGHTS[plan].removeBranding };
 }
 
 export async function usernameAvailability(deps: Deps, username: string, selfUserId: string | null) {

@@ -19,10 +19,12 @@ import { createInitialDocument } from '@/features/page-engine/document';
 import { move as moveItem, uid } from '@/utilities/misc';
 import { registerReset } from './lifecycle';
 import { useSession } from './session';
+import { addBlockProblem } from '@/models/access';
+import { currentRights } from '@/hooks/useAccess';
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
-export type AddBlockResult = { ok: true; id: string } | { ok: false; reason: 'singleton' | 'plan_limit' | 'not_ready' };
+export type AddBlockResult = { ok: true; id: string } | { ok: false; reason: 'singleton' | 'plan_limit' | 'plan_block' | 'plan_links' | 'not_ready' };
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const MAX_HISTORY = 60;
@@ -121,10 +123,9 @@ export const useEditor = create<EditorState>((set, get) => {
     addBlock(type, index) {
       const { doc } = get();
       if (!doc) return { ok: false, reason: 'not_ready' };
-      const def = getBlockDefinition(type);
-      if (def.singleton && doc.blocks.some((b) => b.type === type)) return { ok: false, reason: 'singleton' };
-      const limit = useSession.getState().session?.entitlements.maxBlocks;
-      if (limit !== undefined && doc.blocks.length >= limit) return { ok: false, reason: 'plan_limit' };
+      // Un bloc déjà présent ne s'ajoute pas une seconde fois (sauf les liens, limités par l'offre) ; l'offre fixe les types permis.
+      const problem = addBlockProblem(currentRights(), doc.blocks, type);
+      if (problem) return { ok: false, reason: problem };
       const block = createBlock(type, { category: doc.category }) as AnyBlock;
       // La carte de contact reprend le nom du profil pour éviter une double saisie.
       if (block.type === 'vcard') {
@@ -169,9 +170,7 @@ export const useEditor = create<EditorState>((set, get) => {
       const idx = doc?.blocks.findIndex((b) => b.id === id) ?? -1;
       if (!doc || idx < 0) return null;
       const src = doc.blocks[idx]!;
-      if (getBlockDefinition(src.type).singleton) return null;
-      const limit = useSession.getState().session?.entitlements.maxBlocks;
-      if (limit !== undefined && doc.blocks.length >= limit) return null;
+      if (addBlockProblem(currentRights(), doc.blocks, src.type)) return null;
       const copy = { ...structuredClone(src), id: uid('blk'), updatedAt: new Date().toISOString() } as AnyBlock;
       const blocks = [...doc.blocks];
       blocks.splice(idx + 1, 0, copy);

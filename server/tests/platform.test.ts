@@ -67,7 +67,7 @@ describe('médias', () => {
   });
 
   it('une image téléversée peut servir d’avatar, une image externe aussi, mais pas une adresse data:', async () => {
-    const { c } = await user();
+    const { c } = await user({ plan: 'pro' });
     const { url } = (await c.post('/api/me/media', form(PNG))).body;
     const blocks = fixtureContent('A').blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, avatarUrl: url } } : b));
     const doc = { username: `img${ip}`, category: 'creator', blocks, appearance: FIXTURE_APPEARANCE, share: { title: '', description: '' }, version: 0 };
@@ -81,14 +81,14 @@ describe('abonnement (aucun paiement n’est traité)', () => {
     const free = await user();
     expect((await free.c.get('/api/me/subscription')).body).toMatchObject({ planId: 'free', status: 'active', cancelAtPeriodEnd: false });
     expect((await free.c.get('/api/me/invoices')).body).toEqual([]);
-    expect((await free.c.post('/api/me/subscription/change', { planId: 'pro', period: 'monthly' })).body).toEqual({ status: 'unavailable', reason: 'payments_not_connected' });
+    expect((await free.c.post('/api/me/subscription/change', { planId: 'free', period: 'monthly' })).status).toBe(422);
     expect((await free.c.post('/api/me/subscription/cancel')).status).toBe(409);
     expect((await free.c.post('/api/me/subscription/change', { planId: 'gold', period: 'monthly' })).status).toBe(422);
 
     const pro = await user({ plan: 'pro' });
     expect((await pro.c.post('/api/me/subscription/cancel')).body.cancelAtPeriodEnd).toBe(true);
     expect((await pro.c.post('/api/me/subscription/resume')).body.cancelAtPeriodEnd).toBe(false);
-    expect((await pro.c.get('/api/auth/session')).body.entitlements).toMatchObject({ maxBlocks: 50, removeBranding: true, analyticsDays: 90 });
+    expect((await pro.c.get('/api/auth/session')).body.entitlements).toMatchObject({ maxBlocks: 500, removeBranding: true, analyticsDays: 90 });
   });
 });
 

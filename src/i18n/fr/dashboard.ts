@@ -4,7 +4,6 @@ export default {
   nav: {
     overview: 'Vue d’ensemble',
     page: 'Ma page',
-    content: 'Contenu',
     appearance: 'Apparence',
     analytics: 'Analytics',
     subscription: 'Abonnement',
@@ -164,18 +163,6 @@ export default {
     notPublishedTitle: 'Page non publiée',
     notPublished: 'Le QR code pointe vers votre future adresse : publiez votre page avant de distribuer vos supports.',
     tip: 'Dans la fenêtre d’impression, choisissez « Enregistrer au format PDF » pour obtenir un fichier, et désactivez les en-têtes et pieds de page. Chaque support a son propre lien de suivi.',
-  },
-  content: {
-    description: 'Tous les éléments de votre page dans une vue liste : filtrez, masquez, modifiez.',
-    type: 'Type',
-    summary: 'Contenu',
-    status: 'État',
-    visible: 'Visible',
-    updated: 'Modifié',
-    filter: 'Filtrer par groupe',
-    searchPlaceholder: 'Rechercher un contenu…',
-    emptyTitle: 'Aucun contenu',
-    emptyText: 'Aucun bloc ne correspond. Ajoutez votre premier contenu.',
   },
   settings: {
     description: 'Compte, préférences et actions sensibles.',

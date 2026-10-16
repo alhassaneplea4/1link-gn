@@ -2,7 +2,7 @@ import type { Dict } from '../types';
 
 export default {
   nav: {
-    overview: 'Overview', page: 'My page', content: 'Content', appearance: 'Appearance', analytics: 'Analytics',
+    overview: 'Overview', page: 'My page', appearance: 'Appearance', analytics: 'Analytics',
     subscription: 'Subscription', settings: 'Settings', security: 'Security',
   },
   shell: {
@@ -158,18 +158,6 @@ export default {
     notPublishedTitle: 'Page not published',
     notPublished: 'The QR code points to your future address: publish your page before handing out your materials.',
     tip: 'In the print window, choose “Save as PDF” to get a file, and turn off headers and footers. Each format has its own tracking link.',
-  },
-  content: {
-    description: 'All your page elements in a list view: filter, hide, edit.',
-    type: 'Type',
-    summary: 'Content',
-    status: 'Status',
-    visible: 'Visible',
-    updated: 'Modified',
-    filter: 'Filter by group',
-    searchPlaceholder: 'Search content…',
-    emptyTitle: 'No content',
-    emptyText: 'No block matches. Add your first piece of content.',
   },
   settings: {
     description: 'Account, preferences and sensitive actions.',

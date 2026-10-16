@@ -28,7 +28,7 @@ export default function UsersPage() {
       <div className="adm-filters">
         <SearchBar label={t('common.search')} placeholder={t('admin.users.searchPlaceholder')} onSearch={setSearch} />
         <FilterSelect label={t('admin.users.category')} value={q.filters?.category} onChange={(v) => setFilter('category', v)} options={CATEGORY_IDS.map((c) => ({ value: c, label: t(`common.categories.${c}.label`) }))} />
-        <FilterSelect label={t('admin.users.plan')} value={q.filters?.plan} onChange={(v) => setFilter('plan', v)} options={(['free', 'pro', 'business'] as const).map((p) => ({ value: p, label: t(`common.plans.${p}`) }))} />
+        <FilterSelect label={t('admin.users.plan')} value={q.filters?.plan} onChange={(v) => setFilter('plan', v)} options={(['free', 'basic', 'pro', 'business'] as const).map((p) => ({ value: p, label: t(`common.plans.${p}`) }))} />
         <FilterSelect label={t('admin.users.status')} value={q.filters?.status} onChange={(v) => setFilter('status', v)} options={(['active', 'suspended'] as const).map((s) => ({ value: s, label: t(`common.status.${s}`) }))} />
       </div>
       <DataTable

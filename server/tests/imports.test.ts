@@ -14,7 +14,7 @@ const walk = (dir: string): string[] =>
   });
 
 // Fichiers de `src/` que le serveur importe à l'exécution : doivent rester des feuilles (aucun import d'exécution).
-const SHARED = ['models/auth', 'models/blocks', 'models/badges', 'models/appearance', 'models/category', 'models/verification', 'utilities/validation', 'utilities/color', 'utilities/phone', 'utilities/tracking', 'app/configuration/plans'];
+const SHARED = ['models/auth', 'models/access', 'models/blocks', 'models/badges', 'models/appearance', 'models/themes', 'models/category', 'models/verification', 'utilities/validation', 'utilities/color', 'utilities/phone', 'utilities/tracking', 'app/configuration/plans'];
 
 describe('compatibilité ESM / Vercel', () => {
   const files = [...walk(join(root, 'server')).filter((f) => !f.includes('tests') && !f.includes('testing')), ...walk(join(root, 'api'))];

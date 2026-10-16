@@ -4,6 +4,8 @@ import { getThemePreset, themeOrder } from '@/features/page-engine/appearance/th
 import { useT } from '@/i18n/core';
 import { uploadImage } from '@/services/media';
 import { useEditor } from '@/state/editor';
+import { useAccess } from '@/hooks/useAccess';
+import { allowsTheme, minimumPlanFor } from '@/models/access';
 import { BACKGROUND_TYPES, BUTTON_STYLES, CARD_STYLES, FONT_IDS, PATTERNS, RADIUS_KEYS, type AppearanceConfig, type ColorKey } from '@/models/appearance';
 import { COLOR_KEYS } from '@/models/appearance';
 import { readableOn } from '@/utilities/color';
@@ -13,24 +15,26 @@ type Patch = (p: Parameters<ReturnType<typeof useEditor.getState>['patchAppearan
 interface PanelProps { a: AppearanceConfig; patch: Patch }
 
 export function ThemesPanel({ a }: Pick<PanelProps, 'a'>) {
-  const t = useT('appearance', 'common');
+  const t = useT('appearance', 'common', 'billing');
   const apply = useEditor((s) => s.applyTheme);
+  const { rights } = useAccess();
   return (
     <ul role="list" className="themegrid">
       {themeOrder.map((id) => {
         const p = getThemePreset(id);
         const bg = p.background.type === 'gradient' ? `linear-gradient(${p.background.gradient.angle}deg, ${p.background.gradient.from}, ${p.background.gradient.to})` : p.colors.background;
         const active = a.themeId === id;
+        const allowed = allowsTheme(rights, id);
         return (
           <li key={id}>
-            <button type="button" className={`themecard ${active ? 'is-active' : ''}`} aria-pressed={active} onClick={() => apply(id)}>
+            <button type="button" className={`themecard ${active ? 'is-active' : ''} ${allowed ? '' : 'is-locked'}`} aria-pressed={active} disabled={!allowed} title={allowed ? undefined : t('billing.gate.needPlan', { plan: t(`common.plans.${minimumPlanFor((r) => allowsTheme(r, id))}`) })} onClick={() => apply(id)}>
               <span className="themecard__preview" style={{ background: bg, borderColor: p.colors.border }} aria-hidden="true">
                 <i className="themecard__avatar" style={{ background: p.colors.primary }} />
                 <i className="themecard__line" style={{ background: p.colors.text }} />
                 <i className="themecard__btn" style={{ background: p.button.style === 'outline' ? 'transparent' : p.colors.primary, border: `1.5px solid ${p.colors.primary}`, borderRadius: p.button.radius === 'pill' ? 99 : p.button.radius === 'sharp' ? 0 : 6 }} />
                 <i className="themecard__btn" style={{ background: p.button.style === 'outline' ? 'transparent' : p.colors.primary, opacity: 0.55, border: `1.5px solid ${p.colors.primary}`, borderRadius: p.button.radius === 'pill' ? 99 : p.button.radius === 'sharp' ? 0 : 6 }} />
               </span>
-              <span className="themecard__name">{active && <Icon name="check-circle" size={14} />}{t(`common.themes.${id}`)}</span>
+              <span className="themecard__name">{active && <Icon name="check-circle" size={14} />}{!allowed && <Icon name="lock" size={13} />}{t(`common.themes.${id}`)}</span>
             </button>
           </li>
         );

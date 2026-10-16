@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import type { C, Deps, HonoEnv } from '../context.js';
+import type { C, HonoEnv } from '../context.js';
 import { payments, subscriptions, users } from '../db/schema.js';
 import { conflict, HttpError, badRequest } from '../lib/errors.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
@@ -21,7 +21,9 @@ import { badgesOf, getOwnerPage, ownerDocument, unpublish, writePage } from '../
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
 import { userReport } from '../services/analytics.js';
 import { storeImage, MAX_IMAGE_BYTES } from '../services/media.js';
-import type { ChangePlanResult, Invoice, Subscription } from '../../src/models/billing.js';
+import { requestPlan, subscriptionOf } from '../services/billing.js';
+import { badgePlanOf } from '../services/access.js';
+import type { ChangePlanResult, Invoice } from '../../src/models/billing.js';
 import type { RangePreset } from '../../src/models/analytics.js';
 import type { PlanId } from '../../src/models/auth.js';
 
@@ -31,9 +33,9 @@ meRoutes.use('*', requireAuth);
 // — Page —
 
 meRoutes.get('/page', async (c) => {
-  const { user, planId } = c.get('auth')!;
+  const { user } = c.get('auth')!;
   const row = await getOwnerPage(c.get('deps'), user.id);
-  return c.json(row ? ownerDocument(row, badgesOf(user, planId)) : null);
+  return c.json(row ? ownerDocument(row, badgesOf(user, badgePlanOf(c.get('auth')!.access))) : null);
 });
 
 meRoutes.put('/page/draft', async (c) => {
@@ -78,13 +80,6 @@ meRoutes.get('/analytics', async (c) => {
 
 // — Abonnement (aucun paiement n'est traité par la plateforme) —
 
-const subscriptionOf = async (deps: Deps, userId: string): Promise<Subscription> => {
-  const [s] = await deps.db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
-  return s
-    ? { planId: s.planId as PlanId, status: s.status as Subscription['status'], period: s.period as Subscription['period'], renewsAt: s.renewsAt?.toISOString() ?? null, cancelAtPeriodEnd: s.cancelAtPeriodEnd }
-    : { planId: 'free', status: 'active', period: 'monthly', renewsAt: null, cancelAtPeriodEnd: false };
-};
-
 meRoutes.get('/subscription', async (c) => c.json(await subscriptionOf(c.get('deps'), c.get('auth')!.user.id)));
 
 meRoutes.get('/invoices', async (c) => {
@@ -93,10 +88,10 @@ meRoutes.get('/invoices', async (c) => {
   return c.json(invoices);
 });
 
-/** Honnête : tant qu'aucune passerelle de paiement n'est connectée, un changement d'offre ne peut pas aboutir. */
+/** Souscrire ouvre l'essai de 15 jours (une seule fois) ; ensuite, le paiement est confirmé par l'équipe — aucun paiement n'est simulé. */
 meRoutes.post('/subscription/change', async (c) => {
-  await readJson(c, z.object({ planId: z.enum(['free', 'pro', 'business']), period: z.enum(['monthly', 'yearly']) }));
-  const result: ChangePlanResult = { status: 'unavailable', reason: 'payments_not_connected' };
+  const body = await readJson(c, z.object({ planId: z.enum(['basic', 'pro', 'business']), period: z.enum(['monthly', 'yearly']) }));
+  const result: ChangePlanResult = await requestPlan(c.get('deps'), c.get('auth')!, body.planId, body.period);
   return c.json(result);
 });
 

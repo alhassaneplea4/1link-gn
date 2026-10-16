@@ -4,7 +4,9 @@ import type { AuthContext, C, Deps, UserRow } from '../context.js';
 import { pages, sessions, subscriptions, users } from '../db/schema.js';
 import { sha256, newToken } from '../lib/crypto.js';
 import { entitlementsFor, permissionsFor } from '../lib/access.js';
-import type { AdminRole, PlanId, Session } from '../../src/models/auth.js';
+import { accessOf, badgePlanOf } from './access.js';
+import type { AccessInfo } from '../../src/models/access.js';
+import type { AdminRole, Session } from '../../src/models/auth.js';
 import { badgesFor } from '../../src/models/badges.js';
 import type { CategoryId } from '../../src/models/category.js';
 
@@ -41,7 +43,7 @@ export async function loadSession(c: C, deps: Deps): Promise<AuthContext | null>
   const id = sha256(token);
   const now = deps.now();
   const [row] = await deps.db
-    .select({ s: sessions, u: users, username: pages.username, planId: subscriptions.planId, subStatus: subscriptions.status })
+    .select({ s: sessions, u: users, username: pages.username, planId: subscriptions.planId, status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, renewsAt: subscriptions.renewsAt })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .leftJoin(pages, eq(pages.userId, users.id))
@@ -61,8 +63,8 @@ export async function loadSession(c: C, deps: Deps): Promise<AuthContext | null>
     await deps.db.update(users).set({ lastActiveAt: now }).where(eq(users.id, row.u.id));
     if (!row.u.adminRole) setCookie(c, COOKIE, token, cookieOptions(deps, expiresAt));
   }
-  const paid = row.subStatus === 'active' || row.subStatus === 'trialing' || row.subStatus === 'past_due';
-  return { user: row.u, sessionId: id, username: row.username, planId: (paid ? row.planId : 'free') as PlanId, expiresAt };
+  const access = accessOf(row.u, row, now);
+  return { user: row.u, sessionId: id, username: row.username, planId: access.plan, access, expiresAt };
 }
 
 export async function endSession(deps: Deps, sessionId: string) {
@@ -79,16 +81,17 @@ export async function purgeExpiredSessions(deps: Deps) {
 }
 
 /** Représentation publique de la session (ce que voit l'interface). */
-export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId'>, expiresAt: Date): Session {
+export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId' | 'access'>, expiresAt: Date): Session {
   const u = a.user;
   return {
     user: {
       id: u.id, email: u.email, phone: u.phone, name: u.name, emailVerified: u.emailVerifiedAt !== null, phoneVerified: u.phoneVerifiedAt !== null, twoFactorSms: u.twoFactorSms,
       category: u.category as CategoryId | null, onboardingDone: u.onboardingDone, username: a.username, plan: a.planId, adminRole: u.adminRole as AdminRole | null,
-      badges: badgesFor({ adminRole: u.adminRole, verified: u.verified, plan: a.planId }),
+      badges: badgesFor({ adminRole: u.adminRole, verified: u.verified, plan: badgePlanOf(a.access) }),
     },
     permissions: permissionsFor(u.adminRole as AdminRole | null),
     entitlements: entitlementsFor(a.planId),
+    access: a.access satisfies AccessInfo,
     expiresAt: expiresAt.toISOString(),
   };
 }

@@ -227,6 +227,9 @@ function blocksFor(spec: Spec, img: Imgs, stamp: string): AnyBlock[] {
   }
 }
 
+/** Les comptes de test gardent leur essai très longtemps : ils servent à vérifier chaque offre. */
+const TEST_TRIAL_DAYS = 3650;
+
 export interface TestAccountInfo { key: string; email: string; username: string; plan: PlanId; category: CategoryId; created: boolean }
 
 export const testEmail = (key: string) => `${key}@${TEST_EMAIL_DOMAIN}`;
@@ -245,7 +248,7 @@ export async function seedTestAccounts(db: Db, password: string, scryptLog2N: nu
       continue;
     }
     const userId = newId('usr');
-    await db.insert(users).values({ id: userId, email, passwordHash: hash, name: spec.name, category: spec.category, emailVerifiedAt: now, onboardingDone: true, termsAcceptedAt: now, createdAt: now, updatedAt: now, lastActiveAt: now });
+    await db.insert(users).values({ id: userId, email, passwordHash: hash, name: spec.name, category: spec.category, emailVerifiedAt: now, onboardingDone: true, termsAcceptedAt: now, createdAt: now, updatedAt: now, lastActiveAt: now, freeTrialEndsAt: new Date(now.getTime() + TEST_TRIAL_DAYS * 86_400_000), paidTrialUsedAt: spec.plan === 'free' ? null : now });
     await db.insert(subscriptions).values({ id: newId('sub'), userId, planId: spec.plan, status: 'active', startedAt: now, updatedAt: now });
     const [c1, c2] = spec.palette;
     const img: Imgs = {

@@ -5,6 +5,7 @@ import { validateStep } from './validate';
 import { isBlockComplete } from '@/features/page-engine/blocks/registry';
 import { CATEGORY_CONFIG } from '@/features/categories/config';
 import type { OnboardingData } from './store';
+import { useSession } from '@/state/session';
 
 const base = (over: Partial<OnboardingData> = {}): OnboardingData => ({
   category: 'professional',
@@ -42,8 +43,18 @@ describe('validation des étapes d’onboarding', () => {
   });
 });
 
+const setPlan = (plan: 'free' | 'pro') =>
+  useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: false, analyticsDays: 0, teamSeats: 1 }, access: { phase: 'subscribed', plan, trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, expiresAt: '' } });
+
 describe('composition du document', () => {
+  it('se limite aux droits de l’offre Free : thème de base, liens et blocs autorisés', () => {
+    setPlan('free');
+    const doc = composeDocument(base(), 'Fallback');
+    expect(doc.appearance.themeId).toBe('minimal');
+    expect(doc.blocks.every((b) => ['profile', 'link', 'social', 'service', 'contact'].includes(b.type))).toBe(true);
+  });
   it('produit des blocs complets, sans lignes vides, avec le thème de la catégorie', () => {
+    setPlan('pro');
     const doc = composeDocument(base(), 'Fallback');
     expect(doc.blocks[0]!.type).toBe('profile');
     expect(doc.blocks.every((b) => isBlockComplete(b))).toBe(true);
@@ -54,6 +65,7 @@ describe('composition du document', () => {
     expect(doc.status).toBe('draft');
   });
   it.each(CATEGORY_IDS)('compose une page valide pour « %s »', (category) => {
+    setPlan('pro');
     const doc = composeDocument(base({ category }), 'Nom');
     expect(doc.category).toBe(category);
     expect(doc.blocks.every((b) => isBlockComplete(b))).toBe(true);

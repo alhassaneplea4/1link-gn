@@ -3,7 +3,7 @@
  * que refléter ce que le serveur renvoie dans la session, et chaque route admin la revérifie.
  */
 import { ADMIN_SECTIONS, type AdminRole, type Entitlements, type Permission, type PlanId } from '../../src/models/auth.js';
-import { PLANS } from '../../src/app/configuration/plans.js';
+import { RIGHTS } from '../../src/models/access.js';
 
 const all = (action: 'read' | 'write'): Permission[] => ADMIN_SECTIONS.map((s) => `${s}:${action}` as Permission);
 const perms = (read: readonly string[], write: readonly string[] = []): Permission[] => [
@@ -25,12 +25,8 @@ export const permissionsFor = (role: AdminRole | null): Permission[] => (role ? 
 /** Plafond dur pour l'offre « illimitée » : protège la base et le rendu contre un document démesuré. */
 export const HARD_MAX_BLOCKS = 500;
 
+/** Résumé des droits d'une offre (le détail — blocs, thèmes, onglets, statistiques — est dans `RIGHTS`). */
 export function entitlementsFor(planId: PlanId): Entitlements {
-  const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0]!;
-  return {
-    maxBlocks: plan.limits.maxBlocks ?? HARD_MAX_BLOCKS,
-    removeBranding: planId !== 'free',
-    analyticsDays: plan.limits.analyticsDays,
-    teamSeats: plan.limits.teamSeats,
-  };
+  const r = RIGHTS[planId];
+  return { maxBlocks: r.maxBlocks, removeBranding: r.removeBranding, analyticsDays: r.analytics?.maxDays ?? 0, teamSeats: r.teamSeats };
 }

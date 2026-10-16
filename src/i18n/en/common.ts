@@ -83,7 +83,7 @@ export default {
     active: 'Active',
     pending: 'Pending',
   },
-  plans: { free: 'Free', pro: 'Pro', business: 'Business' },
+  plans: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
   badges: {
     official: { label: '1Link Certified', how: 'Highest level, reserved for the platform’s super administrators.' },
     team: { label: '1Link Team', how: 'Reserved for members of the administration and moderation team.' },

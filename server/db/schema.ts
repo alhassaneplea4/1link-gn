@@ -21,7 +21,7 @@ export const USER_STATUSES = ['active', 'suspended'] as const;
 export const CATEGORIES = ['individual', 'creator', 'professional', 'business', 'organization'] as const;
 export const ADMIN_ROLE_VALUES = ['super_admin', 'admin', 'moderator', 'support', 'analyst', 'finance'] as const;
 export const PAGE_STATUSES = ['draft', 'published', 'suspended'] as const;
-export const PLAN_VALUES = ['free', 'pro', 'business'] as const;
+export const PLAN_VALUES = ['free', 'basic', 'pro', 'business'] as const;
 export const SUBSCRIPTION_STATUSES = ['active', 'trialing', 'past_due', 'canceled', 'pending'] as const;
 export const PAYMENT_STATUSES = ['paid', 'pending', 'failed', 'refunded'] as const;
 export const REPORT_REASONS = ['spam', 'impersonation', 'inappropriate', 'scam', 'copyright', 'other'] as const;
@@ -62,6 +62,10 @@ export const users = pgTable(
     /** Double authentification : un code SMS est exigé après le mot de passe (téléphone vérifié requis). */
     twoFactorSms: boolean('two_factor_sms').notNull().default(false),
     termsAcceptedAt: ts('terms_accepted_at'),
+    /** Fin de l'essai gratuit de 7 jours (une seule fois, posée à l'inscription). */
+    freeTrialEndsAt: ts('free_trial_ends_at'),
+    /** Date à laquelle l'essai de 15 jours d'une offre payante a été consommé (une seule fois par compte). */
+    paidTrialUsedAt: ts('paid_trial_used_at'),
     createdAt: createdAt(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
     lastActiveAt: ts('last_active_at'),
@@ -258,6 +262,8 @@ export const subscriptions = pgTable(
     status: text('status').notNull().default('active'),
     period: text('period').notNull().default('monthly'),
     renewsAt: ts('renews_at'),
+    /** Fin de l'essai de 15 jours : l'abonnement ne compte qu'à partir de cette date. */
+    trialEndsAt: ts('trial_ends_at'),
     cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
     provider: text('provider'),
     providerRef: text('provider_ref'),

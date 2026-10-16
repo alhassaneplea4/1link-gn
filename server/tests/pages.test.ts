@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createTestApp, type TestApp } from '../testing/harness.js';
 import { addEvents, createReport, createUser, FIXTURE_APPEARANCE, fixtureContent, type UserFixture } from '../testing/fixtures.js';
-import { pageEvents, pages, users } from '../db/schema.js';
+import { pageEvents, pages, subscriptions, users } from '../db/schema.js';
+import { DEFAULT_APPEARANCE } from '../../src/models/themes.js';
 
 let t: TestApp;
 beforeAll(async () => void (t = await createTestApp()));
@@ -14,7 +15,7 @@ let ipCounter = 10;
 const nextIp = () => `192.0.2.${ipCounter++}`;
 
 async function signedIn(f: UserFixture = {}) {
-  const u = await createUser(t.db, f);
+  const u = await createUser(t.db, { plan: 'pro', ...f });
   const c = t.client({ 'x-real-ip': nextIp() });
   expect((await c.post('/api/auth/sign-in', { email: u.email, password: u.password })).status).toBe(200);
   return { ...u, c };
@@ -58,7 +59,7 @@ describe('brouillon', () => {
   it('respecte la limite de blocs de l’offre et rejette les doublons d’identifiant', async () => {
     const { c } = await signedIn({ plan: 'free' });
     const many = fixtureContent('X').blocks;
-    const blocks = Array.from({ length: 11 }, (_, i) => ({ ...many[1]!, id: `b${i}` }));
+    const blocks = Array.from({ length: 13 }, (_, i) => ({ ...many[1]!, id: `b${i}` }));
     expect((await c.put('/api/me/page/draft', { ...doc(uname(), 0), blocks })).body.message).toBe('plan_limit');
     const dup = [many[0]!, { ...many[1]!, id: 'same' }, { ...many[1]!, id: 'same' }];
     expect((await c.put('/api/me/page/draft', { ...doc(uname(), 0), blocks: dup })).body.message).toBe('duplicate_block');
@@ -108,7 +109,7 @@ describe('publication et page publique', () => {
     const unverified = await signedIn({ emailVerified: false });
     expect((await unverified.c.post('/api/me/page/publish', doc(uname(), 0))).status).toBe(200);
 
-    const { c } = await signedIn();
+    const { c, user: owner } = await signedIn();
     const username = uname();
     const base = fixtureContent('Awa').blocks;
     const blocks = [...base, { id: 'hidden1', type: 'text', visible: false, data: { title: 'SECRET', body: 'privé' } }];
@@ -117,6 +118,7 @@ describe('publication et page publique', () => {
     expect(pub.body).toMatchObject({ status: 'published', username, version: 1 });
     expect((await c.get('/api/me/page')).body.blocks.some((b: any) => b.id === 'hidden1')).toBe(true); // le propriétaire garde son brouillon
 
+    await t.db.update(subscriptions).set({ planId: 'free' }).where(eq(subscriptions.userId, owner.id)); // la mention « Créé avec 1Link » dépend de l'offre
     const visitor = t.client();
     const page = await visitor.get(`/api/pages/${username}`);
     expect(page.body.state).toBe('published');
@@ -157,7 +159,8 @@ describe('publication et page publique', () => {
     await c.post('/api/auth/otp/request', { phone, channel: 'whatsapp' });
     const up = await c.post('/api/auth/otp/verify', { phone, code: t.otp.sent.at(-1)!.code, mode: 'sign_up', name: 'Tel Seul', acceptTerms: true });
     expect(up.body.user).toMatchObject({ email: null, emailVerified: false, phoneVerified: true });
-    const pub = await c.post('/api/me/page/publish', doc(uname(), 0));
+    const free = doc(uname(), 0);
+    const pub = await c.post('/api/me/page/publish', { ...free, appearance: DEFAULT_APPEARANCE, blocks: free.blocks.filter((b) => b.type !== 'whatsapp') });
     expect(pub.status).toBe(200);
     expect(pub.body.status).toBe('published');
   });
@@ -213,9 +216,10 @@ describe('mesure d’audience', () => {
   });
 
   it('calcule les périodes, la comparaison à la période précédente et borne selon l’offre', async () => {
-    const { c, user } = await signedIn({ plan: 'free' });
+    const { c, user } = await signedIn({ plan: 'pro' });
     const username = uname();
     await c.post('/api/me/page/publish', doc(username, 0));
+    await t.db.update(subscriptions).set({ planId: 'basic' }).where(eq(subscriptions.userId, user.id)); // Basique : 7 jours maximum
     const [page] = await t.db.select().from(pages).where(eq(pages.userId, user.id));
     await addEvents(t.db, page!.id, { views: 4, daysAgo: 1 });
     await addEvents(t.db, page!.id, { views: 2, daysAgo: 8 }); // période précédente (7 j)
@@ -226,7 +230,7 @@ describe('mesure d’audience', () => {
     expect(rep.deltas.views).toBe(1); // 4 vs 2 → +100 %
     expect(rep.series).toHaveLength(7);
     const wide = (await c.get(`/api/me/analytics?from=${ymd(new Date(Date.now() - 80 * 86_400_000))}&to=${ymd(new Date())}&preset=90d`)).body;
-    expect(wide.range.from >= ymd(new Date(Date.now() - 7 * 86_400_000))).toBe(true); // l'offre gratuite limite à 7 jours
+    expect(wide.range.from >= ymd(new Date(Date.now() - 7 * 86_400_000))).toBe(true); // l'offre Basique limite à 7 jours
     expect((await c.get('/api/me/analytics?from=2026-13-40&to=nope')).status).toBe(422);
   });
 });

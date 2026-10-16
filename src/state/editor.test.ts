@@ -12,9 +12,12 @@ const load = () => {
 };
 const types = () => useEditor.getState().doc!.blocks.map((b) => b.type);
 
+const setPlan = (plan: 'free' | 'basic' | 'pro' | 'business') =>
+  useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: false, analyticsDays: 0, teamSeats: 1 }, access: { phase: 'subscribed', plan, trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, expiresAt: '' } });
+
 beforeEach(() => {
   useEditor.getState().reset();
-  useSession.setState({ status: 'anonymous', session: null });
+  setPlan('pro');
   load();
 });
 
@@ -53,18 +56,27 @@ describe('store de l’éditeur', () => {
     expect(types()).toContain('profile');
   });
 
-  it('respecte la limite de blocs fournie par la session (autorité serveur)', () => {
-    useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: types().length, removeBranding: false, analyticsDays: 7, teamSeats: 1 }, expiresAt: '' } });
-    expect(useEditor.getState().addBlock('text')).toEqual({ ok: false, reason: 'plan_limit' });
+  it('applique les droits de l’offre : type de bloc réservé, liens limités, bloc déjà présent', () => {
+    setPlan('free');
+    expect(useEditor.getState().addBlock('video')).toEqual({ ok: false, reason: 'plan_block' });
+    expect(useEditor.getState().addBlock('text')).toEqual({ ok: false, reason: 'plan_block' });
+    expect(useEditor.getState().addBlock('service')).toEqual({ ok: false, reason: 'singleton' });
+    let guard = 0;
+    while (useEditor.getState().addBlock('link').ok && guard++ < 20);
+    expect(types().filter((t) => t === 'link')).toHaveLength(4);
+    expect(useEditor.getState().addBlock('link')).toEqual({ ok: false, reason: 'plan_links' });
+    setPlan('basic');
+    expect(useEditor.getState().addBlock('text')).toMatchObject({ ok: true });
+    expect(useEditor.getState().addBlock('text')).toEqual({ ok: false, reason: 'singleton' });
   });
 
   it('duplique, déplace et masque', () => {
     const doc = useEditor.getState().doc!;
-    const svc = doc.blocks.find((b) => b.type === 'service')!;
+    const svc = doc.blocks.find((b) => b.type === 'link')!; // seuls les liens se dupliquent (les autres blocs sont uniques)
     const copyId = useEditor.getState().duplicateBlock(svc.id)!;
     expect(copyId).not.toBe(svc.id);
-    const idx = types().indexOf('service');
-    expect(types()[idx + 1]).toBe('service');
+    const idx = types().indexOf('link');
+    expect(types()[idx + 1]).toBe('link');
     useEditor.getState().moveBlock(idx + 1, 0);
     expect(useEditor.getState().doc!.blocks[0]!.id).toBe(copyId);
     useEditor.getState().toggleVisible(copyId);

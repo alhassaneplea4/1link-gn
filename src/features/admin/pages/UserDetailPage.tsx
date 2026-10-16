@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Avatar, Badge, Breadcrumb, Button, Card, ConfirmDialog, ErrorState, PageHeader, Skeleton, useToast } from '@/components/ui';
+import { Avatar, Badge, Breadcrumb, Button, Card, ConfirmDialog, ErrorState, Input, PageHeader, Select, Skeleton, useToast } from '@/components/ui';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { useDocumentTitle } from '@/hooks/dom';
@@ -16,6 +16,8 @@ export default function UserDetailPage() {
   const toast = useToast();
   const canWrite = useCanWrite('users');
   const canBadge = useCanWrite('profiles');
+  const canSubscribe = useCanWrite('subscriptions');
+  const [sub, setSub] = useState({ planId: 'basic' as 'basic' | 'pro' | 'business', period: 'monthly' as 'monthly' | 'yearly', method: 'mobile_money' as 'mobile_money' | 'card' | 'bank', reference: '' });
   const res = useResource(() => api.admin.getUser(id), [id]);
   const [confirm, setConfirm] = useState<'suspend' | 'reinstate' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -43,6 +45,20 @@ export default function UserDetailPage() {
     try {
       await api.admin.setVerifiedBadge(id, !u.profileVerified);
       toast.push({ tone: 'success', title: u.profileVerified ? t('admin.userDetail.verifiedRevoked') : t('admin.userDetail.verifiedGranted') });
+      res.reload();
+    } catch {
+      toast.push({ tone: 'error', title: t('admin.actionFailed') });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const activate = async () => {
+    setBusy(true);
+    try {
+      await api.admin.activateSubscription(id, sub);
+      toast.push({ tone: 'success', title: t('admin.userDetail.subActivated') });
+      setSub((s) => ({ ...s, reference: '' }));
       res.reload();
     } catch {
       toast.push({ tone: 'error', title: t('admin.actionFailed') });
@@ -89,6 +105,28 @@ export default function UserDetailPage() {
             <div><dt>{t('admin.userDetail.page')}</dt><dd>{u.username ? <><StatusBadge value={u.pageStatus} label={t(`common.status.${u.pageStatus}`)} /> {u.pageStatus === 'published' && <Link to={`/${u.username}`} target="_blank">@{u.username}</Link>}</> : '—'}</dd></div>
           </dl>
         </Card>
+        {canSubscribe && u.adminRole === null && (
+          <Card padding="lg" data-testid="admin-subscription">
+            <h2 className="adm-section-title">{t('admin.userDetail.subTitle')}</h2>
+            <p className="muted">{t('admin.userDetail.subText')}</p>
+            <div className="adm-form">
+              <Select label={t('admin.userDetail.subPlan')} value={sub.planId} onChange={(e) => setSub((s) => ({ ...s, planId: e.target.value as typeof s.planId }))}>
+                {(['basic', 'pro', 'business'] as const).map((p) => <option key={p} value={p}>{t(`common.plans.${p}`)}</option>)}
+              </Select>
+              <Select label={t('admin.userDetail.subPeriod')} value={sub.period} onChange={(e) => setSub((s) => ({ ...s, period: e.target.value as typeof s.period }))}>
+                <option value="monthly">{t('admin.userDetail.monthly')}</option>
+                <option value="yearly">{t('admin.userDetail.yearly')}</option>
+              </Select>
+              <Select label={t('admin.userDetail.subMethod')} value={sub.method} onChange={(e) => setSub((s) => ({ ...s, method: e.target.value as typeof s.method }))}>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="bank">{t('admin.userDetail.bank')}</option>
+                <option value="card">{t('admin.userDetail.card')}</option>
+              </Select>
+              <Input label={t('admin.userDetail.subReference')} value={sub.reference} maxLength={80} onChange={(e) => setSub((s) => ({ ...s, reference: e.target.value }))} />
+              <Button variant="gradient" iconLeft="check" loading={busy} onClick={() => void activate()}>{t('admin.userDetail.subActivate')}</Button>
+            </div>
+          </Card>
+        )}
         <Card padding="lg">
           <h2 className="adm-section-title">{t('admin.userDetail.history')}</h2>
           <ol role="list" className="timeline">

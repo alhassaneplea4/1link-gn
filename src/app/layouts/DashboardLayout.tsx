@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Icon, LinkButton, SearchBar } from '@/components/ui';
 import { paths } from '@/app/configuration/paths';
 import { getPlan } from '@/app/configuration/plans';
 import { pageReadiness } from '@/features/page-engine/document';
 import { blockRegistry, blockSummary } from '@/features/page-engine/blocks/registry';
 import { useOutsideClick } from '@/hooks/dom';
+import { useAccess } from '@/hooks/useAccess';
+import { TrialBanner } from '@/features/subscriptions/PlanNotice';
 import { useT } from '@/i18n/core';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { useSession } from '@/state/session';
@@ -50,12 +52,19 @@ export default function DashboardLayout() {
   const t = useT('dashboard', 'common');
   const session = useSession((s) => s.session);
   const doc = useEditor((s) => s.doc);
+  const { locked } = useAccess();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   useEffect(() => void useEditor.getState().load(), []);
+  // Essai terminé sans abonnement : seuls l'abonnement, les paramètres et la sécurité restent accessibles.
+  useEffect(() => {
+    const open = [paths.dashboard.subscription, paths.dashboard.settings, paths.dashboard.security];
+    if (locked && !open.some((p) => pathname === p || pathname.startsWith(`${p}/`))) void navigate(paths.dashboard.subscription, { replace: true });
+  }, [locked, pathname, navigate]);
 
   const nav: NavEntry[] = useMemo(() => [
     { id: 'overview', to: paths.dashboard.root, end: true, icon: 'dashboard', label: t('dashboard.nav.overview'), primaryMobile: true },
     { id: 'page', to: paths.dashboard.page, icon: 'pencil', label: t('dashboard.nav.page'), primaryMobile: true },
-    { id: 'content', to: paths.dashboard.content, icon: 'layers', label: t('dashboard.nav.content') },
     { id: 'appearance', to: paths.dashboard.appearance, icon: 'palette', label: t('dashboard.nav.appearance'), primaryMobile: true },
     { id: 'analytics', to: paths.dashboard.analytics, icon: 'chart', label: t('dashboard.nav.analytics'), primaryMobile: true },
     { id: 'subscription', to: paths.dashboard.subscription, icon: 'credit-card', label: t('dashboard.nav.subscription') },
@@ -80,6 +89,7 @@ export default function DashboardLayout() {
     <AppShell
       variant="user"
       nav={nav}
+      banners={<TrialBanner />}
       header={
         <>
           <GlobalSearch nav={nav} />

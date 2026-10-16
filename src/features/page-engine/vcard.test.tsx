@@ -6,6 +6,7 @@ import { createBlock } from './blocks/registry';
 import { PageRenderer } from './renderer/PageRenderer';
 import { getSampleDocument } from './samples';
 import { useEditor } from '@/state/editor';
+import { useSession } from '@/state/session';
 import type { VcardData } from '@/models/blocks';
 
 const data: VcardData = {
@@ -41,6 +42,7 @@ describe('vCard', () => {
     expect(createBlock('vcard', { category: 'individual' }).data.fullName).toBe('');
     const doc = structuredClone(getSampleDocument('professional'));
     useEditor.setState({ status: 'ready', doc, saved: doc, past: [], future: [], dirty: false });
+    useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: true, analyticsDays: 90, teamSeats: 1 }, access: { phase: 'subscribed', plan: 'pro', trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, expiresAt: '' } });
     const res = useEditor.getState().addBlock('vcard');
     const added = useEditor.getState().doc!.blocks.find((b) => res.ok && b.id === res.id);
     expect(added?.type === 'vcard' && added.data.fullName).toBe('Mamadou Keita');

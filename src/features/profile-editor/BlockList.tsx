@@ -6,6 +6,9 @@ import { useT } from '@/i18n/core';
 import type { AnyBlock } from '@/models/blocks';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { cx } from '@/utilities/misc';
+import { useAccess } from '@/hooks/useAccess';
+import { MULTI_BLOCKS, type PlanRights } from '@/models/access';
+import type { FieldDef } from '@/features/page-engine/blocks/schema';
 import { useFlip } from './useFlip';
 import { ScheduleFields } from './ScheduleFields';
 import { scheduleState } from '@/features/page-engine/schedule';
@@ -24,9 +27,17 @@ interface BlockCardProps {
   onDragOverIndex: (i: number | null) => void;
 }
 
+/** Nombre maximal de services / contacts selon l'offre : le serveur applique la même limite. */
+function fieldsFor(type: string, fields: readonly FieldDef[], rights: PlanRights): readonly FieldDef[] {
+  const cap = type === 'service' ? rights.maxServices : type === 'contact' ? rights.maxContacts : null;
+  if (cap === null) return fields;
+  return fields.map((f) => (f.kind === 'list' && f.name === 'items' ? { ...f, max: Math.min(f.max, cap) } : f));
+}
+
 function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onToggle, onRequestDelete, onDragStartIndex, onDropIndex, onDragOverIndex }: BlockCardProps) {
   const t = useT('editor');
   const def = blockRegistry[block.type];
+  const { rights } = useAccess();
   const { moveBlock, toggleVisible, duplicateBlock, replaceBlockData, setBlockSchedule } = useEditor.getState();
   const sched = scheduleState(block.schedule, Date.now());
   const errors = validateBlock(block);
@@ -70,7 +81,7 @@ function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onTog
           <IconButton size="sm" icon="arrow-up" label={t('editor.list.moveUp')} disabled={index === 0} onClick={() => moveBlock(index, index - 1)} />
           <IconButton size="sm" icon="arrow-down" label={t('editor.list.moveDown')} disabled={index === total - 1} onClick={() => moveBlock(index, index + 1)} />
           <IconButton size="sm" icon={block.visible ? 'eye' : 'eye-off'} label={block.visible ? t('editor.list.hide') : t('editor.list.show')} onClick={() => toggleVisible(block.id)} />
-          {!def.singleton && <IconButton size="sm" icon="copy" label={t('common.duplicate')} onClick={() => duplicateBlock(block.id)} />}
+          {MULTI_BLOCKS.includes(block.type) && <IconButton size="sm" icon="copy" label={t('common.duplicate')} onClick={() => duplicateBlock(block.id)} />}
           {!def.required && <IconButton size="sm" icon="trash" variant="danger" label={t('common.delete')} onClick={onRequestDelete} />}
         </div>
       </div>
@@ -79,7 +90,7 @@ function BlockCard({ block, index, total, expanded, forceErrors, dragOver, onTog
           <SchemaForm
             idPrefix={block.id}
             labelPrefix={`editor.blocks.${block.type}`}
-            fields={def.fields}
+            fields={fieldsFor(block.type, def.fields, rights)}
             data={block.data as unknown as Record<string, unknown>}
             errors={errors}
             showAllErrors={forceErrors}

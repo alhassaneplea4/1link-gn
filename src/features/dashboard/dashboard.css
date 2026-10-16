@@ -47,10 +47,6 @@
 .recent li { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; font-size: var(--text-sm); } .recent li + li { border-top: var(--border-1); }
 .recent__icon { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: var(--radius-sm); background: var(--gradient-brand-soft); color: var(--color-primary); flex: none; }
 .recent__text { display: grid; flex: 1; min-width: 0; } .recent__text small { color: var(--color-text-subtle); }
-.content-toolbar { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
-.content-toolbar__search { width: min(100%, 20rem); }
-.cell-type { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: var(--weight-semibold); }
-.cell-summary { display: block; max-width: 22rem; color: var(--color-text-muted); }
 .cell-badges { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; }
 .cell-actions { display: inline-flex; gap: 0.25rem; align-items: center; }
 

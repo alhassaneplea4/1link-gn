@@ -19,7 +19,6 @@ export const paths = {
   dashboard: {
     root: '/dashboard',
     page: '/dashboard/page',
-    content: '/dashboard/content',
     appearance: '/dashboard/appearance',
     analytics: '/dashboard/analytics',
     subscription: '/dashboard/subscription',

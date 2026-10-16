@@ -7,6 +7,8 @@ import type { PageDocument } from '@/models/page';
 import { isEmail, isPhone, isUrl } from '@/utilities/validation';
 import { isBareBase } from '@/models/platforms';
 import type { OnboardingData } from './store';
+import { currentRights } from '@/hooks/useAccess';
+import { allowsBlock, allowsTheme, type PlanRights } from '@/models/access';
 
 const filled = (s: string | undefined) => (s ?? '').trim().length > 0;
 
@@ -76,7 +78,25 @@ export function composeDocument(d: OnboardingData, fallbackName: string): PageDo
     blocks.push(b);
   }
 
-  let appearance = getThemePreset(d.themeId ?? cfg.themeId);
+  // Un thème que l'offre n'autorise pas est remplacé par le thème de base : le serveur refuserait la publication.
+  const rights = currentRights();
+  const wanted = d.themeId ?? cfg.themeId;
+  let appearance = getThemePreset(allowsTheme(rights, wanted) ? wanted : 'minimal');
   if (d.primaryColor) appearance = mergeAppearance(appearance, { themeId: 'custom', colors: { primary: d.primaryColor } });
-  return { ...base, blocks, appearance };
+  return fitToRights({ ...base, blocks, appearance }, rights);
+}
+
+/** Retire ce que l'offre n'autorise pas (types de blocs, nombre de liens, services et contacts) pour que la publication ne soit pas refusée. */
+export function fitToRights(doc: PageDocument, rights: PlanRights): PageDocument {
+  let links = 0;
+  const blocks = doc.blocks.filter((b) => {
+    if (!allowsBlock(rights, b.type)) return false;
+    if (b.type === 'link') return rights.maxLinks === null || ++links <= rights.maxLinks;
+    return true;
+  }).map((b) => {
+    if (b.type === 'service' && rights.maxServices !== null) return { ...b, data: { ...b.data, items: b.data.items.slice(0, rights.maxServices) } };
+    if (b.type === 'contact' && rights.maxContacts !== null) return { ...b, data: { ...b.data, items: b.data.items.slice(0, rights.maxContacts) } };
+    return b;
+  });
+  return { ...doc, blocks };
 }

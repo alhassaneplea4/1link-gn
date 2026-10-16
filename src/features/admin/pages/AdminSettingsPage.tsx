@@ -1,5 +1,6 @@
 import { Alert, Badge, Card, PageHeader, Toggle } from '@/components/ui';
 import { PLANS } from '@/app/configuration/plans';
+import { RIGHTS } from '@/models/access';
 import { useDocumentTitle } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { formatCurrency, formatNumber } from '@/utilities/format';
@@ -30,7 +31,7 @@ export default function AdminSettingsPage() {
             <caption className="sr-only">{t('admin.settings.plans')}</caption>
             <thead><tr><th scope="col">{t('admin.users.plan')}</th><th scope="col" className="is-end">/ mois</th><th scope="col" className="is-end">/ an</th><th scope="col" className="is-end">{t('admin.settings.maxBlocks')}</th></tr></thead>
             <tbody>
-              {PLANS.map((p) => <tr key={p.id}><th scope="row" style={{ textTransform: 'none' }}>{t(`common.plans.${p.id}`)}</th><td className="is-end">{formatCurrency(p.price.monthly, p.price.currency)}</td><td className="is-end">{formatCurrency(p.price.yearly, p.price.currency)}</td><td className="is-end">{p.limits.maxBlocks ? formatNumber(p.limits.maxBlocks) : '∞'}</td></tr>)}
+              {PLANS.map((p) => <tr key={p.id}><th scope="row" style={{ textTransform: 'none' }}>{t(`common.plans.${p.id}`)}</th><td className="is-end">{formatCurrency(p.price.monthly, p.price.currency)}</td><td className="is-end">{formatCurrency(p.price.yearly, p.price.currency)}</td><td className="is-end">{formatNumber(RIGHTS[p.id].maxBlocks)}</td></tr>)}
             </tbody>
           </table>
         </div>

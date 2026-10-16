@@ -52,3 +52,4 @@
 
 /* Mobile : l'en-tête n'affiche plus le titre ni l'état de connexion (déjà visibles ailleurs) ; seul l'espace réservé reste. */
 @media (max-width: 767px) { .adm-title > * { display: none; } }
+.adm-form { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); margin-top: var(--space-3); }

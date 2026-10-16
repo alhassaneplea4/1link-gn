@@ -8,6 +8,7 @@ import { useT } from '@/i18n/core';
 import type { PlanId } from '@/models/auth';
 import type { BillingPeriod, ChangePlanResult, Invoice, InvoiceStatus } from '@/models/billing';
 import { useSession } from '@/state/session';
+import { useAccess } from '@/hooks/useAccess';
 import { formatCurrency, formatDate } from '@/utilities/format';
 import './subscription.css';
 
@@ -18,7 +19,7 @@ export default function SubscriptionPage() {
   const t = useT('billing', 'marketing', 'common', 'dashboard');
   useDocumentTitle(`${t('dashboard.nav.subscription')} · 1Link`);
   const toast = useToast();
-  const user = useSession((s) => s.session?.user);
+  const { access } = useAccess();
   const sub = useResource(() => api.billing.getSubscription(), []);
   const invoices = useResource(() => api.billing.listInvoices(), []);
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
@@ -28,7 +29,7 @@ export default function SubscriptionPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
 
   const current = sub.data;
-  const plan = getPlan(current?.planId ?? user?.plan ?? 'free');
+  const plan = getPlan(access.phase === 'subscribed' || access.phase === 'paid_trial' ? access.plan : 'free');
 
   const confirmChange = async () => {
     if (!target) return;
@@ -37,7 +38,7 @@ export default function SubscriptionPage() {
       const res = await api.billing.changePlan(target, period);
       setOutcome(res);
       if (res.status === 'checkout_required') window.location.assign(res.checkoutUrl);
-      if (res.status === 'changed') { toast.push({ tone: 'success', title: t('billing.sub.changed') }); sub.reload(); }
+      if (res.status === 'changed') { toast.push({ tone: 'success', title: t('billing.sub.changed') }); sub.reload(); void useSession.getState().init(); }
     } catch {
       toast.push({ tone: 'error', title: t('billing.sub.changeFailed') });
     } finally {
@@ -73,7 +74,7 @@ export default function SubscriptionPage() {
       <PageHeader title={t('dashboard.nav.subscription')} description={t('billing.sub.description')} />
 
       {outcome?.status === 'unavailable' && (
-        <Alert tone="warning" title={t('billing.sub.unavailableTitle')} onDismiss={() => setOutcome(null)} className="subpg__alert">{t('billing.sub.unavailableText')}</Alert>
+        <Alert tone="info" title={t('billing.sub.payTitle')} onDismiss={() => setOutcome(null)} className="subpg__alert">{t('billing.sub.payText')}</Alert>
       )}
 
       <Card padding="lg" className="subpg__current">
@@ -81,11 +82,12 @@ export default function SubscriptionPage() {
           <>
             <div>
               <p className="eyebrow">{t('billing.sub.current')}</p>
-              <h2 className="subpg__plan">{t(`common.plans.${plan.id}`)} <Badge tone={current?.status === 'active' ? 'success' : 'warning'} dot>{t(`dashboard.overview.subStatus.${current?.status ?? 'active'}`)}</Badge></h2>
+              <h2 className="subpg__plan">{t(`common.plans.${plan.id}`)} <Badge tone={access.locked ? 'danger' : access.phase === 'subscribed' || access.phase === 'staff' ? 'success' : 'warning'} dot>{t(`billing.sub.phase.${access.phase}`, { days: access.daysLeft ?? 0 })}</Badge></h2>
               <p className="muted">{t(`marketing.pricing.desc.${plan.id}`)}</p>
+              {access.trialEndsAt && <p className="subpg__renew"><Icon name="calendar" size={16} /> {t('billing.sub.trialEnds', { date: formatDate(access.trialEndsAt) })}</p>}
               {current?.renewsAt && <p className="subpg__renew"><Icon name="calendar" size={16} /> {current.cancelAtPeriodEnd ? t('billing.sub.endsOn', { date: formatDate(current.renewsAt) }) : t('billing.sub.renewsOn', { date: formatDate(current.renewsAt) })}</p>}
             </div>
-            {plan.id !== 'free' && current && (
+            {access.phase === 'subscribed' && current && (
               <Button variant="secondary" onClick={() => (current.cancelAtPeriodEnd ? void toggleCancel() : setCancelOpen(true))} loading={busy && !cancelOpen}>
                 {current.cancelAtPeriodEnd ? t('billing.sub.resume') : t('billing.sub.cancel')}
               </Button>
@@ -100,8 +102,8 @@ export default function SubscriptionPage() {
           <Segmented label={t('marketing.pricing.period')} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: t('marketing.pricing.monthly') }, { value: 'yearly', label: t('marketing.pricing.yearly') }]} />
         </div>
         <ul role="list" className="subpg__plans">
-          {PLANS.map((p) => {
-            const isCurrent = p.id === plan.id;
+          {PLANS.filter((p) => p.id !== 'free').map((p) => {
+            const isCurrent = p.id === plan.id && (access.phase === 'subscribed' || access.phase === 'paid_trial');
             const amount = period === 'monthly' ? p.price.monthly : p.price.yearly;
             return (
               <li key={p.id} className={`planrow ${isCurrent ? 'is-current' : ''}`}>
@@ -111,7 +113,7 @@ export default function SubscriptionPage() {
                   <small className="muted">{t(`marketing.pricing.desc.${p.id}`)}</small>
                 </div>
                 {isCurrent ? <Badge tone="brand" icon="check">{t('billing.sub.yourPlan')}</Badge> : (
-                  <Button variant={p.id === 'free' ? 'secondary' : 'gradient'} size="sm" onClick={() => setTarget(p.id)}>{PLANS.findIndex((x) => x.id === p.id) > PLANS.findIndex((x) => x.id === plan.id) ? t('billing.sub.upgradeTo') : t('billing.sub.switchTo')} {t(`common.plans.${p.id}`)}</Button>
+                  <Button variant="gradient" size="sm" onClick={() => setTarget(p.id)}>{access.paidTrialAvailable ? t('billing.sub.tryFree') : t('billing.sub.subscribe')} {t(`common.plans.${p.id}`)}</Button>
                 )}
               </li>
             );
@@ -133,7 +135,7 @@ export default function SubscriptionPage() {
 
       <ConfirmDialog
         open={target !== null} loading={busy} onCancel={() => setTarget(null)} onConfirm={() => void confirmChange()}
-        title={t('billing.sub.confirmTitle', { plan: target ? t(`common.plans.${target}`) : '' })} description={t('billing.sub.confirmText')} confirmLabel={t('billing.sub.confirm')}
+        title={t('billing.sub.confirmTitle', { plan: target ? t(`common.plans.${target}`) : '' })} description={access.paidTrialAvailable ? t('billing.sub.confirmTrialText') : t('billing.sub.confirmPayText')} confirmLabel={t('billing.sub.confirm')}
       >
         <Alert tone="info">{t('billing.sub.confirmNote')}</Alert>
       </ConfirmDialog>

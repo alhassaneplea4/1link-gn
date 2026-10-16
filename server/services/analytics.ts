@@ -3,8 +3,8 @@ import { eq, sql, type SQL } from 'drizzle-orm';
 import type { AuthContext, Deps } from '../context.js';
 import type { Executor } from '../db/client.js';
 import { pages } from '../db/schema.js';
-import { entitlementsFor } from '../lib/access.js';
-import { badRequest } from '../lib/errors.js';
+import { RIGHTS } from '../../src/models/access.js';
+import { badRequest, HttpError } from '../lib/errors.js';
 import type { AnalyticsReport, DateRange, SeriesPoint, Share } from '../../src/models/analytics.js';
 import type { PlatformOverview } from '../../src/models/admin.js';
 import type { AnyBlock } from '../../src/models/blocks.js';
@@ -102,7 +102,10 @@ export function blockLabel(b: AnyBlock): string {
 
 export async function userReport(deps: Deps, auth: AuthContext, requested: DateRange, locale: string): Promise<AnalyticsReport> {
   const now = deps.now();
-  const range = normalizeRange(requested, now, entitlementsFor(auth.planId).analyticsDays);
+  // Free : pas de statistiques ; Basique : aujourd'hui et 7 jours, totaux seulement ; Pro et Business : tout.
+  const allowed = RIGHTS[auth.planId].analytics;
+  if (!allowed || auth.access.locked) throw new HttpError(403, 'plan_required', { feature: 'analytics' });
+  const range = normalizeRange(requested, now, allowed.maxDays);
   const [page] = await deps.db.select({ id: pages.id, draft: pages.draft }).from(pages).where(eq(pages.userId, auth.user.id)).limit(1);
   const pageId = page?.id ?? '__none__';
   const len = spanDays(range.from, range.to);
@@ -138,10 +141,10 @@ export async function userReport(deps: Deps, auth: AuthContext, requested: DateR
     totals: { views: cur.views, visitors: cur.visitors, clicks: cur.clicks, ctr },
     deltas: { views: ratio(cur.views, prev.views), visitors: ratio(cur.visitors, prev.visitors), clicks: ratio(cur.clicks, prev.clicks), ctr: prev.views ? ratio(ctr, prevCtr) : null },
     series: points,
-    topLinks: clicks.rows.map((r) => ({ blockId: r.block_id, label: labels.get(r.block_id) ?? '—', clicks: r.clicks, ctr: cur.views ? r.clicks / cur.views : 0 })),
-    sources: mergeShares(sources, sourceKey),
-    devices: mergeShares(devices, (n) => n || 'desktop'),
-    countries: mergeShares(countries, (n) => (n ? (names?.of(n) ?? n) : unknown)),
+    topLinks: !allowed.breakdowns ? [] : clicks.rows.map((r) => ({ blockId: r.block_id, label: labels.get(r.block_id) ?? '—', clicks: r.clicks, ctr: cur.views ? r.clicks / cur.views : 0 })),
+    sources: allowed.breakdowns ? mergeShares(sources, sourceKey) : [],
+    devices: allowed.breakdowns ? mergeShares(devices, (n) => n || 'desktop') : [],
+    countries: allowed.breakdowns ? mergeShares(countries, (n) => (n ? (names?.of(n) ?? n) : unknown)) : [],
   };
 }
 

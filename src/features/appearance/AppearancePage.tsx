@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ConfirmDialog, ErrorState, PageHeader, Button, Segmented, Skeleton, Tabs, useToast } from '@/components/ui';
 import { EditorToolbar } from '@/features/profile-editor/EditorToolbar';
 import { LivePreview } from '@/features/profile-editor/EditorPage';
 import { useDocumentTitle, useIsDesktop } from '@/hooks/dom';
 import { useT } from '@/i18n/core';
 import { useEditor } from '@/state/editor';
+import { useAccess } from '@/hooks/useAccess';
+import { PlanGateNotice } from '@/features/subscriptions/PlanNotice';
+import { minimumPlanFor, type AppearanceTab } from '@/models/access';
 import { ButtonsPanel, BackgroundPanel, ColorsPanel, LayoutPanel, ThemesPanel, TypographyPanel } from './panels';
 import '@/features/profile-editor/editor.css';
 import './appearance.css';
@@ -20,22 +23,28 @@ export default function AppearancePage() {
   const [view, setView] = useState<'settings' | 'preview'>('settings');
   const [confirmReset, setConfirmReset] = useState(false);
   const desktop = useIsDesktop();
+  const { rights } = useAccess();
   useEffect(() => void useEditor.getState().load(), []);
   const noop = useCallback(() => undefined, []);
 
   if (status === 'error') return <ErrorState code={loadError} onRetry={() => void useEditor.getState().load({ force: true })} />;
   if (!a) return <Skeleton height={360} radius={16} />;
 
+  // Un onglet fermé à l'offre reste visible (cadenas) mais ses réglages ne sont pas proposés : le serveur refuse de toute façon ces modifications.
+  const tab = (id: string, access: AppearanceTab, label: string, icon: 'sparkles' | 'palette' | 'click' | 'type' | 'grid' | 'image', panel: ReactNode) => {
+    const open = rights.tabs.includes(access);
+    return { id, label, icon: open ? icon : ('lock' as const), panel: open ? panel : <PlanGateNotice plan={minimumPlanFor((r) => r.tabs.includes(access))} /> };
+  };
   const panels = (
     <Tabs
       variant="pills" label={t('appearance.sections')}
       items={[
-        { id: 'themes', label: t('appearance.tabs.themes'), icon: 'sparkles', panel: <ThemesPanel a={a} /> },
-        { id: 'colors', label: t('appearance.tabs.colors'), icon: 'palette', panel: <ColorsPanel a={a} patch={patch} /> },
-        { id: 'buttons', label: t('appearance.tabs.buttons'), icon: 'click', panel: <ButtonsPanel a={a} patch={patch} /> },
-        { id: 'type', label: t('appearance.tabs.type'), icon: 'type', panel: <TypographyPanel a={a} patch={patch} /> },
-        { id: 'layout', label: t('appearance.tabs.layout'), icon: 'grid', panel: <LayoutPanel a={a} patch={patch} /> },
-        { id: 'background', label: t('appearance.tabs.background'), icon: 'image', panel: <BackgroundPanel a={a} patch={patch} /> },
+        tab('themes', 'themes', t('appearance.tabs.themes'), 'sparkles', <ThemesPanel a={a} />),
+        tab('colors', 'colors', t('appearance.tabs.colors'), 'palette', <ColorsPanel a={a} patch={patch} />),
+        tab('buttons', 'buttons', t('appearance.tabs.buttons'), 'click', <ButtonsPanel a={a} patch={patch} />),
+        tab('type', 'text', t('appearance.tabs.type'), 'type', <TypographyPanel a={a} patch={patch} />),
+        tab('layout', 'layout', t('appearance.tabs.layout'), 'grid', <LayoutPanel a={a} patch={patch} />),
+        tab('background', 'background', t('appearance.tabs.background'), 'image', <BackgroundPanel a={a} patch={patch} />),
       ]}
     />
   );

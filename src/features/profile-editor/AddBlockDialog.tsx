@@ -5,11 +5,14 @@ import { useT } from '@/i18n/core';
 import type { BlockType } from '@/models/blocks';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { useIsDesktop } from '@/hooks/dom';
+import { useAccess } from '@/hooks/useAccess';
+import { addBlockProblem, allowsBlock, minimumPlanFor } from '@/models/access';
 import { Drawer } from '@/components/ui';
 
 /** Sélecteur de type de bloc : recommandations de la catégorie en tête, puis tous les types par groupe. */
 export function AddBlockDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded?: (id: string) => void }) {
-  const t = useT('editor');
+  const t = useT('editor', 'common');
+  const { rights } = useAccess();
   const toast = useToast();
   const category = useEditor((s) => s.doc?.category);
   const blocks = useEditorBlocks();
@@ -20,7 +23,7 @@ export function AddBlockDialog({ open, onClose, onAdded }: { open: boolean; onCl
   const add = (type: BlockType) => {
     const res = addBlock(type);
     if (!res.ok) {
-      toast.push({ tone: 'warning', title: res.reason === 'singleton' ? t('editor.picker.singletonExists') : t('editor.picker.planLimit') });
+      toast.push({ tone: 'warning', title: res.reason === 'singleton' ? t('editor.picker.singletonExists') : res.reason === 'plan_block' ? t('editor.picker.planBlock', { plan: t(`common.plans.${minimumPlanFor((r) => allowsBlock(r, type))}`) }) : t('editor.picker.planLimit') });
       return;
     }
     onAdded?.(res.id);
@@ -29,14 +32,20 @@ export function AddBlockDialog({ open, onClose, onAdded }: { open: boolean; onCl
 
   const renderItem = (type: BlockType) => {
     const def = blockRegistry[type];
-    const disabled = def.singleton && blocks.some((b) => b.type === type);
+    // Un bloc déjà présent (ou réservé à une autre offre) reste visible mais grisé et non cliquable.
+    const problem = addBlockProblem(rights, blocks, type);
+    const disabled = problem !== null;
+    const reason = problem === 'singleton' ? t('editor.picker.singletonExists')
+      : problem === 'plan_block' ? t('editor.picker.planBlock', { plan: t(`common.plans.${minimumPlanFor((r) => allowsBlock(r, type))}`) })
+        : problem === 'plan_links' ? t('editor.picker.planLinks', { max: rights.maxLinks ?? 0 })
+          : problem === 'plan_limit' ? t('editor.picker.planLimit') : null;
     return (
       <li key={type}>
-        <button type="button" className="picker__item" onClick={() => add(type)} disabled={disabled}>
+        <button type="button" className={`picker__item ${disabled ? 'is-disabled' : ''}`} onClick={() => add(type)} disabled={disabled} aria-disabled={disabled}>
           <span className="picker__icon"><Icon name={def.icon} size={20} /></span>
           <span className="picker__text">
             <strong>{t(`editor.blocks.${type}.label`)}</strong>
-            <small>{disabled ? t('editor.picker.singletonExists') : t(`editor.blocks.${type}.description`)}</small>
+            <small>{reason ?? t(`editor.blocks.${type}.description`)}</small>
           </span>
         </button>
       </li>

@@ -13,3 +13,5 @@
 .subpg__note { display: flex; gap: 0.4rem; align-items: center; font-size: var(--text-xs); }
 .subpg__legend { list-style: none; padding: 0; display: grid; gap: 0.5rem; font-size: var(--text-xs); margin-top: var(--space-2); }
 .subpg__legend li { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.plan-gate { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: var(--space-3) var(--space-4); border: 1px dashed var(--color-border-strong, var(--color-border)); border-radius: var(--radius-md); background: var(--color-surface-2, var(--color-surface)); font-size: var(--text-sm); }
+.plan-gate a { font-weight: var(--weight-semibold); }

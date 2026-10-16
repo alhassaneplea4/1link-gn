@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../testing/harness.js';
-import { fixtureContent, FIXTURE_APPEARANCE, uniqueEmail } from '../testing/fixtures.js';
+import { fixtureContent, uniqueEmail } from '../testing/fixtures.js';
+import { DEFAULT_APPEARANCE } from '../../src/models/themes.js';
 
 let t: TestApp;
 beforeAll(async () => void (t = await createTestApp()));
@@ -11,9 +12,9 @@ const ip = () => ({ 'x-real-ip': `192.0.2.${(n++ % 200) + 1}` });
 const settle = () => new Promise((r) => setTimeout(r, 60));
 
 const page = (username: string, social: Array<{ platform: string; url: string }>, cover = '') => {
-  const blocks = fixtureContent('Awa').blocks.map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, coverUrl: cover } } : b));
+  const blocks = fixtureContent('Awa').blocks.filter((b) => b.type !== 'whatsapp').map((b) => (b.type === 'profile' ? { ...b, data: { ...b.data, coverUrl: cover } } : b));
   return {
-    username, category: 'creator', version: 0, appearance: FIXTURE_APPEARANCE, share: { title: '', description: '' },
+    username, category: 'creator', version: 0, appearance: DEFAULT_APPEARANCE, share: { title: '', description: '' },
     blocks: [...blocks, { id: 'blk_soc', type: 'social', visible: true, data: { display: 'icons', items: social } }],
   };
 };

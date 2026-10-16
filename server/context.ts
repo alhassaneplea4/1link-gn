@@ -4,6 +4,7 @@ import type { Db } from './db/client.js';
 import type { users } from './db/schema.js';
 import type { Locale } from './lib/emails.js';
 import type { Mailer } from './lib/mailer.js';
+import type { AccessInfo, PlanId } from '../src/models/access.js';
 import type { OtpSender } from './lib/otp-sender.js';
 
 export type UserRow = typeof users.$inferSelect;
@@ -24,7 +25,9 @@ export interface AuthContext {
   user: UserRow;
   sessionId: string;
   username: string | null;
-  planId: 'free' | 'pro' | 'business';
+  /** Offre EFFECTIVE (selon l'essai ou l'abonnement en cours). */
+  planId: PlanId;
+  access: AccessInfo;
   expiresAt: Date;
 }
 

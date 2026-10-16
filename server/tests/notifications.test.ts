@@ -67,7 +67,7 @@ describe('e-mails de bienvenue et de suivi', () => {
   });
 
   it('félicite à la PREMIÈRE publication seulement', async () => {
-    const { email, password } = await createUser(t.db, { name: 'Fatou Bah' });
+    const { email, password } = await createUser(t.db, { name: 'Fatou Bah', plan: 'pro' });
     const c = t.client({ 'x-real-ip': `203.0.113.${ip++}` });
     await c.post('/api/auth/sign-in', { email: email!, password });
     const username = `live${ip}`;

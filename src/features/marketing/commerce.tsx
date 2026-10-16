@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, Card, ChartCard, Icon, LinkButton, Segmented } from '@/components/ui';
 import { ChartLegend, HBarList, TimeChart } from '@/components/charts/charts';
-import { PLANS, PLAN_COMPARISON } from '@/app/configuration/plans';
+import { COMPARISON_TOKENS, PLANS, PLAN_COMPARISON } from '@/app/configuration/plans';
 import { paths } from '@/app/configuration/paths';
 import { useT } from '@/i18n/core';
 import { formatCurrency, formatDate } from '@/utilities/format';
@@ -70,7 +70,7 @@ export function PlanCards({ period, ctaTo = paths.register }: { period: BillingP
               {amount === 0 ? <strong>{t('marketing.pricing.free')}</strong> : <><strong>{formatCurrency(amount, p.price.currency)}</strong><span>{period === 'monthly' ? t('marketing.pricing.perMonth') : t('marketing.pricing.perYear')}</span></>}
             </p>
             <ul role="list" className="plan__features">
-              {p.features.map((f) => <li key={f}><Icon name="check" size={16} strokeWidth={3} />{t(`billing.features.${f as 'page'}`)}</li>)}
+              {p.features.map((f) => <li key={f}><Icon name="check" size={16} strokeWidth={3} />{t(`billing.features.${f as 'trial7'}`)}</li>)}
             </ul>
             <LinkButton to={ctaTo} variant={p.highlighted ? 'gradient' : 'secondary'} fullWidth size="lg">
               {p.id === 'free' ? t('marketing.pricing.start') : t('marketing.pricing.choose', { plan: t(`common.plans.${p.id}`) })}
@@ -109,10 +109,10 @@ export function PricingSection({ withComparison = false, headingLevel = 2 }: { w
                     <tr key={row.key}>
                       <th scope="row">{t(`billing.comparison.${row.key as 'blocks'}`)}</th>
                       {PLANS.map((p) => {
-                        const v = row.values[p.id as 'free'];
+                        const v = row.values[p.id];
                         return (
                           <td key={p.id} className="is-end">
-                            {v === true ? <><Icon name="check" size={18} strokeWidth={3} /><span className="sr-only">Oui</span></> : v === false ? <><Icon name="minus" size={18} /><span className="sr-only">Non</span></> : ['community', 'priority', 'dedicated'].includes(v) ? t(`billing.comparison.${v as 'community'}`) : v}
+                            {v === true ? <><Icon name="check" size={18} strokeWidth={3} /><span className="sr-only">Oui</span></> : v === false ? <><Icon name="minus" size={18} /><span className="sr-only">Non</span></> : (COMPARISON_TOKENS as readonly string[]).includes(v) ? t(`billing.comparison.${v as 'community'}`) : v}
                           </td>
                         );
                       })}

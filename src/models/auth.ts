@@ -1,4 +1,7 @@
+import type { AccessInfo, PlanId } from './access';
 import type { CategoryId } from './category';
+
+export type { PlanId };
 
 export const ADMIN_ROLES = ['super_admin', 'admin', 'moderator', 'support', 'analyst', 'finance'] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
@@ -11,8 +14,6 @@ export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 
 /** Permission = `<section>:<action>`. Communiquées par le backend ; l'UI ne fait que les refléter. */
 export type Permission = `${AdminSection}:${'read' | 'write'}`;
-
-export type PlanId = 'free' | 'pro' | 'business';
 
 export interface Entitlements {
   maxBlocks: number;
@@ -44,6 +45,8 @@ export interface Session {
   user: SessionUser;
   permissions: Permission[];
   entitlements: Entitlements;
+  /** Phase d'accès (essai gratuit, essai d'abonnement, abonné, expiré) et offre effective : les droits détaillés viennent de `RIGHTS[access.plan]`. */
+  access: AccessInfo;
   expiresAt: string;
 }
 

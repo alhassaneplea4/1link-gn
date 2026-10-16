@@ -19,7 +19,8 @@ describe('inscription par e-mail', () => {
     expect(r.status).toBe(200);
     expect(r.body.user).toMatchObject({ email, emailVerified: false, phoneVerified: false, plan: 'free', adminRole: null, onboardingDone: false });
     expect(r.body.permissions).toEqual([]);
-    expect(r.body.entitlements.maxBlocks).toBe(10);
+    expect(r.body.entitlements.maxBlocks).toBe(12);
+    expect(r.body.access).toMatchObject({ phase: 'free_trial', plan: 'free', locked: false, paidTrialAvailable: true });
     expect(r.headers.get('set-cookie')).toMatch(/onelink_session=.+HttpOnly.+SameSite=Lax/i);
     expect((await c.get('/api/auth/session')).body.user.email).toBe(email);
     await settle();

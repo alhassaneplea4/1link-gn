@@ -102,6 +102,8 @@ export interface AdminApi {
   setUserStatus(userId: string, status: 'active' | 'suspended'): Promise<MutationOutcome>;
   /** Accorde ou retire le badge « Vérifié ». */
   setVerifiedBadge(userId: string, verified: boolean): Promise<MutationOutcome>;
+  /** Active l'abonnement d'un compte après réception du paiement (Mobile Money, carte, virement) ; l'abonnement compte à partir de la fin de l'essai. */
+  activateSubscription(userId: string, input: { planId: 'basic' | 'pro' | 'business'; period: 'monthly' | 'yearly'; method: 'mobile_money' | 'card' | 'bank'; reference: string }): Promise<Subscription>;
   listVerifications(q: ListQuery): Promise<Paged<VerificationRequest>>;
   decideVerification(id: string, decision: VerificationDecision, note: string): Promise<MutationOutcome>;
   listSubscriptions(q: ListQuery): Promise<Paged<SubscriptionRow>>;

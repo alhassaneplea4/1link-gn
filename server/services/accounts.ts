@@ -10,7 +10,8 @@ import { enforce, hit, keyFor } from '../lib/ratelimit.js';
 import { pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
 import { asLocale } from './notifications.js';
 import { toSession } from './sessions.js';
-import type { PlanId, Session, SessionUser } from '../../src/models/auth.js';
+import type { Session, SessionUser } from '../../src/models/auth.js';
+import { accessOf, freeTrialEnd } from './access.js';
 import type { OtpChannel } from '../../src/models/auth.js';
 
 export const OTP_TTL_SEC = 300;
@@ -75,7 +76,7 @@ export async function createAccount(deps: Deps, input: NewAccount): Promise<User
         .insert(users)
         .values({
           id: newId('usr'), email: input.email?.trim().toLowerCase() ?? null, phone: input.phone ?? null, passwordHash, name: input.name.trim(),
-          phoneVerifiedAt: input.phoneVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now, locale: input.locale ?? 'fr',
+          phoneVerifiedAt: input.phoneVerified ? now : null, country: input.country ?? null, termsAcceptedAt: now, createdAt: now, updatedAt: now, locale: input.locale ?? 'fr', freeTrialEndsAt: freeTrialEnd(now),
         })
         .returning();
       await tx.insert(subscriptions).values({ id: newId('sub'), userId: user!.id, planId: 'free', status: 'active', startedAt: now, updatedAt: now });
@@ -93,15 +94,15 @@ export async function createAccount(deps: Deps, input: NewAccount): Promise<User
 /** Construit la session à partir de l'état COURANT de la base (e-mail vérifié, plan, pseudonyme…). */
 export async function buildSession(deps: Deps, userId: string, expiresAt: Date): Promise<Session> {
   const [row] = await deps.db
-    .select({ u: users, username: pages.username, planId: subscriptions.planId, subStatus: subscriptions.status })
+    .select({ u: users, username: pages.username, planId: subscriptions.planId, status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, renewsAt: subscriptions.renewsAt })
     .from(users)
     .leftJoin(pages, eq(pages.userId, users.id))
     .leftJoin(subscriptions, eq(subscriptions.userId, users.id))
     .where(eq(users.id, userId))
     .limit(1);
   if (!row) throw new HttpError(401, 'no_session');
-  const paid = row.subStatus === 'active' || row.subStatus === 'trialing' || row.subStatus === 'past_due';
-  return toSession({ user: row.u, username: row.username, planId: (paid ? row.planId : 'free') as PlanId }, expiresAt);
+  const access = accessOf(row.u, row, deps.now());
+  return toSession({ user: row.u, username: row.username, planId: access.plan, access }, expiresAt);
 }
 
 export type { SessionUser };

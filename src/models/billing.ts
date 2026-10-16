@@ -8,7 +8,6 @@ export interface PlanDefinition {
   id: PlanId;
   highlighted: boolean;
   price: { monthly: number; yearly: number; currency: string };
-  limits: { maxBlocks: number | null; analyticsDays: number; teamSeats: number };
   /** Clés (billing.features.*) des fonctionnalités incluses. */
   features: string[];
 }
@@ -18,6 +17,8 @@ export interface Subscription {
   status: SubscriptionStatus;
   period: BillingPeriod;
   renewsAt: string | null;
+  /** Fin de l'essai de 15 jours (l'abonnement ne compte qu'après). */
+  trialEndsAt: string | null;
   cancelAtPeriodEnd: boolean;
 }
 
