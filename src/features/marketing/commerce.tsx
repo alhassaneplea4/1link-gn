@@ -61,20 +61,47 @@ export function PlanCards({ period, ctaTo = paths.register }: { period: BillingP
     <ul role="list" className="plans">
       {PLANS.map((p) => {
         const amount = period === 'monthly' ? p.price.monthly : p.price.yearly;
+        const isFree = p.id === 'free';
         return (
-          <li key={p.id} className={`plan ${p.highlighted ? 'is-featured' : ''}`}>
+          <li key={p.id} className={`plan plan--${p.id} ${p.highlighted ? 'is-featured' : ''}`}>
             {p.highlighted && <Badge tone="violet" icon="sparkles" className="plan__badge">{t('marketing.pricing.popular')}</Badge>}
-            <h3>{t(`common.plans.${p.id}`)}</h3>
-            <p className="plan__desc">{t(`marketing.pricing.desc.${p.id}`)}</p>
-            <p className="plan__price">
-              {amount === 0 ? <strong>{t('marketing.pricing.free')}</strong> : <><strong>{formatCurrency(amount, p.price.currency)}</strong><span>{period === 'monthly' ? t('marketing.pricing.perMonth') : t('marketing.pricing.perYear')}</span></>}
-            </p>
+            <div className="plan__header">
+              <div className="plan__title-row">
+                <h3>{t(`common.plans.${p.id}`)}</h3>
+                {isFree ? (
+                  <Badge tone="success" className="plan__pill-badge">{t('marketing.pricing.badgeFree')}</Badge>
+                ) : (
+                  <Badge tone={p.highlighted ? 'violet' : 'neutral'} className="plan__pill-badge">{t('marketing.pricing.badgeTrial')}</Badge>
+                )}
+              </div>
+              <p className="plan__desc">{t(`marketing.pricing.desc.${p.id}`)}</p>
+            </div>
+            <div className="plan__price">
+              {amount === 0 ? (
+                <>
+                  <strong>{t('marketing.pricing.free')}</strong>
+                  <span className="plan__period">{t('marketing.pricing.forever')}</span>
+                </>
+              ) : (
+                <>
+                  <strong>{formatCurrency(amount, p.price.currency)}</strong>
+                  <span className="plan__period">{period === 'monthly' ? t('marketing.pricing.perMonth') : t('marketing.pricing.perYear')}</span>
+                </>
+              )}
+            </div>
             <ul role="list" className="plan__features">
-              {p.features.map((f) => <li key={f}><Icon name="check" size={16} strokeWidth={3} />{t(`billing.features.${f as 'trial7'}`)}</li>)}
+              {p.features.map((f) => (
+                <li key={f}>
+                  <Icon name="check" size={16} strokeWidth={3} />
+                  <span>{t(`billing.features.${f as 'freeForever'}`)}</span>
+                </li>
+              ))}
             </ul>
-            <LinkButton to={ctaTo} variant={p.highlighted ? 'gradient' : 'secondary'} fullWidth size="lg">
-              {p.id === 'free' ? t('marketing.pricing.start') : t('marketing.pricing.choose', { plan: t(`common.plans.${p.id}`) })}
-            </LinkButton>
+            <div className="plan__footer">
+              <LinkButton to={ctaTo} variant={p.highlighted ? 'gradient' : 'secondary'} fullWidth size="lg">
+                {isFree ? t('marketing.pricing.start') : t('marketing.pricing.choose', { plan: t(`common.plans.${p.id}`) })}
+              </LinkButton>
+            </div>
           </li>
         );
       })}

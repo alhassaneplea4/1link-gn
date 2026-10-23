@@ -54,6 +54,29 @@ export function Hero() {
           <p className="hero__caption">{t('marketing.hero.illustrative')}</p>
         </div>
       </div>
+      <div className="container container--xl">
+        <div className="trust-strip reveal" aria-label={t('marketing.trust.label')}>
+          <div className="trust-strip__item">
+            <span aria-hidden="true">🇬🇳</span>
+            <span>{t('marketing.trust.guinea')}</span>
+          </div>
+          <span className="trust-strip__dot" aria-hidden="true" />
+          <div className="trust-strip__item">
+            <Icon name="whatsapp" size={16} className="trust-strip__whatsapp" />
+            <span>{t('marketing.trust.whatsapp')}</span>
+          </div>
+          <span className="trust-strip__dot" aria-hidden="true" />
+          <div className="trust-strip__item">
+            <Icon name="zap" size={16} className="trust-strip__lite" />
+            <span>{t('marketing.trust.lite')}</span>
+          </div>
+          <span className="trust-strip__dot" aria-hidden="true" />
+          <div className="trust-strip__item">
+            <Icon name="shield-check" size={16} className="trust-strip__shield" />
+            <span>{t('marketing.trust.zeroCommission')}</span>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

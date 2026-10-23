@@ -42,6 +42,39 @@
 @media (max-width: 520px) { .floatcard--click { right: -4%; top: 2%; } .floatcard--qr { left: -4%; } .floatcard small { max-width: 8rem; } }
 @media (min-width: 960px) { .hero__grid { grid-template-columns: 1.05fr 0.95fr; } .hero__phone { --phone-w: 310px; } }
 
+/* — Trust Strip (Réassurance souveraine Guinée & Afrique de l'Ouest) — */
+.trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5);
+  padding: 0.75rem 1.4rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: var(--border-1);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(12px);
+  margin-top: clamp(2rem, 4vw, 3.5rem);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+.trust-strip__item { display: inline-flex; align-items: center; gap: 0.45rem; }
+.trust-strip__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--color-border-strong); }
+.trust-strip__whatsapp { color: var(--color-success); flex: none; }
+.trust-strip__lite { color: var(--color-warning); flex: none; }
+.trust-strip__shield { color: var(--color-primary); flex: none; }
+@media (max-width: 768px) {
+  .trust-strip {
+    border-radius: var(--radius-xl);
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    justify-content: flex-start;
+  }
+  .trust-strip__dot { display: none; }
+}
+
 /* — Démonstration / personnalisation — */
 .demo { display: grid; gap: var(--space-12); align-items: center; }
 .demo__copy { display: grid; gap: var(--space-4); align-content: start; }
@@ -123,21 +156,78 @@
 
 /* — Offres — */
 .plans__toggle { margin-top: var(--space-4); }
-.plans { list-style: none; padding: 0; display: grid; gap: var(--space-5); align-items: stretch; max-width: 66rem; margin-inline: auto; }
-@media (min-width: 900px) { .plans { grid-template-columns: repeat(3, 1fr); } }
-.plan { position: relative; display: grid; gap: var(--space-3); align-content: start; padding: var(--space-6); background: var(--color-surface); border: var(--border-1); border-radius: var(--radius-xl); box-shadow: var(--shadow-1); }
-.plan.is-featured { border: 2px solid transparent; background-image: linear-gradient(var(--color-surface), var(--color-surface)), var(--gradient-brand); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: var(--shadow-3); }
-@media (min-width: 900px) { .plan.is-featured { transform: translateY(-0.75rem); } }
-.plan__badge { position: absolute; top: -0.8rem; left: 50%; transform: translateX(-50%); }
-.plan h3 { font-size: var(--text-2xl); }
-.plan__desc { color: var(--color-text-muted); font-size: var(--text-sm); min-height: 2.8rem; }
-.plan__price { display: flex; align-items: baseline; gap: 0.4rem; margin-block: var(--space-2); }
-.plan__price strong { font-size: var(--text-3xl); font-weight: var(--weight-extrabold); letter-spacing: var(--tracking-tighter); }
-.plan__price span { color: var(--color-text-subtle); font-size: var(--text-sm); }
-.plan__features { list-style: none; padding: 0; display: grid; gap: 0.6rem; margin-bottom: var(--space-4); font-size: var(--text-sm); }
-.plan__features li { display: flex; gap: 0.6rem; align-items: flex-start; } .plan__features svg { color: var(--color-success); margin-top: 0.15rem; flex: none; }
+.plans {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  align-items: stretch;
+  max-width: 100%;
+  margin-inline: auto;
+}
+@media (min-width: 640px) and (max-width: 1059px) {
+  .plans { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1060px) {
+  .plans { grid-template-columns: repeat(4, 1fr); }
+}
+.plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-5);
+  background: var(--color-surface);
+  border: var(--border-1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base), border-color var(--dur-base);
+}
+.plan:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-3);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+}
+.plan.is-featured {
+  border: 2px solid transparent;
+  background-image: linear-gradient(var(--color-surface), var(--color-surface)), var(--gradient-brand);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: var(--shadow-3);
+}
+@media (min-width: 1060px) {
+  .plan.is-featured { transform: translateY(-0.75rem); }
+  .plan.is-featured:hover { transform: translateY(-1rem); }
+}
+.plan__badge { position: absolute; top: -0.85rem; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.plan__header { display: grid; gap: var(--space-2); }
+.plan__title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap; }
+.plan h3 { font-size: var(--text-xl); margin: 0; font-weight: var(--weight-bold); }
+.plan__pill-badge { font-size: 0.72rem; padding: 0.15rem 0.5rem; letter-spacing: -0.01em; }
+.plan__desc { color: var(--color-text-muted); font-size: var(--text-xs); min-height: 2.6rem; line-height: 1.4; margin: 0; }
+.plan__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-block: var(--space-3) var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.plan__price strong { font-size: var(--text-2xl); font-weight: var(--weight-extrabold); letter-spacing: var(--tracking-tighter); }
+.plan__period { color: var(--color-text-subtle); font-size: var(--text-xs); font-weight: var(--weight-medium); }
+.plan__features {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-xs);
+  flex: 1; /* Aligne automatiquement tous les boutons au bas de chaque carte */
+}
+.plan__features li { display: flex; gap: 0.5rem; align-items: flex-start; line-height: 1.35; }
+.plan__features svg { color: var(--color-success); margin-top: 0.1rem; flex: none; }
+.plan__footer { margin-top: auto; }
 .plans__note { display: flex; gap: 0.4rem; justify-content: center; align-items: center; margin-top: var(--space-6); font-size: var(--text-sm); }
-.compare { margin: var(--space-16) auto 0; max-width: 56rem; display: grid; gap: var(--space-4); }
+.compare { margin: var(--space-16) auto 0; max-width: 68rem; display: grid; gap: var(--space-4); }
 .compare__table th[scope='row'] { background: transparent; text-transform: none; letter-spacing: 0; font-size: var(--text-sm); color: var(--color-text); }
 .compare__table td svg { display: inline; color: var(--color-success); }
 .compare__table td svg[class*='minus'] { color: var(--color-text-subtle); }

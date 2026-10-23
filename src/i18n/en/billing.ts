@@ -2,6 +2,7 @@ import type { Dict } from '../types';
 
 export default {
   features: {
+    freeForever: 'Free forever, no time limit',
     trial7: '7-day free trial, once',
     trial15: '15-day trial when you subscribe (once)',
     links4: 'Up to 4 links',

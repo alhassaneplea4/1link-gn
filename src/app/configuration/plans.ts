@@ -7,10 +7,10 @@ import type { PlanDefinition } from '@/models/billing';
  * Devise et montants sont des données : aucun composant ne les code en dur.
  */
 export const PLANS: readonly PlanDefinition[] = [
-  { id: 'free', highlighted: false, price: { monthly: 0, yearly: 0, currency: 'GNF' }, features: ['trial7', 'links4', 'servicesContacts2', 'themes3', 'colors', 'qr'] },
-  { id: 'basic', highlighted: false, price: { monthly: 10_000, yearly: 100_000, currency: 'GNF' }, features: ['everythingFree', 'links10', 'servicesContacts5', 'textBlock', 'themes6', 'tabsButtonsText', 'analyticsBasic', 'noBranding', 'trial15'] },
-  { id: 'pro', highlighted: true, price: { monthly: 20_000, yearly: 200_000, currency: 'GNF' }, features: ['everythingBasic', 'unlimitedItems', 'allBlocks', 'allThemes', 'allTabs', 'analyticsFull', 'trial15'] },
-  { id: 'business', highlighted: false, price: { monthly: 35_000, yearly: 350_000, currency: 'GNF' }, features: ['everythingPro', 'unlimitedAll', 'team', 'customDomain', 'dedicatedSupport', 'trial15'] },
+  { id: 'free', highlighted: false, price: { monthly: 0, yearly: 0, currency: 'GNF' }, features: ['freeForever', 'links4', 'servicesContacts2', 'themes3', 'colors', 'qr'] },
+  { id: 'basic', highlighted: false, price: { monthly: 10_000, yearly: 100_000, currency: 'GNF' }, features: ['trial15', 'everythingFree', 'links10', 'servicesContacts5', 'textBlock', 'themes6', 'tabsButtonsText', 'analyticsBasic', 'noBranding'] },
+  { id: 'pro', highlighted: true, price: { monthly: 20_000, yearly: 200_000, currency: 'GNF' }, features: ['trial15', 'everythingBasic', 'unlimitedItems', 'allBlocks', 'allThemes', 'allTabs', 'analyticsFull'] },
+  { id: 'business', highlighted: false, price: { monthly: 35_000, yearly: 350_000, currency: 'GNF' }, features: ['trial15', 'everythingPro', 'unlimitedAll', 'team', 'customDomain', 'dedicatedSupport'] },
 ];
 
 export const getPlan = (id: string) => PLANS.find((p) => p.id === id) ?? PLANS[0]!;
