@@ -207,6 +207,46 @@
 .pg-product p { font-size: 0.82em; color: var(--pg-muted); }
 .pg-product .pg-product__price { color: var(--pg-text); font-size: 1em; font-weight: 800; }
 .pg-btn--order { width: 100%; justify-content: center; margin-top: 6px; }
+.pg-product__actions { display: grid; gap: 6px; margin-top: 8px; }
+.pg-btn-add-cart { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 38px; padding: 0 12px; border-radius: var(--pg-btn-radius); background: var(--pg-soft); color: var(--pg-text); font-weight: 650; font-size: 0.85em; border: 1.5px solid transparent; cursor: pointer; transition: all var(--dur-base) var(--ease-out); }
+.pg-btn-add-cart:hover { border-color: var(--pg-primary); }
+.pg-btn-add-cart:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; }
+
+.pg-stepper { display: inline-flex; align-items: center; justify-content: space-between; min-height: 38px; width: 100%; border-radius: var(--pg-btn-radius); background: var(--pg-soft); border: 1.5px solid var(--pg-border); padding: 0 4px; }
+.pg-stepper__btn { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; border: 0; background: transparent; color: var(--pg-text); cursor: pointer; }
+.pg-stepper__btn:hover { background: var(--pg-surface); }
+.pg-stepper__val { font-weight: 750; font-size: 0.9em; min-width: 2rem; text-align: center; }
+
+/* Panier flottant */
+.pg-cart-float { position: sticky; bottom: 12px; z-index: 40; margin-top: 12px; }
+.pg-cart-float__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 999px; border: 0; background: var(--pg-primary, #2563eb); color: #fff; font-weight: 700; font-size: 0.92em; box-shadow: 0 10px 25px -4px rgba(37, 99, 235, 0.4); cursor: pointer; transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+.pg-cart-float__btn:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -4px rgba(37, 99, 235, 0.5); }
+.pg-cart-float__left { display: flex; align-items: center; gap: 10px; }
+.pg-cart-float__badge { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.25); font-size: 0.85em; font-weight: 800; }
+.pg-cart-float__right { display: flex; align-items: center; gap: 8px; }
+
+/* Modale de panier */
+.pg-cart-modal { display: grid; gap: 16px; text-align: left; }
+.pg-cart-list { display: grid; gap: 10px; max-height: 40vh; overflow-y: auto; padding-right: 4px; }
+.pg-cart-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border-radius: var(--pg-r); background: var(--pg-soft); }
+.pg-cart-row__info { display: grid; gap: 2px; }
+.pg-cart-row__info strong { font-size: 0.92em; }
+.pg-cart-row__price { font-size: 0.82em; color: var(--pg-muted); }
+.pg-cart-row__ctrl { display: flex; align-items: center; gap: 10px; }
+.pg-cart-row__ctrl .pg-stepper { width: auto; min-height: 32px; gap: 4px; }
+.pg-cart-row__total { font-weight: 750; font-size: 0.9em; min-width: 4rem; text-align: right; }
+.pg-cart-row__del { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; border: 0; background: transparent; color: #dc2626; cursor: pointer; }
+.pg-cart-row__del:hover { background: #fee2e2; }
+
+.pg-cart-inputs { display: grid; gap: 10px; }
+.pg-cart-total { display: flex; align-items: baseline; justify-content: space-between; padding-top: 10px; border-top: 1.5px dashed var(--pg-border); font-size: 1.05em; }
+.pg-cart-total strong { font-size: 1.25em; font-weight: 800; color: var(--pg-primary); }
+.pg-cart-total small { font-size: 0.85em; color: var(--pg-muted); }
+
+.pg-cart-foot { display: grid; gap: 8px; }
+.pg-btn--checkout { width: 100%; justify-content: center; font-size: 0.95em; }
+.pg-cart-clear { background: transparent; border: 0; color: var(--pg-muted); font-size: 0.82em; cursor: pointer; text-decoration: underline; padding: 6px; }
+.pg-cart-clear:hover { color: #dc2626; }
 .pg-pay { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pg-pay__body { display: grid; flex: 1; min-width: 9rem; }
 .pg-pay__number { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; letter-spacing: 0.02em; overflow-wrap: anywhere; }

@@ -69,3 +69,4 @@ connexion par **téléphone** (WhatsApp/SMS), **vérification en deux étapes** 
 - [Sécurité des données](docs/SECURITY.md)
 - [Limites connues](docs/LIMITS.md)
 - [Audit initial (Phase 0)](docs/AUDIT.md)
+- [Feuille de route et évolutions (Roadmap)](docs/ROADMAP.md)

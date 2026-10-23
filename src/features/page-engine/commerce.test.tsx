@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { formatPrice, parsePrice } from './blocks/money';
 import { createBlock, isBlockComplete, validateBlock } from './blocks/registry';
@@ -67,6 +67,46 @@ describe('boutique (commande WhatsApp)', () => {
     expect(onTrack).toHaveBeenCalledWith(block.id);
     rerender(<PageRenderer page={{ ...doc, blocks: [...doc.blocks, block] }} pageUrl="https://1link.gn/x" preview />);
     expect(screen.getAllByRole('link', { name: /Commander/ })[0]).not.toHaveAttribute('href');
+  });
+
+  it('gère le panier multi-produits avec calcul du total et bon de commande WhatsApp', async () => {
+    const doc = getSampleDocument('business');
+    render(<PageRenderer page={{ ...doc, blocks: [...doc.blocks, shop()] }} pageUrl="https://1link.gn/x" />);
+    
+    // Au départ, aucun panier flottant
+    expect(screen.queryByRole('button', { name: /^Mon panier\s*:/i })).not.toBeInTheDocument();
+
+    // Ajouter le premier produit
+    const addButtons = screen.getAllByRole('button', { name: /Ajouter au panier/i });
+    await userEvent.click(addButtons[0]!);
+
+    // Le panier flottant apparaît avec 1 article
+    const cartButton = await screen.findByRole('button', { name: /^Mon panier\s*:/i });
+    expect(cartButton).toBeInTheDocument();
+    expect(cartButton).toHaveTextContent('1');
+
+    // Augmenter la quantité avec le stepper
+    const plusBtn = screen.getAllByRole('button', { name: /Plus/i })[0]!;
+    await userEvent.click(plusBtn);
+    expect(cartButton).toHaveTextContent('2');
+
+    // Ouvrir la modale de commande
+    await userEvent.click(cartButton);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/Votre commande/i)).toBeInTheDocument();
+
+    // Renseigner un lieu de livraison
+    const deliveryInput = within(dialog).getByPlaceholderText(/Kipé/i);
+    await userEvent.type(deliveryInput, 'Kipé Centre Émetteur');
+
+    // Vérifier le lien de commande groupée WhatsApp
+    const checkoutLink = within(dialog).getByRole('link', { name: /Commander sur WhatsApp/i });
+    const href = new URL(checkoutLink.getAttribute('href')!);
+    const text = decodeURIComponent(href.searchParams.get('text')!);
+    expect(text).toContain('2x Sac en cuir');
+    expect(text).toContain('Total : 500');
+    expect(text).toContain('Lieu de livraison : Kipé Centre Émetteur');
   });
 });
 

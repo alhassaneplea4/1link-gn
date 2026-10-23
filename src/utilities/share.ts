@@ -31,11 +31,33 @@ const toBase64 = (blob: Blob) =>
     r.readAsDataURL(blob);
   });
 
-/** QR code → image PNG (zone blanche de 4 modules autour, requise pour une lecture fiable). */
+function fillRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath?.();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.fill?.();
+    return;
+  }
+  if (typeof ctx.beginPath === 'function') {
+    ctx.beginPath();
+    ctx.moveTo?.(x + r, y);
+    ctx.arcTo?.(x + w, y, x + w, y + h, r);
+    ctx.arcTo?.(x + w, y + h, x, y + h, r);
+    ctx.arcTo?.(x, y + h, x, y, r);
+    ctx.arcTo?.(x, y, x + w, y, r);
+    ctx.closePath?.();
+    ctx.fill?.();
+  } else {
+    ctx.fillRect(x, y, w, h);
+  }
+}
+
+/** QR code → image PNG avec logo 1Link au centre (zone blanche de 4 modules autour, requise pour une lecture fiable). */
 export async function qrPngBlob(value: string, size = 768): Promise<Blob | null> {
   try {
     const mod = (await import('qrcode-generator')) as { default: typeof import('qrcode-generator') };
-    const qr = mod.default(0, 'M');
+    // 'H' (High) pour une correction d'erreur de 30%, permettant l'inclusion du logo central.
+    const qr = mod.default(0, 'H');
     qr.addData(value);
     qr.make();
     const n = qr.getModuleCount();
@@ -50,7 +72,58 @@ export async function qrPngBlob(value: string, size = 768): Promise<Blob | null>
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, px, px);
     ctx.fillStyle = '#111827';
-    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+      }
+    }
+
+    // Logo 1Link au centre
+    const logoModules = Math.max(6, Math.round(n * 0.24));
+    const logoPx = logoModules * cell;
+    const logoX = (px - logoPx) / 2;
+    const logoY = (px - logoPx) / 2;
+    const pad = Math.max(2, Math.round(cell * 0.45));
+
+    // 1. Fond blanc de sécurité
+    ctx.fillStyle = '#ffffff';
+    fillRoundRect(ctx, logoX - pad, logoY - pad, logoPx + pad * 2, logoPx + pad * 2, Math.max(4, Math.round((logoPx + pad * 2) * 0.24)));
+
+    // 2. Badge dégradé 1Link
+    if (typeof ctx.createLinearGradient === 'function') {
+      const grad = ctx.createLinearGradient(logoX, logoY, logoX + logoPx, logoY + logoPx);
+      grad.addColorStop(0, '#2563EB');
+      grad.addColorStop(1, '#7C3AED');
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = '#2563EB';
+    }
+    fillRoundRect(ctx, logoX, logoY, logoPx, logoPx, Math.max(3, Math.round(logoPx * (14 / 48))));
+
+    // 3. Glyphe "1L" et cercle
+    if (typeof ctx.save === 'function' && typeof ctx.scale === 'function' && typeof ctx.beginPath === 'function') {
+      ctx.save();
+      ctx.translate(logoX, logoY);
+      const s = logoPx / 48;
+      ctx.scale(s, s);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(14.5, 17.5);
+      ctx.lineTo(22, 11.5);
+      ctx.lineTo(22, 34);
+      ctx.lineTo(30, 34);
+      ctx.stroke?.();
+
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.arc(36, 34, 3.1, 0, Math.PI * 2);
+      ctx.stroke?.();
+      ctx.restore();
+    }
+
     return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
   } catch {
     return null;

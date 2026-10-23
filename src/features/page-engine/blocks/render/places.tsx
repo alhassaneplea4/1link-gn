@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useT } from '@/i18n/core';
 import type { BlockRenderProps } from '../types';
@@ -48,39 +48,86 @@ export function LocationRender({ block, ctx }: BlockRenderProps<'location'>) {
   );
 }
 
-/** QR Code réel (encodage local, chargé à la demande). */
-export function QrCode({ value, size = 168, label }: { value: string; size?: number; label?: string }) {
-  const [path, setPath] = useState<{ d: string; n: number } | null>(null);
+/** QR Code réel (encodage local, chargé à la demande) avec badge logo 1Link au centre. */
+export function QrCode({ value, size = 168, label, withLogo = true }: { value: string; size?: number; label?: string; withLogo?: boolean }) {
+  const [data, setData] = useState<{ d: string; n: number; logo?: { start: number; size: number } } | null>(null);
+  const gradId = useId();
+
   useEffect(() => {
     let cancelled = false;
     void import('qrcode-generator').then((mod) => {
       if (cancelled) return;
       const qrcode = (mod as { default: typeof import('qrcode-generator') }).default;
-      const qr = qrcode(0, 'M');
+      // 'H' (High) permet 30% de tolérance aux erreurs, garantissant une scannabilité parfaite avec le logo au centre.
+      const qr = qrcode(0, 'H');
       qr.addData(value);
       qr.make();
       const n = qr.getModuleCount();
       let d = '';
-      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
-      setPath({ d, n });
+      const logoSize = withLogo ? Math.max(6, Math.round(n * 0.24)) : 0;
+      const logoStart = (n - logoSize) / 2;
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+        }
+      }
+      setData({ d, n, logo: withLogo ? { start: logoStart, size: logoSize } : undefined });
     });
     return () => {
       cancelled = true;
     };
-  }, [value]);
+  }, [value, withLogo]);
+
   return (
     <svg
       className="pg-qr__svg"
       width={size}
       height={size}
       style={{ width: size, height: size }}
-      viewBox={path ? `-2 -2 ${path.n + 4} ${path.n + 4}` : '0 0 1 1'}
+      viewBox={data ? `-2 -2 ${data.n + 4} ${data.n + 4}` : '0 0 1 1'}
       role="img"
       aria-label={label ?? value}
       shapeRendering="crispEdges"
     >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2563EB" />
+          <stop offset="1" stopColor="#7C3AED" />
+        </linearGradient>
+      </defs>
       <rect x="-2" y="-2" width="100%" height="100%" fill="#fff" />
-      {path && <path d={path.d} fill="#111827" />}
+      {data && <path d={data.d} fill="#111827" />}
+      {data?.logo && (
+        <g shapeRendering="geometricPrecision">
+          <rect
+            x={data.logo.start - 0.45}
+            y={data.logo.start - 0.45}
+            width={data.logo.size + 0.9}
+            height={data.logo.size + 0.9}
+            rx={1}
+            fill="#ffffff"
+          />
+          <svg
+            x={data.logo.start}
+            y={data.logo.start}
+            width={data.logo.size}
+            height={data.logo.size}
+            viewBox="0 0 48 48"
+          >
+            <rect width="48" height="48" rx="14" fill={`url(#${gradId})`} />
+            <path
+              d="M14.5 17.5 22 11.5V34h8"
+              fill="none"
+              stroke="#fff"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="36" cy="34" r="3.1" fill="none" stroke="#fff" strokeWidth="2.6" />
+          </svg>
+        </g>
+      )}
     </svg>
   );
 }
