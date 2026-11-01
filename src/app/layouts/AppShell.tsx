@@ -14,6 +14,8 @@ export interface NavEntry {
   end?: boolean;
   group?: string;
   badge?: ReactNode;
+  /** Éléments en attente d'une action : affiché en pastille sur l'entrée du menu (et sur « Plus » si l'entrée y est rangée). */
+  count?: number;
   /** Affichée dans la barre mobile du bas (sinon dans « Plus »). */
   primaryMobile?: boolean;
 }
@@ -60,6 +62,7 @@ function NavList({ nav, onNavigate }: { nav: NavEntry[]; onNavigate?: () => void
                   <Icon name={n.icon} size={19} />
                   <span>{n.label}</span>
                   {n.badge}
+                  <NavCount count={n.count} />
                 </NavLink>
               </li>
             ))}
@@ -67,6 +70,20 @@ function NavList({ nav, onNavigate }: { nav: NavEntry[]; onNavigate?: () => void
         </div>
       ))}
     </>
+  );
+}
+
+const shown = (n: number) => (n > 99 ? '99+' : String(n));
+
+/** Pastille de menu : visible pour tous, annoncée « N à traiter » aux lecteurs d'écran. */
+function NavCount({ count, dot }: { count?: number; dot?: boolean }) {
+  const t = useT('dashboard');
+  if (!count || count < 1) return null;
+  return (
+    <span className={`navbadge ${dot ? 'navbadge--dot' : ''}`}>
+      <span aria-hidden="true">{dot ? '' : shown(count)}</span>
+      <span className="sr-only">{t('dashboard.shell.pending', { count })}</span>
+    </span>
   );
 }
 
@@ -78,6 +95,7 @@ export function AppShell({ variant, brandLabel, nav, header, sidebarFooter, bann
   useEffect(() => setMoreOpen(false), [location.pathname]);
   const mobilePrimary = nav.filter((n) => n.primaryMobile).slice(0, 4);
   const rest = nav.filter((n) => !mobilePrimary.includes(n));
+  const restCount = rest.reduce((sum, n) => sum + (n.count ?? 0), 0);
 
   return (
     <div className={`shell shell--${variant}`}>
@@ -104,14 +122,14 @@ export function AppShell({ variant, brandLabel, nav, header, sidebarFooter, bann
           {mobilePrimary.map((n) => (
             <li key={n.id}>
               <NavLink to={n.to} end={n.end} className={({ isActive }) => `bottomnav__link ${isActive ? 'is-active' : ''}`}>
-                <Icon name={n.icon} size={22} />
+                <span className="bottomnav__icon"><Icon name={n.icon} size={22} /><NavCount count={n.count} /></span>
                 <span>{n.label}</span>
               </NavLink>
             </li>
           ))}
           <li>
             <button type="button" className="bottomnav__link" onClick={() => setMoreOpen(true)} aria-haspopup="dialog">
-              <Icon name="menu" size={22} />
+              <span className="bottomnav__icon"><Icon name="menu" size={22} /><NavCount count={restCount} dot /></span>
               <span>{t('common.more')}</span>
             </button>
           </li>

@@ -114,6 +114,8 @@ describe('Cartes de visite : parcours client', () => {
     expect((await screen.findAllByText(/^CRT-[A-Z2-9]{6}$/)).length).toBeGreaterThan(0);
     expect(screen.getAllByText('En attente de paiement').length).toBeGreaterThan(0);
     expect(screen.getByText(/Référence à indiquer/)).toBeInTheDocument();
+    // la commande en attente de paiement est signalée dès le menu
+    await waitFor(() => expect(screen.getByRole('link', { name: /Cartes de visite.*1 élément à traiter/ })).toBeInTheDocument());
 
     // la base contient la commande, ses cartes et rien de plus
     const rows = await backend.app.db.execute<{ status: string; total: number; cards: number }>(

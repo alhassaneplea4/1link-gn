@@ -7,6 +7,7 @@ import type { AdminSection, Permission } from '@/models/auth';
 import { useSession } from '@/state/session';
 import { AppShell, ThemeToggle, type NavEntry } from './AppShell';
 import { AccountMenu } from './header-parts';
+import { useNavBadges } from '@/hooks/useNavBadges';
 
 type NavDef = { section: AdminSection; to: string; icon: NavEntry['icon']; group: 'pilot' | 'community' | 'revenue' | 'trust' | 'platform'; primaryMobile?: boolean; end?: boolean };
 
@@ -33,12 +34,13 @@ export default function AdminLayout() {
   const t = useT('admin', 'common', 'dashboard');
   const session = useSession((s) => s.session);
   const perms = session?.permissions;
+  const counts = useNavBadges('admin');
   const nav: NavEntry[] = useMemo(() => {
     const allowed = new Set(perms ?? []);
     return NAV.filter((n) => allowed.has(`${n.section}:read` as Permission)).map((n) => ({
-      id: n.section, to: n.to, icon: n.icon, end: n.end, group: t(`admin.groups.${n.group}`), label: t(`admin.nav.${n.section}`), primaryMobile: n.primaryMobile,
+      id: n.section, to: n.to, icon: n.icon, end: n.end, group: t(`admin.groups.${n.group}`), label: t(`admin.nav.${n.section}`), primaryMobile: n.primaryMobile, count: counts[n.section] ?? 0,
     }));
-  }, [perms, t]);
+  }, [perms, t, counts]);
   const role = session?.user.adminRole;
 
   return (

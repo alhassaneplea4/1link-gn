@@ -15,10 +15,13 @@ import { activateSubscription } from '../services/billing.js';
 import type { RealtimeEvent } from '../../src/models/admin.js';
 import type { Permission } from '../../src/models/auth.js';
 import { adminCardRoutes } from './cards.js';
+import { adminBadges } from '../services/nav-badges.js';
 
 export const adminRoutes = new Hono<HonoEnv>();
 adminRoutes.use('*', requireAuth);
 adminRoutes.route('/', adminCardRoutes);
+// Pastilles du menu : éléments à traiter, limités aux rubriques lisibles par le rôle (un rôle sans accès admin reçoit 403).
+adminRoutes.get('/nav-badges', requireAnyPermission('overview:read', 'users:read', 'reports:read', 'moderation:read', 'support:read', 'payments:read', 'cards:read'), async (c) => c.json(await adminBadges(c.get('deps'), c.get('auth')!)));
 
 const can = (...p: Permission[]) => requireAnyPermission(...p);
 

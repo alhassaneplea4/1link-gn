@@ -16,6 +16,7 @@ import { requestDeletion } from '../services/account-deletion.js';
 import { confirmIdentity, sendIdentityCode } from '../services/identity.js';
 import { securityRoutes } from './me-security.js';
 import { myCardRoutes } from './cards.js';
+import { userBadges } from '../services/nav-badges.js';
 import { clearSessionCookie } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
 import { badgesOf, changeUsername, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
@@ -32,6 +33,7 @@ export const meRoutes = new Hono<HonoEnv>();
 meRoutes.use('*', requireAuth);
 meRoutes.route('/', securityRoutes);
 meRoutes.route('/', myCardRoutes);
+meRoutes.get('/nav-badges', async (c) => c.json(await userBadges(c.get('deps'), c.get('auth')!)));
 
 // — Page —
 

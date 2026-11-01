@@ -7,6 +7,7 @@ import { pageReadiness } from '@/features/page-engine/document';
 import { blockRegistry, blockSummary } from '@/features/page-engine/blocks/registry';
 import { useOutsideClick } from '@/hooks/dom';
 import { useAccess } from '@/hooks/useAccess';
+import { useNavBadges } from '@/hooks/useNavBadges';
 import { TrialBanner } from '@/features/subscriptions/PlanNotice';
 import { UpgradePromptHost } from '@/features/subscriptions/UpgradePrompt';
 import { useT } from '@/i18n/core';
@@ -53,7 +54,8 @@ export default function DashboardLayout() {
   const t = useT('dashboard', 'common');
   const session = useSession((s) => s.session);
   const doc = useEditor((s) => s.doc);
-  const { locked } = useAccess();
+  const { locked, access } = useAccess();
+  const serverCounts = useNavBadges('user');
   const { pathname } = useLocation();
   const navigate = useNavigate();
   useEffect(() => void useEditor.getState().load(), []);
@@ -86,12 +88,24 @@ export default function DashboardLayout() {
     return out;
   }, [session, doc, t]);
 
+  // Pastilles : ce qui attend une action. Les commandes viennent du serveur ; le reste découle de l'état déjà connu de l'interface.
+  const counts: Record<string, number> = useMemo(() => {
+    const trialEnding = (access.phase === 'free_trial' || access.phase === 'paid_trial') && (access.daysLeft ?? 99) <= 3;
+    return {
+      cards: serverCounts.cards ?? 0,
+      page: notifications.length,
+      subscription: locked || trialEnding ? 1 : 0,
+      settings: session?.user.email && !session.user.emailVerified ? 1 : 0,
+    };
+  }, [serverCounts, notifications, access, locked, session]);
+  const badgedNav = useMemo(() => nav.map((n) => ({ ...n, count: counts[n.id] ?? 0 })), [nav, counts]);
+
   const plan = session ? getPlan(session.user.plan) : null;
   return (
     <>
     <AppShell
       variant="user"
-      nav={nav}
+      nav={badgedNav}
       banners={<TrialBanner />}
       header={
         <>

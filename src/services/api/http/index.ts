@@ -5,7 +5,7 @@
 import type { ListQuery } from '@/models/api';
 import type { Session, SignInResult, TwoFactorChallenge } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
-import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, CardsApi, PageApi } from '../types';
+import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, CardsApi, NavApi, PageApi } from '../types';
 import { request } from './client';
 import { sseRealtime } from './realtime';
 
@@ -82,6 +82,11 @@ const billing: BillingApi = {
   resume: () => request('POST', '/me/subscription/resume'),
 };
 
+const nav: NavApi = {
+  userBadges: () => request('GET', '/me/nav-badges'),
+  adminBadges: () => request('GET', '/admin/nav-badges'),
+};
+
 const cards: CardsApi = {
   getCatalog: () => request('GET', '/me/cards/catalog'),
   listOrders: () => request('GET', '/me/cards/orders'),
@@ -125,4 +130,4 @@ const admin: AdminApi = {
   getRoleMatrix: () => request('GET', '/admin/roles'),
 };
 
-export const httpApi: Api = { auth, page, analytics, billing, admin, cards, realtime: sseRealtime };
+export const httpApi: Api = { auth, page, analytics, billing, admin, cards, nav, realtime: sseRealtime };

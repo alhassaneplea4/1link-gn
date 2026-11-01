@@ -6,6 +6,8 @@ export default {
     cards: 'Business cards', subscription: 'Subscription', settings: 'Settings', security: 'Security',
   },
   shell: {
+    pending_one: '{count} item to handle',
+    pending_other: '{count} items to handle',
     navigation: 'Dashboard navigation',
     allSections: 'All sections',
     unverified: 'Your email address is not verified: you will not be able to publish your page.',

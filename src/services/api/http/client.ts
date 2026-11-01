@@ -42,6 +42,8 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DEL
     const payload = (await res.json().catch(() => ({}))) as { message?: string; fields?: Record<string, string> };
     throw new ApiError(codeFromStatus(res.status), payload.message, { status: res.status, fields: payload.fields });
   }
+  // Toute écriture réussie peut changer ce qui attend une action : les pastilles des menus se recalculent.
+  if (method !== 'GET') window.dispatchEvent(new Event('onelink:mutated'));
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }

@@ -240,3 +240,36 @@ describe('modèles', () => {
     }
   });
 });
+
+describe('pastilles des menus', () => {
+  it('compte, côté client, les commandes qui demandent une action (paiement à faire, visuel refusé)', async () => {
+    const { c } = await customer();
+    expect((await c.get('/api/me/nav-badges')).body).toEqual({ cards: 0 });
+    const o = (await order(c)).body;
+    expect((await c.get('/api/me/nav-badges')).body).toEqual({ cards: 1 });
+    const admin = await signedIn({ adminRole: 'admin' });
+    await admin.c.post(`/api/admin/cards/orders/${o.id}/payment`, { method: 'cash', reference: 'Reçu 1' });
+    expect((await c.get('/api/me/nav-badges')).body).toEqual({ cards: 0 }); // payée : plus rien à faire pour le client
+    await admin.c.post(`/api/admin/cards/orders/${o.id}/status`, { status: 'validating' });
+    await admin.c.post(`/api/admin/cards/orders/${o.id}/design-review`, { approved: false, note: 'Photo floue' });
+    expect((await c.get('/api/me/nav-badges')).body).toEqual({ cards: 1 }); // visuel refusé : à corriger
+    expect((await t.client().get('/api/me/nav-badges')).status).toBe(401);
+  });
+
+  it('compte, côté équipe, ce qui attend un traitement, limité aux rubriques du rôle', async () => {
+    const admin = await signedIn({ adminRole: 'super_admin' });
+    const before = (await admin.c.get('/api/admin/nav-badges')).body;
+    expect(Object.keys(before).sort()).toEqual(['cards', 'moderation', 'payments', 'reports', 'support']);
+    const { c } = await customer();
+    const o = (await order(c)).body;
+    expect((await admin.c.get('/api/admin/nav-badges')).body.cards).toBe(before.cards); // en attente de paiement : rien à faire pour l'équipe
+    await admin.c.post(`/api/admin/cards/orders/${o.id}/payment`, { method: 'cash', reference: 'Reçu 2' });
+    expect((await admin.c.get('/api/admin/nav-badges')).body.cards).toBe(before.cards + 1); // payée : à examiner
+    const support = await signedIn({ adminRole: 'support' });
+    expect(Object.keys((await support.c.get('/api/admin/nav-badges')).body).sort()).toEqual(['cards', 'reports', 'support']);
+    const analyst = await signedIn({ adminRole: 'analyst' });
+    expect((await analyst.c.get('/api/admin/nav-badges')).status).toBe(200);
+    expect((await analyst.c.get('/api/admin/nav-badges')).body).toEqual({});
+    expect((await c.get('/api/admin/nav-badges')).status).toBe(403);
+  });
+});

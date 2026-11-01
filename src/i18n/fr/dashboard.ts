@@ -12,6 +12,8 @@ export default {
     security: 'Sécurité',
   },
   shell: {
+    pending_one: '{count} élément à traiter',
+    pending_other: '{count} éléments à traiter',
     navigation: 'Navigation du tableau de bord',
     allSections: 'Toutes les rubriques',
     unverified: 'Votre adresse e-mail n’est pas vérifiée : vous ne pourrez pas publier votre page.',

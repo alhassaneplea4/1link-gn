@@ -110,6 +110,12 @@ export interface BillingApi {
   resume(): Promise<Subscription>;
 }
 
+/** Pastilles des menus : éléments en attente par rubrique. */
+export interface NavApi {
+  userBadges(): Promise<Record<string, number>>;
+  adminBadges(): Promise<Record<string, number>>;
+}
+
 export type PublicCardState = { state: 'active'; username: string } | { state: 'disabled' | 'unavailable' | 'not_found' };
 
 /** 1Link Cards : espace client. */
@@ -175,5 +181,6 @@ export interface Api {
   billing: BillingApi;
   admin: AdminApi;
   cards: CardsApi;
+  nav: NavApi;
   realtime: RealtimeAdapter;
 }
