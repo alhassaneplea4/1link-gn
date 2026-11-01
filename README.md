@@ -66,6 +66,7 @@ connexion par **téléphone** (WhatsApp/SMS), **vérification en deux étapes** 
 - [Déploiement Vercel + PostgreSQL](docs/DEPLOYMENT.md)
 - [Architecture et décisions](docs/ARCHITECTURE.md)
 - [API HTTP](docs/API.md)
+- [Cartes de visite QR / NFC](docs/CARTES.md)
 - [Sécurité des données](docs/SECURITY.md)
 - [Limites connues](docs/LIMITS.md)
 - [Audit initial (Phase 0)](docs/AUDIT.md)

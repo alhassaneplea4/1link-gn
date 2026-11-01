@@ -18,7 +18,7 @@ const layout = (load: () => Promise<{ default: ComponentType }>, namespaces: Nam
 
 const adminSection = (section: AdminSection, path: string, load: () => Promise<{ default: ComponentType }>): RouteObject => ({
   element: <RequireSection section={section} />,
-  children: [{ path, ...page(load, ['admin', 'analytics', 'dashboard', 'billing', 'pub']) }],
+  children: [{ path, ...page(load, ['admin', 'analytics', 'dashboard', 'billing', 'pub', 'cards']) }],
 });
 
 /** Définition des routes (réutilisée par les tests avec un routeur en mémoire). */
@@ -88,6 +88,7 @@ export const routes: RouteObject[] = [
                   { path: 'subscription', ...page(() => import('@/features/subscriptions/SubscriptionPage'), ['billing', 'marketing', 'dashboard']) },
                   { path: 'settings', ...page(() => import('@/features/settings/SettingsPage'), ['dashboard', 'auth']) },
                   { path: 'security', ...page(() => import('@/features/settings/SecurityPage'), ['dashboard', 'auth']) },
+                  { path: 'cards', ...page(() => import('@/features/cards/CardsPage'), ['cards', 'dashboard', 'editor', 'pub']) },
                   { path: 'print', ...page(() => import('@/features/sharing/PrintPage'), ['dashboard', 'editor']) },
                 ],
               },
@@ -121,6 +122,7 @@ export const routes: RouteObject[] = [
                   adminSection('security', 'security', () => import('@/features/admin/pages/SecurityPage')),
                   adminSection('logs', 'logs', () => import('@/features/admin/pages/LogsPage')),
                   adminSection('system', 'system', () => import('@/features/admin/pages/SystemPage')),
+                  adminSection('cards', 'cards', () => import('@/features/admin/pages/CardsPage')),
                   adminSection('settings', 'settings', () => import('@/features/admin/pages/AdminSettingsPage')),
                 ],
               },
@@ -131,6 +133,9 @@ export const routes: RouteObject[] = [
       { path: '403', element: <ForbiddenPage /> },
 
       // — Page publique d'un utilisateur : toujours en DERNIER (les routes statiques ci-dessus ont priorité) —
+      // — Carte physique (QR code / NFC) : l'adresse ne change jamais, même si le profil est modifié —
+      { path: 'c/:code', ...page(() => import('@/features/cards/CardLandingPage'), ['cards']) },
+
       { path: ':username', ...page(() => import('@/features/public-profile/PublicProfilePage'), ['pub']) },
       { path: '*', element: <NotFoundPage /> },
     ],

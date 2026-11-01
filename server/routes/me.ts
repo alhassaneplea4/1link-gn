@@ -15,6 +15,7 @@ import { accountDeleteBody, phoneLinkVerifyBody, phoneRequestBody, passwordConfi
 import { requestDeletion } from '../services/account-deletion.js';
 import { confirmIdentity, sendIdentityCode } from '../services/identity.js';
 import { securityRoutes } from './me-security.js';
+import { myCardRoutes } from './cards.js';
 import { clearSessionCookie } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
 import { badgesOf, changeUsername, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
@@ -30,6 +31,7 @@ import type { PlanId } from '../../src/models/auth.js';
 export const meRoutes = new Hono<HonoEnv>();
 meRoutes.use('*', requireAuth);
 meRoutes.route('/', securityRoutes);
+meRoutes.route('/', myCardRoutes);
 
 // — Page —
 

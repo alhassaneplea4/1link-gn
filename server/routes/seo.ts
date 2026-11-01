@@ -20,14 +20,14 @@ export const seoRoutes = new Hono<HonoEnv>();
 const SHELL = '<!doctype html><html lang="fr"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>1Link</title></head><body><div id="root"></div></body></html>';
 let template: Promise<string> | undefined;
 /** Le HTML construit par Vite (fourni à la fonction par `includeFiles`) ; une coquille minimale hors production. */
-const loadTemplate = () => (template ??= readFile(resolve(process.cwd(), 'dist/index.html'), 'utf8').catch(() => SHELL));
+export const loadTemplate = () => (template ??= readFile(resolve(process.cwd(), 'dist/index.html'), 'utf8').catch(() => SHELL));
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const clip = (v: string, n: number) => (v.length > n ? `${v.slice(0, n - 1).trimEnd()}…` : v);
 const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
 
 /** Retire les balises que la page remplace, puis ajoute le bloc de balises avant </head>. */
-function withHead(html: string, title: string, block: string): string {
+export function withHead(html: string, title: string, block: string): string {
   return html
     .replace(/<title>[\s\S]*?<\/title>/i, '')
     .replace(/<meta\s+(?:name|property)="(?:description|robots|og:[a-z:_]+|twitter:[a-z:_]+)"[^>]*>\s*/gi, '')
@@ -36,7 +36,7 @@ function withHead(html: string, title: string, block: string): string {
     .replace(/<\/head>/i, () => `<title>${esc(title)}</title>\n${block}\n</head>`);
 }
 
-function metaBlock(o: { url: string; title: string; description: string; image: string; type: string; noindex: boolean; ld?: unknown }): string {
+export function metaBlock(o: { url: string; title: string; description: string; image: string; type: string; noindex: boolean; ld?: unknown }): string {
   return [
     `<meta name="description" content="${esc(o.description)}" />`,
     `<meta name="robots" content="${o.noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'}" />`,

@@ -14,7 +14,7 @@ function toApiRequest(request: Request): Request {
   const url = new URL(request.url);
   const p = url.pathname;
   if (p === '/api' || p.startsWith('/api/')) return request;
-  url.pathname = p === '/sitemap.xml' ? '/api/sitemap.xml' : `/api/seo/${p.replace(/^\/+/, '')}`;
+  url.pathname = p === '/sitemap.xml' ? '/api/sitemap.xml' : p.startsWith('/c/') ? `/api${p}` : `/api/seo/${p.replace(/^\/+/, '')}`;
   return new Request(url, request);
 }
 

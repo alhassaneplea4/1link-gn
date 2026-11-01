@@ -13,6 +13,7 @@ import type analytics from './fr/analytics';
 import type billing from './fr/billing';
 import type admin from './fr/admin';
 import type pub from './fr/pub';
+import type cards from './fr/cards';
 
 export interface Dict {
   [key: string]: string | Dict;
@@ -30,6 +31,7 @@ export interface Namespaces {
   billing: typeof billing;
   admin: typeof admin;
   pub: typeof pub;
+  cards: typeof cards;
 }
 
 export type NamespaceName = keyof Namespaces;

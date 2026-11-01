@@ -13,11 +13,11 @@ const perms = (read: readonly string[], write: readonly string[] = []): Permissi
 
 export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
   super_admin: [...all('read'), ...all('write')],
-  admin: [...all('read'), ...perms([], ['users', 'profiles', 'moderation', 'reports', 'support', 'subscriptions', 'settings'])],
+  admin: [...all('read'), ...perms([], ['users', 'profiles', 'moderation', 'reports', 'support', 'subscriptions', 'settings', 'cards'])],
   moderator: perms(['overview', 'users', 'profiles', 'moderation', 'reports', 'logs'], ['moderation', 'reports']),
-  support: perms(['overview', 'users', 'profiles', 'support', 'subscriptions', 'reports'], ['support']),
+  support: perms(['overview', 'users', 'profiles', 'support', 'subscriptions', 'reports', 'cards'], ['support']),
   analyst: perms(['overview', 'realtime', 'analytics', 'profiles', 'subscriptions']),
-  finance: perms(['overview', 'analytics', 'subscriptions', 'payments', 'logs'], ['payments', 'subscriptions']),
+  finance: perms(['overview', 'analytics', 'subscriptions', 'payments', 'logs', 'cards'], ['payments', 'subscriptions', 'cards']),
 };
 
 export const permissionsFor = (role: AdminRole | null): Permission[] => (role ? ROLE_PERMISSIONS[role] : []);

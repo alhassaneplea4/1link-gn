@@ -3,7 +3,7 @@ import type { Dict } from '../types';
 export default {
   nav: {
     overview: 'Overview', page: 'My page', appearance: 'Appearance', analytics: 'Analytics',
-    subscription: 'Subscription', settings: 'Settings', security: 'Security',
+    cards: 'Business cards', subscription: 'Subscription', settings: 'Settings', security: 'Security',
   },
   shell: {
     navigation: 'Dashboard navigation',

@@ -18,7 +18,7 @@ window.scrollTo = () => undefined;
 configure({ asyncUtilTimeout: 10000 });
 
 beforeAll(async () => {
-  await loadNamespaces(['common', 'marketing', 'auth', 'onboarding', 'dashboard', 'editor', 'appearance', 'analytics', 'billing', 'admin', 'pub']);
+  await loadNamespaces(['common', 'marketing', 'auth', 'onboarding', 'dashboard', 'editor', 'appearance', 'analytics', 'billing', 'admin', 'pub', 'cards']);
 });
 
 afterEach(() => {

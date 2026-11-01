@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Dict } from './types';
 
 /** Espaces de noms dont la version anglaise doit être COMPLÈTE (l'Admin Center, outil interne, reste en français). */
-const COMPLETE = ['common', 'marketing', 'auth', 'pub', 'editor', 'billing', 'dashboard', 'onboarding', 'appearance', 'analytics'] as const;
+const COMPLETE = ['common', 'marketing', 'auth', 'pub', 'editor', 'billing', 'dashboard', 'onboarding', 'appearance', 'analytics', 'cards'] as const;
 
 const flatten = (d: Dict, prefix = ''): Record<string, string> =>
   Object.entries(d).reduce<Record<string, string>>((acc, [k, v]) => {

@@ -26,6 +26,7 @@ export const paths = {
     settings: '/dashboard/settings',
     security: '/dashboard/security',
     print: '/dashboard/print',
+    cards: '/dashboard/cards',
   },
   admin: {
     root: '/admin',
@@ -43,7 +44,10 @@ export const paths = {
     logs: '/admin/logs',
     system: '/admin/system',
     settings: '/admin/settings',
+    cards: '/admin/cards',
   },
   forbidden: '/403',
   profile: (username: string) => `/${username}`,
+  /** Adresse publique d'une carte (QR code et puce NFC). */
+  card: (code: string) => `/c/${code}`,
 } as const;

@@ -8,6 +8,7 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/sitemap.xml", "destination": "/api" },
+    { "source": "/c/:code([a-hj-km-np-z2-9]{10})", "destination": "/api" },
     { "source": "/:username((?!(?:dashboard|onboarding|admin|auth|features|pricing|faq|legal|assets)$)[a-z0-9][a-z0-9_-]{1,28}[a-z0-9])", "destination": "/api" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ],

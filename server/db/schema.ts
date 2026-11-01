@@ -386,3 +386,110 @@ export const appErrors = pgTable(
   },
   (t) => [index('app_errors_at_idx').on(t.at)],
 );
+
+// — 1Link Cards : cartes de visite physiques (QR / QR + NFC) —
+
+export const CARD_ORDER_STATUS_VALUES = ['awaiting_payment', 'paid', 'validating', 'in_production', 'quality_check', 'shipped', 'delivered', 'canceled'] as const;
+
+/** Prix configurables en administration (jamais codés en dur dans le code). */
+export const cardProducts = pgTable(
+  'card_products',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(),
+    /** Nombre de cartes livrées pour une unité (1, ou 10 pour un pack). */
+    quantity: integer('quantity').notNull(),
+    price: integer('price').notNull(),
+    currency: text('currency').notNull().default('GNF'),
+    active: boolean('active').notNull().default(true),
+    updatedAt: ts('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    check('card_products_kind_ck', sql`${t.kind} in ('qr', 'nfc')`),
+    check('card_products_price_ck', sql`${t.price} >= 0`),
+    check('card_products_quantity_ck', sql`${t.quantity} >= 1`),
+  ],
+);
+
+/** Réglages des cartes (ex. consigne de paiement affichée au client). */
+export const cardSettings = pgTable('card_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export interface CardOrderEventRow { at: string; event: string; actor: string }
+
+export const cardOrders = pgTable(
+  'card_orders',
+  {
+    id: text('id').primaryKey(),
+    /** Référence lisible à indiquer au paiement (CRT-XXXXXX). */
+    reference: text('reference').notNull(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+    pageId: text('page_id').notNull().references(() => pages.id, { onDelete: 'restrict' }),
+    productId: text('product_id').notNull().references(() => cardProducts.id),
+    kind: text('kind').notNull(),
+    units: integer('units').notNull(),
+    cardsCount: integer('cards_count').notNull(),
+    unitPrice: integer('unit_price').notNull(),
+    total: integer('total').notNull(),
+    currency: text('currency').notNull(),
+    design: jsonb('design').$type<import('../../src/models/cards.js').CardDesign>().notNull(),
+    delivery: jsonb('delivery').$type<import('../../src/models/cards.js').CardDelivery>().notNull(),
+    status: text('status').notNull().default('awaiting_payment'),
+    paymentMethod: text('payment_method'),
+    paymentRef: text('payment_ref'),
+    paidAt: ts('paid_at'),
+    designApprovedAt: ts('design_approved_at'),
+    designNote: text('design_note').notNull().default(''),
+    printPartner: text('print_partner').notNull().default(''),
+    partnerRef: text('partner_ref').notNull().default(''),
+    carrier: text('carrier').notNull().default(''),
+    trackingRef: text('tracking_ref').notNull().default(''),
+    shippedAt: ts('shipped_at'),
+    deliveredAt: ts('delivered_at'),
+    history: jsonb('history').$type<CardOrderEventRow[]>().notNull().default([]),
+    createdAt: createdAt(),
+    updatedAt: ts('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('card_orders_reference_uq').on(t.reference),
+    index('card_orders_user_idx').on(t.userId, t.createdAt),
+    index('card_orders_status_idx').on(t.status, t.createdAt),
+    check('card_orders_status_ck', sql`${t.status} in (${list(CARD_ORDER_STATUS_VALUES)})`),
+    check('card_orders_kind_ck', sql`${t.kind} in ('qr', 'nfc')`),
+    check('card_orders_units_ck', sql`${t.units} >= 1 and ${t.cardsCount} >= 1 and ${t.total} >= 0`),
+  ],
+);
+
+/** Une carte physique. Son `code` (public, unique, définitif) est ce que le QR code et la puce NFC contiennent. */
+export const cards = pgTable(
+  'cards',
+  {
+    id: text('id').primaryKey(),
+    code: text('code').notNull(),
+    orderId: text('order_id').notNull().references(() => cardOrders.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+    pageId: text('page_id').notNull().references(() => pages.id, { onDelete: 'restrict' }),
+    kind: text('kind').notNull(),
+    status: text('status').notNull().default('active'),
+    disabledBy: text('disabled_by'),
+    scanCount: integer('scan_count').notNull().default(0),
+    lastScannedAt: ts('last_scanned_at'),
+    nfcChipId: text('nfc_chip_id').notNull().default(''),
+    nfcProgrammedUrl: text('nfc_programmed_url').notNull().default(''),
+    nfcResult: text('nfc_result').notNull().default('untested'),
+    nfcProgrammedAt: ts('nfc_programmed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('cards_code_uq').on(t.code),
+    index('cards_order_idx').on(t.orderId),
+    index('cards_user_idx').on(t.userId),
+    check('cards_status_ck', sql`${t.status} in ('active', 'disabled')`),
+    check('cards_kind_ck', sql`${t.kind} in ('qr', 'nfc')`),
+    check('cards_nfc_result_ck', sql`${t.nfcResult} in ('untested', 'passed', 'failed')`),
+    check('cards_disabled_by_ck', sql`${t.disabledBy} is null or ${t.disabledBy} in ('owner', 'admin')`),
+  ],
+);

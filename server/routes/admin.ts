@@ -14,9 +14,11 @@ import { decideVerification } from '../services/verification.js';
 import { activateSubscription } from '../services/billing.js';
 import type { RealtimeEvent } from '../../src/models/admin.js';
 import type { Permission } from '../../src/models/auth.js';
+import { adminCardRoutes } from './cards.js';
 
 export const adminRoutes = new Hono<HonoEnv>();
 adminRoutes.use('*', requireAuth);
+adminRoutes.route('/', adminCardRoutes);
 
 const can = (...p: Permission[]) => requireAnyPermission(...p);
 

@@ -28,6 +28,7 @@ const loaders: Record<Locale, Partial<Record<NamespaceName, () => Promise<{ defa
     billing: () => import('./fr/billing'),
     admin: () => import('./fr/admin'),
     pub: () => import('./fr/pub'),
+    cards: () => import('./fr/cards'),
   },
   en: {
     common: () => import('./en/common'),
@@ -40,6 +41,7 @@ const loaders: Record<Locale, Partial<Record<NamespaceName, () => Promise<{ defa
     analytics: () => import('./en/analytics'),
     billing: () => import('./en/billing'),
     pub: () => import('./en/pub'),
+    cards: () => import('./en/cards'),
     // L'Admin Center (outil interne du personnel) n'est volontairement disponible qu'en français : repli automatique.
   },
 };

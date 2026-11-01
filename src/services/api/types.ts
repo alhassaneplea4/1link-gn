@@ -4,6 +4,7 @@
  * (dossier `server/`), qui lit et écrit dans PostgreSQL. Aucune donnée n'est conservée ni inventée côté navigateur.
  */
 import type { Paged, ListQuery } from '@/models/api';
+import type { AdminCardOrder, AdminCardOrderRow, CardCatalog, CardDesign, CardItem, CardOrder, CardOrderInput, CardOrderStatus, CardPaymentMethod, CardProduct, NfcTestResult } from '@/models/cards';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
 import type { CodeSent, DeletionTarget, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, SignUpInput, TotpSetup } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
@@ -109,7 +110,32 @@ export interface BillingApi {
   resume(): Promise<Subscription>;
 }
 
+export type PublicCardState = { state: 'active'; username: string } | { state: 'disabled' | 'unavailable' | 'not_found' };
+
+/** 1Link Cards : espace client. */
+export interface CardsApi {
+  getCatalog(): Promise<CardCatalog>;
+  listOrders(): Promise<CardOrder[]>;
+  createOrder(input: CardOrderInput): Promise<CardOrder>;
+  cancelOrder(id: string): Promise<CardOrder>;
+  updateDesign(id: string, design: CardDesign): Promise<CardOrder>;
+  setCardActive(cardId: string, active: boolean): Promise<CardItem>;
+  /** État public d'une carte scannée / approchée (aucune donnée personnelle). */
+  getPublicCard(code: string): Promise<PublicCardState>;
+}
+
 export interface AdminApi {
+  listCardOrders(q: ListQuery): Promise<Paged<AdminCardOrderRow>>;
+  getCardOrder(id: string): Promise<AdminCardOrder>;
+  recordCardPayment(id: string, input: { method: CardPaymentMethod; reference: string }): Promise<AdminCardOrder>;
+  reviewCardDesign(id: string, input: { approved: boolean; note: string }): Promise<AdminCardOrder>;
+  setCardProduction(id: string, input: { printPartner: string; partnerRef: string }): Promise<AdminCardOrder>;
+  setCardOrderStatus(id: string, input: { status: CardOrderStatus; note?: string; carrier?: string; trackingRef?: string }): Promise<AdminCardOrder>;
+  recordCardNfc(cardId: string, input: { chipId: string; programmedUrl: string; result: NfcTestResult }): Promise<AdminCardOrder>;
+  setCardActiveByTeam(cardId: string, active: boolean): Promise<AdminCardOrder>;
+  getCardProducts(): Promise<{ products: CardProduct[]; paymentInstructions: string }>;
+  updateCardProduct(id: string, patch: { price?: number; active?: boolean }): Promise<{ products: CardProduct[]; paymentInstructions: string }>;
+  setCardPaymentInstructions(paymentInstructions: string): Promise<{ products: CardProduct[]; paymentInstructions: string }>;
   getOverview(range: DateRange): Promise<PlatformOverview>;
   listUsers(q: ListQuery): Promise<Paged<AdminUserRow>>;
   getUser(id: string): Promise<AdminUserDetail>;
@@ -148,5 +174,6 @@ export interface Api {
   analytics: AnalyticsApi;
   billing: BillingApi;
   admin: AdminApi;
+  cards: CardsApi;
   realtime: RealtimeAdapter;
 }

@@ -25,6 +25,7 @@ const NAV: NavDef[] = [
   { section: 'security', to: paths.admin.security, icon: 'shield-check', group: 'platform' },
   { section: 'logs', to: paths.admin.logs, icon: 'scroll', group: 'platform' },
   { section: 'system', to: paths.admin.system, icon: 'server', group: 'platform' },
+  { section: 'cards', to: paths.admin.cards, icon: 'package', group: 'revenue' },
   { section: 'settings', to: paths.admin.settings, icon: 'settings', group: 'platform' },
 ];
 

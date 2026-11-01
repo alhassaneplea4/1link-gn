@@ -8,7 +8,7 @@ export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export const ADMIN_SECTIONS = [
   'overview', 'realtime', 'users', 'profiles', 'analytics', 'subscriptions', 'payments',
-  'moderation', 'reports', 'support', 'security', 'logs', 'system', 'settings',
+  'moderation', 'reports', 'support', 'security', 'logs', 'system', 'settings', 'cards',
 ] as const;
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 

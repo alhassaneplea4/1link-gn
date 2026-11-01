@@ -6,6 +6,7 @@ export default {
     page: 'Ma page',
     appearance: 'Apparence',
     analytics: 'Analytics',
+    cards: 'Cartes de visite',
     subscription: 'Abonnement',
     settings: 'Paramètres',
     security: 'Sécurité',

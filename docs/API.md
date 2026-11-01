@@ -30,5 +30,16 @@ Le contrat TypeScript côté interface est `src/services/api/types.ts`, son impl
 `tickets` · `logs` · `security/events` · `system/status` · `roles` · `realtime` (SSE).
 Les listes acceptent `page, pageSize (≤100), search, sort, dir` et des filtres (`status=…`, `plan=…`).
 
+## 1Link Cards (voir [CARTES.md](CARTES.md))
+| Méthode & chemin | Rôle |
+|---|---|
+| `GET /c/:code` | Adresse écrite dans le QR code et la puce NFC : 302 vers le profil (`?src=card`), jamais en cache ; carte désactivée / inconnue : page d'information 410/404 |
+| `GET /cards/public/:code` | État public d'une carte (`active` + pseudonyme, `disabled`, `unavailable`, `not_found`), sans donnée personnelle |
+| `GET /me/cards/catalog` · `GET/POST /me/cards/orders` | Catalogue (prix en base, consigne de paiement), commandes du client, nouvelle commande (prix recalculé par le serveur) |
+| `POST /me/cards/orders/:id/cancel` · `PUT /me/cards/orders/:id/design` · `PATCH /me/cards/:id` | Annulation (avant paiement), correction du visuel, désactivation / réactivation d'une carte (perte, vol) |
+| `GET /admin/cards/orders` (+ `/:id`) | Commandes (permission `cards:read`) |
+| `POST /admin/cards/orders/:id/{payment,design-review,status}` · `PUT …/production` · `PUT /admin/cards/:id/nfc` · `PATCH /admin/cards/:id` | Paiement reçu, validation du visuel, statut, partenaire d'impression, programmation / test NFC, désactivation par l'équipe (`cards:write`) |
+| `GET /admin/cards/products` · `PATCH …/products/:id` · `PUT …/settings` | Tarifs et consigne de paiement |
+
 ## Maintenance
 `GET /cron/maintenance` — réservé à Vercel Cron (`Authorization: Bearer $CRON_SECRET`).

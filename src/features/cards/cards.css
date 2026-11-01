@@ -1,0 +1,109 @@
+/* — 1Link Cards — aperçus de carte, assistant de commande, historique — */
+
+/* Carte « physique » : format ISO ID-1 (85,6 × 54 mm) */
+.cardface { display: block; width: 100%; aspect-ratio: 85.6 / 54; border-radius: 4.2%/6.6%; overflow: hidden; line-height: 0; }
+.cardface svg { display: block; width: 100%; height: 100%; }
+
+.cardprev { margin: 0; display: grid; gap: var(--space-3); justify-items: center; width: 100%; }
+.cardprev__stage { width: 100%; max-width: 420px; perspective: 1200px; }
+.cardprev__flip { position: relative; aspect-ratio: 85.6 / 54; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.is-back > .cardprev__flip { transform: rotateY(180deg); }
+.cardprev__side { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 4.2%/6.6%;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.12), 0 18px 38px -16px rgb(15 23 42 / 0.45), 0 34px 60px -30px rgb(37 99 235 / 0.35); }
+.cardprev__side--back { transform: rotateY(180deg); }
+.cardprev--compact .cardprev__stage { max-width: none; }
+.cardprev--compact .cardprev__side { box-shadow: 0 1px 2px rgb(15 23 42 / 0.14), 0 10px 22px -14px rgb(15 23 42 / 0.5); }
+.cardprev__caption { display: flex; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .cardprev__flip { transition: none; } }
+
+/* Page */
+.cardpg { display: grid; gap: var(--space-5); }
+.cardpg__tabs { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.cardwiz { display: grid; gap: var(--space-5); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) { .cardwiz { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); } }
+.cardwiz__preview { display: grid; gap: var(--space-3); padding: var(--space-4); order: -1; }
+.cardwiz__preview .cardprev__stage { max-width: 340px; }
+@media (min-width: 1000px) { .cardwiz__preview { position: sticky; top: 84px; order: 0; } .cardwiz__preview .cardprev__stage { max-width: 420px; } }
+.cardwiz__note { font-size: var(--text-xs); color: var(--color-text-muted); text-align: center; margin: 0; }
+.cardwiz__main { display: grid; gap: var(--space-5); padding: var(--space-5); min-width: 0; }
+.cardwiz__title { font-size: var(--text-xl); margin: 0; }
+.cardwiz__lead { color: var(--color-text-muted); margin: 0.2rem 0 0; }
+.cardwiz__nav { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+
+.cardsteps { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none; }
+.cardsteps li { flex: 1 0 auto; }
+.cardsteps button { width: 100%; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 0 0.85rem; border-radius: 999px; border: var(--border-1); background: var(--color-surface); color: var(--color-text-muted); font: inherit; font-size: var(--text-sm); font-weight: var(--weight-semibold); cursor: pointer; white-space: nowrap; }
+.cardsteps button[aria-current='step'] { color: var(--color-text); border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent); }
+.cardsteps button:disabled { opacity: 0.55; cursor: not-allowed; }
+.cardsteps__n { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--color-surface-2, var(--color-surface)); font-size: 0.75rem; }
+.cardsteps .is-done .cardsteps__n { background: var(--color-primary); color: #fff; }
+
+/* Type de carte */
+.kindpick { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.kindcard { position: relative; display: grid; gap: 0.3rem; padding: var(--space-4); border-radius: var(--radius-lg); border: 1.5px solid var(--color-border); background: var(--color-surface); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.kindcard:has(input:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent); }
+.kindcard:has(input:focus-visible) { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.kindcard input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.kindcard strong { display: flex; align-items: center; gap: 0.5rem; }
+.kindcard small { color: var(--color-text-muted); }
+.kindcard__price { font-weight: var(--weight-bold); color: var(--color-accent); }
+
+/* Modèles */
+.tplgrid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.tplcard { position: relative; display: grid; gap: 0.45rem; padding: 0.6rem; border-radius: var(--radius-lg); border: 1.5px solid var(--color-border); background: var(--color-surface); cursor: pointer; }
+.tplcard:has(input:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent); }
+.tplcard:has(input:focus-visible) { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.tplcard input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.tplcard__name { font-size: var(--text-sm); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+
+/* Personnalisation */
+.cardform { display: grid; gap: var(--space-4); }
+.cardform__row { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.cardform__profile { display: flex; align-items: center; gap: 0.7rem; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2, var(--color-surface)); border: var(--border-1); font-size: var(--text-sm); flex-wrap: wrap; }
+.cardform__profile strong { word-break: break-all; }
+.cswatches { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.cswatch { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--color-border); cursor: pointer; padding: 0; background-clip: padding-box; }
+.cswatch[aria-pressed='true'] { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.cardimg { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.cardimg__thumb { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: var(--border-1); background: var(--color-surface-2, var(--color-surface)); display: grid; place-items: center; overflow: hidden; }
+.cardimg__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Quantité et prix */
+.qtyformats { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.qty { display: inline-flex; align-items: center; gap: 0.5rem; }
+.qty input { width: 4.5rem; text-align: center; }
+.pricebox { display: grid; gap: 0.35rem; padding: var(--space-4); border-radius: var(--radius-lg); background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 9%, var(--color-surface)), var(--color-surface) 70%); border: var(--border-1); }
+.pricebox__row { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-sm); }
+.pricebox__total { font-size: var(--text-xl); font-weight: var(--weight-bold); }
+
+/* Récapitulatif */
+.recap { display: grid; gap: var(--space-3); margin: 0; }
+.recap div { display: flex; justify-content: space-between; gap: var(--space-4); border-bottom: var(--border-1); padding-bottom: 0.5rem; font-size: var(--text-sm); }
+.recap dt { color: var(--color-text-muted); }
+.recap dd { margin: 0; text-align: right; font-weight: var(--weight-semibold); word-break: break-word; }
+
+/* Commandes */
+.orders { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.order { display: grid; gap: var(--space-4); padding: var(--space-5); }
+.order__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.order__ref { font-family: var(--font-mono, monospace); font-weight: var(--weight-bold); }
+.order__meta { color: var(--color-text-muted); font-size: var(--text-sm); display: flex; gap: 0.4rem 1rem; flex-wrap: wrap; }
+.order__body { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .order__body { grid-template-columns: 220px minmax(0, 1fr); } }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; font-size: var(--text-xs); }
+.timeline li { display: flex; align-items: center; gap: 0.35rem; color: var(--color-text-muted); }
+.timeline li::before { content: ''; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--color-border-strong, var(--color-border)); }
+.timeline li.is-done { color: var(--color-text); }
+.timeline li.is-done::before { background: var(--color-primary); border-color: var(--color-primary); }
+.timeline li.is-current { font-weight: var(--weight-bold); color: var(--color-text); }
+.paybox { display: grid; gap: 0.4rem; padding: var(--space-4); border-radius: var(--radius-md); border: 1.5px dashed var(--color-border-strong, var(--color-border)); background: var(--color-surface-2, var(--color-surface)); font-size: var(--text-sm); }
+.paybox p { margin: 0; white-space: pre-line; }
+.mycards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.mycard { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; padding: 0.6rem 0.8rem; border-radius: var(--radius-md); border: var(--border-1); background: var(--color-surface); font-size: var(--text-sm); }
+.mycard__url { font-family: var(--font-mono, monospace); font-size: var(--text-xs); word-break: break-all; }
+.mycard__tools { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.mycard.is-off { opacity: 0.7; }
+
+/* Page d'une carte scannée */
+.cardlanding { min-height: 70vh; display: grid; place-items: center; padding: var(--space-6); }
+.cardlanding__box { max-width: 440px; display: grid; gap: var(--space-4); text-align: center; justify-items: center; }

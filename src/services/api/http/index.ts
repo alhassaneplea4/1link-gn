@@ -5,7 +5,7 @@
 import type { ListQuery } from '@/models/api';
 import type { Session, SignInResult, TwoFactorChallenge } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
-import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, PageApi } from '../types';
+import type { Api, AdminApi, AnalyticsApi, AuthApi, BillingApi, CardsApi, PageApi } from '../types';
 import { request } from './client';
 import { sseRealtime } from './realtime';
 
@@ -82,7 +82,28 @@ const billing: BillingApi = {
   resume: () => request('POST', '/me/subscription/resume'),
 };
 
+const cards: CardsApi = {
+  getCatalog: () => request('GET', '/me/cards/catalog'),
+  listOrders: () => request('GET', '/me/cards/orders'),
+  createOrder: (input) => request('POST', '/me/cards/orders', { body: input }),
+  cancelOrder: (id) => request('POST', `/me/cards/orders/${seg(id)}/cancel`),
+  updateDesign: (id, design) => request('PUT', `/me/cards/orders/${seg(id)}/design`, { body: design }),
+  setCardActive: (cardId, active) => request('PATCH', `/me/cards/${seg(cardId)}`, { body: { active } }),
+  getPublicCard: (code) => request('GET', `/cards/public/${seg(code)}`),
+};
+
 const admin: AdminApi = {
+  listCardOrders: (l) => request('GET', '/admin/cards/orders', { query: q(l) }),
+  getCardOrder: (id) => request('GET', `/admin/cards/orders/${seg(id)}`),
+  recordCardPayment: (id, input) => request('POST', `/admin/cards/orders/${seg(id)}/payment`, { body: input }),
+  reviewCardDesign: (id, input) => request('POST', `/admin/cards/orders/${seg(id)}/design-review`, { body: input }),
+  setCardProduction: (id, input) => request('PUT', `/admin/cards/orders/${seg(id)}/production`, { body: input }),
+  setCardOrderStatus: (id, input) => request('POST', `/admin/cards/orders/${seg(id)}/status`, { body: input }),
+  recordCardNfc: (cardId, input) => request('PUT', `/admin/cards/${seg(cardId)}/nfc`, { body: input }),
+  setCardActiveByTeam: (cardId, active) => request('PATCH', `/admin/cards/${seg(cardId)}`, { body: { active } }),
+  getCardProducts: () => request('GET', '/admin/cards/products'),
+  updateCardProduct: (id, patch) => request('PATCH', `/admin/cards/products/${seg(id)}`, { body: patch }),
+  setCardPaymentInstructions: (paymentInstructions) => request('PUT', '/admin/cards/settings', { body: { paymentInstructions } }),
   getOverview: (r) => request('GET', '/admin/overview', { query: { from: r.from, to: r.to } }),
   listUsers: (l) => request('GET', '/admin/users', { query: q(l) }),
   getUser: (id) => request('GET', `/admin/users/${seg(id)}`),
@@ -104,4 +125,4 @@ const admin: AdminApi = {
   getRoleMatrix: () => request('GET', '/admin/roles'),
 };
 
-export const httpApi: Api = { auth, page, analytics, billing, admin, realtime: sseRealtime };
+export const httpApi: Api = { auth, page, analytics, billing, admin, cards, realtime: sseRealtime };

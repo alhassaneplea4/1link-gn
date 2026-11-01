@@ -7,6 +7,7 @@ import { setRateLimitScale } from './lib/ratelimit.js';
 import { fieldsFromZod } from './lib/request.js';
 import { baseMiddleware, originGuard } from './middleware.js';
 import { adminRoutes } from './routes/admin.js';
+import { cardPublicRoutes } from './routes/cards.js';
 import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import { publicRoutes } from './routes/public.js';
@@ -29,6 +30,7 @@ export function createApp(deps: Deps) {
   app.route('/me', meRoutes);
   app.route('/admin', adminRoutes);
   app.route('/', publicRoutes);
+  app.route('/', cardPublicRoutes);
   app.route('/', systemRoutes);
   app.route('/', seoRoutes);
   if (deps.config.devRoutes) app.route('/dev', devRoutes);

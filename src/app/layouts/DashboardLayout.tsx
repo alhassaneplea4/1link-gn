@@ -68,6 +68,7 @@ export default function DashboardLayout() {
     { id: 'page', to: paths.dashboard.page, icon: 'pencil', label: t('dashboard.nav.page'), primaryMobile: true },
     { id: 'appearance', to: paths.dashboard.appearance, icon: 'palette', label: t('dashboard.nav.appearance'), primaryMobile: true },
     { id: 'analytics', to: paths.dashboard.analytics, icon: 'chart', label: t('dashboard.nav.analytics'), primaryMobile: true },
+    { id: 'cards', to: paths.dashboard.cards, icon: 'qr', label: t('dashboard.nav.cards') },
     { id: 'subscription', to: paths.dashboard.subscription, icon: 'credit-card', label: t('dashboard.nav.subscription') },
     { id: 'settings', to: paths.dashboard.settings, icon: 'settings', label: t('dashboard.nav.settings') },
     { id: 'security', to: paths.dashboard.security, icon: 'shield', label: t('dashboard.nav.security') },
