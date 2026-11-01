@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { pages, users } from '../server/db/schema.js';
 import { uniqueEmail } from '../server/testing/fixtures.js';
-import { expect, latestMail, registerNew, signIn, signInByCode, test as base, tokenFrom, type Account } from './fixtures';
+import { confirmLink, expect, latestMail, registerNew, signIn, signInByCode, test as base, tokenFrom, type Account } from './fixtures';
 
 const test = base.extend<{ mariama: Account }>({
   // Créatrice (offre Pro, page publiée) déjà connectée par le formulaire de connexion.
@@ -18,6 +18,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
   test('adresse e-mail seule + code, type de compte, profil, puis vue d’ensemble', async ({ page, seed }) => {
     const email = uniqueEmail('awa');
     await registerNew(page, email);
+    await confirmLink(page);
     await page.getByRole('button', { name: /Continuer/ }).click();
     await expect(page.getByRole('alert')).toBeVisible(); // type de compte obligatoire
     await page.getByLabel(/Créateur/).check();
@@ -41,6 +42,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
   test('reprise de l’assistant sur un autre appareil (brouillon conservé côté serveur)', async ({ page, browser, seed }) => {
     const email = uniqueEmail('reprise');
     await registerNew(page, email);
+    await confirmLink(page);
     await page.getByLabel(/Professionnel/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
     await page.getByLabel(/Secteur d’activité/).fill('Informatique');
@@ -59,6 +61,8 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await registerNew(page, email);
     const mail = await latestMail(request, email);
     expect(mail.subject).toMatch(/Bienvenue sur 1Link|est votre code/);
+    const chosen = `fanta-pub-${unique().toLowerCase()}`;
+    await confirmLink(page, chosen); // le lien se choisit en premier
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
     const name = `Fanta Pub ${unique()}`;
@@ -68,7 +72,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await expect(page.getByText('Votre page est publiée')).toBeVisible();
     const [user] = await seed.db.select().from(users).where(eq(users.email, email));
     const [row] = await seed.db.select().from(pages).where(eq(pages.userId, user!.id));
-    expect(row!.username).toMatch(/^fanta-pub/); // adresse choisie automatiquement à partir du nom
+    expect(row!.username).toBe(chosen); // l'adresse choisie à la première étape
     const visitor = await page.context().browser()!.newContext();
     const vp = await visitor.newPage();
     await vp.goto(`/${row!.username}`);
@@ -92,6 +96,7 @@ test.describe('inscription et onboarding (compte réel en base)', () => {
     await page.getByRole('button', { name: 'Remplir' }).click();
     await page.getByRole('button', { name: 'Valider' }).click();
     await expect(page).toHaveURL(/\/onboarding/);
+    await confirmLink(page);
     await page.getByLabel(/Particulier/).check();
     await page.getByRole('button', { name: /Continuer/ }).click();
     await page.getByRole('button', { name: 'Valider mon compte' }).click();

@@ -1,3 +1,4 @@
+import { validateUsername } from '@/utilities/validation';
 import type { OnboardingData, StepId } from './store';
 
 export type StepErrors = Record<string, string>;
@@ -5,6 +6,10 @@ export type StepErrors = Record<string, string>;
 /** Validation pure d'une étape. Les valeurs sont des clés de message (common.validation.*). */
 export function validateStep(step: StepId, d: OnboardingData): StepErrors {
   const errors: StepErrors = {};
+  if (step === 'link') {
+    const problem = validateUsername(d.username);
+    if (problem) errors.username = problem;
+  }
   if (step === 'category' && !d.category) errors.category = 'common.validation.required';
   if (step === 'profile') {
     if (!d.identity.displayName.trim()) errors.displayName = 'common.validation.required';

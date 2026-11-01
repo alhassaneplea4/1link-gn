@@ -7,6 +7,7 @@ import { useT } from '@/i18n/core';
 import { useEditor } from '@/state/editor';
 import { useAccess } from '@/hooks/useAccess';
 import { PlanGateNotice } from '@/features/subscriptions/PlanNotice';
+import { openUpgradePrompt } from '@/features/subscriptions/UpgradePrompt';
 import { minimumPlanFor, type AppearanceTab } from '@/models/access';
 import { ButtonsPanel, BackgroundPanel, ColorsPanel, LayoutPanel, ThemesPanel, TypographyPanel } from './panels';
 import '@/features/profile-editor/editor.css';
@@ -35,9 +36,18 @@ export default function AppearancePage() {
     const open = rights.tabs.includes(access);
     return { id, label, icon: open ? icon : ('lock' as const), panel: open ? panel : <PlanGateNotice plan={minimumPlanFor((r) => r.tabs.includes(access))} /> };
   };
+  const locked: Record<string, { access: AppearanceTab; label: string }> = {
+    themes: { access: 'themes', label: t('appearance.tabs.themes') }, colors: { access: 'colors', label: t('appearance.tabs.colors') }, buttons: { access: 'buttons', label: t('appearance.tabs.buttons') },
+    type: { access: 'text', label: t('appearance.tabs.type') }, layout: { access: 'layout', label: t('appearance.tabs.layout') }, background: { access: 'background', label: t('appearance.tabs.background') },
+  };
+  // Cliquer un onglet réservé à une offre supérieure propose l'abonnement.
+  const onTab = (id: string) => {
+    const l = locked[id];
+    if (l && !rights.tabs.includes(l.access)) openUpgradePrompt({ plan: minimumPlanFor((r) => r.tabs.includes(l.access)), feature: l.label });
+  };
   const panels = (
     <Tabs
-      variant="pills" label={t('appearance.sections')}
+      variant="pills" label={t('appearance.sections')} onChange={onTab}
       items={[
         tab('themes', 'themes', t('appearance.tabs.themes'), 'sparkles', <ThemesPanel a={a} />),
         tab('colors', 'colors', t('appearance.tabs.colors'), 'palette', <ColorsPanel a={a} patch={patch} />),

@@ -8,6 +8,7 @@ import { blockRegistry, blockSummary } from '@/features/page-engine/blocks/regis
 import { useOutsideClick } from '@/hooks/dom';
 import { useAccess } from '@/hooks/useAccess';
 import { TrialBanner } from '@/features/subscriptions/PlanNotice';
+import { UpgradePromptHost } from '@/features/subscriptions/UpgradePrompt';
 import { useT } from '@/i18n/core';
 import { useEditor, useEditorBlocks } from '@/state/editor';
 import { useSession } from '@/state/session';
@@ -86,6 +87,7 @@ export default function DashboardLayout() {
 
   const plan = session ? getPlan(session.user.plan) : null;
   return (
+    <>
     <AppShell
       variant="user"
       nav={nav}
@@ -117,5 +119,7 @@ export default function DashboardLayout() {
       )}
       moreContent={<p style={{ marginTop: 'var(--space-4)' }}><Link to={paths.dashboard.subscription}>{t('dashboard.shell.upgrade')}</Link></p>}
     />
+    <UpgradePromptHost />
+    </>
   );
 }

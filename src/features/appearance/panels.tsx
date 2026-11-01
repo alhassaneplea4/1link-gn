@@ -6,6 +6,7 @@ import { uploadImage } from '@/services/media';
 import { useEditor } from '@/state/editor';
 import { useAccess } from '@/hooks/useAccess';
 import { allowsTheme, minimumPlanFor } from '@/models/access';
+import { openUpgradePrompt } from '@/features/subscriptions/UpgradePrompt';
 import { BACKGROUND_TYPES, BUTTON_STYLES, CARD_STYLES, FONT_IDS, PATTERNS, RADIUS_KEYS, type AppearanceConfig, type ColorKey } from '@/models/appearance';
 import { COLOR_KEYS } from '@/models/appearance';
 import { readableOn } from '@/utilities/color';
@@ -27,7 +28,7 @@ export function ThemesPanel({ a }: Pick<PanelProps, 'a'>) {
         const allowed = allowsTheme(rights, id);
         return (
           <li key={id}>
-            <button type="button" className={`themecard ${active ? 'is-active' : ''} ${allowed ? '' : 'is-locked'}`} aria-pressed={active} disabled={!allowed} title={allowed ? undefined : t('billing.gate.needPlan', { plan: t(`common.plans.${minimumPlanFor((r) => allowsTheme(r, id))}`) })} onClick={() => apply(id)}>
+            <button type="button" className={`themecard ${active ? 'is-active' : ''} ${allowed ? '' : 'is-locked'}`} aria-pressed={active} aria-disabled={!allowed || undefined} title={allowed ? undefined : t('billing.gate.needPlan', { plan: t(`common.plans.${minimumPlanFor((r) => allowsTheme(r, id))}`) })} onClick={() => (allowed ? apply(id) : openUpgradePrompt({ plan: minimumPlanFor((r) => allowsTheme(r, id)), feature: t(`common.themes.${id}`) }))}>
               <span className="themecard__preview" style={{ background: bg, borderColor: p.colors.border }} aria-hidden="true">
                 <i className="themecard__avatar" style={{ background: p.colors.primary }} />
                 <i className="themecard__line" style={{ background: p.colors.text }} />

@@ -4,6 +4,7 @@ import { paths } from '@/app/configuration/paths';
 import { useAccess } from '@/hooks/useAccess';
 import { useT } from '@/i18n/core';
 import type { PlanId } from '@/models/access';
+import { openUpgradePrompt } from './UpgradePrompt';
 
 /** Bandeau d'essai : jours restants de l'essai gratuit ou de l'essai d'abonnement ; ou essai terminé (compte verrouillé). */
 export function TrialBanner() {
@@ -37,7 +38,7 @@ export function PlanGateNotice({ plan }: { plan: PlanId }) {
     <div className="plan-gate" role="note">
       <Icon name="lock" size={18} />
       <span>{t('billing.gate.locked', { plan: t(`common.plans.${plan}`) })}</span>
-      <Link to={paths.dashboard.subscription}>{t('billing.gate.upgrade')}</Link>
+      <button type="button" onClick={() => openUpgradePrompt({ plan })}>{t('billing.gate.upgrade')}</button>
     </div>
   );
 }

@@ -84,7 +84,7 @@ export default {
     viewer: 'Image viewer',
     close: 'Close image',
   },
-  actions: { whatsapp: 'WhatsApp', call: 'Call', email: 'Email', share: 'Share', copied: 'Link copied' },
+  actions: { whatsapp: 'WhatsApp', call: 'Call', callMobile: 'Call (mobile)', callPro: 'Call (work)', mobile: 'Mobile', pro: 'Work', messageWhatsapp: 'WhatsApp message', messageSms: 'SMS message', switch: 'Choose channel', email: 'Email', share: 'Share', copied: 'Link copied' },
   cta: { title: 'Create your own 1Link', text: 'Gather your links, social networks, services and contacts on a single page. Free and ready in minutes.', button: 'Create my 1Link' },
   share: {
     title: 'Share this page',

@@ -25,6 +25,10 @@ export interface ProfileData {
   location: string;
   /** Secteur d'activité (ex. « Restauration », « Éducation »). */
   sector?: string;
+  /** Numéros de contact affichés en boutons sous le profil : appel, WhatsApp, SMS (format international). */
+  mobilePhone?: string;
+  proPhone?: string;
+  whatsappPhone?: string;
   verified: boolean;
   /** Badges mérités (calculés par le serveur : abonnement, vérification, équipe). */
   badges?: ('official' | 'team' | 'verified' | 'business' | 'pro')[];

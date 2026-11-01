@@ -9,4 +9,5 @@
 .platform-picker__opt.is-active { background: var(--color-primary-soft, color-mix(in srgb, var(--color-primary) 12%, transparent)); }
 .platform-picker__opt[aria-selected='true'] { color: var(--color-primary); }
 .platform-picker__check { margin-left: auto; }
+.platform-picker__used { margin-left: auto; font-size: 0.72em; font-weight: 700; opacity: 0.6; }
 .platform-picker__empty { padding: 12px; color: var(--color-text-muted); text-align: center; }

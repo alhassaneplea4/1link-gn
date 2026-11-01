@@ -10,24 +10,15 @@ import { useDocumentTitle } from '@/hooks/dom';
 import { useT, useLocale } from '@/i18n/core';
 import { useEditor } from '@/state/editor';
 import { useSession } from '@/state/session';
-import { composeDocument, usernameCandidates } from './compose';
-import { CategoryStep, ProfileStep } from './steps';
+import { composeDocument } from './compose';
+import { checkLink, pickUsername, type LinkStatus } from './link';
+import { CategoryStep, LinkStep, ProfileStep } from './steps';
 import { STEPS, restoreOnboarding, snapshotOnboarding, useOnboarding, type OnboardingData } from './store';
 import { validateStep } from './validate';
 import './onboarding.css';
 
-/** Première adresse disponible parmi les candidates dérivées du nom (le serveur reste l'autorité à la publication). */
-async function pickUsername(displayName: string): Promise<string> {
-  const candidates = usernameCandidates(displayName);
-  for (const c of candidates) {
-    const r = await api.page.checkUsername(c).catch(() => null);
-    if (r?.available) return c;
-  }
-  return candidates[candidates.length - 1]!;
-}
-
 /**
- * Configuration du compte en deux étapes : le type de compte, puis le profil (photo, couverture, nom complet, secteur, titre).
+ * Configuration du compte en trois étapes : le lien 1Link (vérifié en premier), le type de compte, puis le profil (photo, couverture, nom complet, secteur, titre).
  * « Valider mon compte » crée et publie la page puis ouvre la vue d'ensemble ; les blocs s'ajoutent ensuite depuis « Ma page ».
  */
 export default function OnboardingPage() {
@@ -43,6 +34,7 @@ export default function OnboardingPage() {
   const [publishError, setPublishError] = useState<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const [restored, setRestored] = useState(false);
+  const [linkStatus, setLinkStatus] = useState<LinkStatus>('idle');
 
   // Reprise : le brouillon de l'assistant est conservé sur le serveur (même compte, n'importe quel appareil).
   useEffect(() => {
@@ -68,9 +60,9 @@ export default function OnboardingPage() {
     return () => { live = false; unsubscribe?.(); clearTimeout(timer); flush(); };
   }, []);
 
-  const stepId = STEPS[step] ?? 'category';
-  const doc = useMemo(() => composeDocument(data as OnboardingData, user?.name ?? '', 'exemple'), [data.category, data.identity, data.activity, user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
-  const errors = useMemo(() => validateStep(stepId, data as OnboardingData), [stepId, data.category, data.identity, data.activity]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stepId = STEPS[step] ?? 'link';
+  const doc = useMemo(() => composeDocument(data as OnboardingData, user?.name ?? '', data.username || 'exemple'), [data.username, data.category, data.identity, data.activity, user?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+  const errors = useMemo(() => validateStep(stepId, data as OnboardingData), [stepId, data.username, data.category, data.identity, data.activity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus sur le titre de l'étape à chaque changement (lecteurs d'écran + clavier).
   useEffect(() => { heading.current?.focus({ preventScroll: false }); window.scrollTo({ top: 0 }); }, [step]);
@@ -83,11 +75,11 @@ export default function OnboardingPage() {
   const validate = async () => {
     setBusy(true);
     setPublishError(null);
-    const username = await pickUsername(data.identity.displayName || user?.name || '');
+    const username = data.username || await pickUsername(data.identity.displayName || user?.name || '');
     const composed = composeDocument(data as OnboardingData, user?.name ?? '', username);
     // Un brouillon peut déjà exister côté serveur (assistant interrompu) : on repart de sa version pour ne rien écraser par erreur.
     const existing = await api.page.getMyPage().catch(() => null);
-    useEditor.setState({ status: 'ready', doc: existing ? { ...composed, id: existing.id, version: existing.version, username: existing.username || username } : composed, saved: null, past: [], future: [], dirty: true });
+    useEditor.setState({ status: 'ready', doc: existing ? { ...composed, id: existing.id, version: existing.version, username: username } : composed, saved: null, past: [], future: [], dirty: true });
     const result = await useEditor.getState().publish();
     setBusy(false);
     if (!result.ok) { setPublishError(result.error ?? 'unknown'); return; }
@@ -96,10 +88,20 @@ export default function OnboardingPage() {
     navigate(paths.dashboard.root, { replace: true });
   };
 
+  // Le lien se vérifie toujours en premier : on ne passe à la suite qu'avec une adresse libre (contrôle serveur au moment du clic).
+  const continueFromLink = async () => {
+    setBusy(true);
+    const status = await checkLink(data.username);
+    setBusy(false);
+    setLinkStatus(status);
+    if (status === 'available') { setShowErrors(false); go(Math.min(STEPS.length - 1, step + 1)); } else setShowErrors(true);
+  };
+
   const next = () => {
     if (Object.keys(errors).length) { setShowErrors(true); return; }
     setShowErrors(false);
-    if (last) void validate();
+    if (stepId === 'link') void continueFromLink();
+    else if (last) void validate();
     else go(Math.min(STEPS.length - 1, step + 1));
   };
   const back = () => { setShowErrors(false); go(Math.max(0, step - 1)); };
@@ -108,7 +110,8 @@ export default function OnboardingPage() {
     if (i <= Math.max(step, data.visited)) { setShowErrors(false); go(i); }
   };
 
-  const body = stepId === 'category' ? <CategoryStep errors={errors} showErrors={showErrors} /> : <ProfileStep errors={errors} showErrors={showErrors} />;
+  const body = stepId === 'link' ? <LinkStep errors={errors} showErrors={showErrors} status={linkStatus} onStatus={setLinkStatus} />
+    : stepId === 'category' ? <CategoryStep errors={errors} showErrors={showErrors} /> : <ProfileStep errors={errors} showErrors={showErrors} />;
 
   return (
     <div className="onb">
@@ -158,7 +161,7 @@ export default function OnboardingPage() {
         <aside className="onb__preview" aria-label={t('onboarding.livePreview')}>
           <div className="onb__sticky">
             <PhoneFrame label={t('onboarding.livePreview')}>
-              <PageRenderer page={doc} pageUrl={pageShareUrl('exemple')} preview layout="profile" />
+              <PageRenderer page={doc} pageUrl={pageShareUrl(data.username || 'exemple')} preview layout="profile" />
             </PhoneFrame>
             <p className="subtle onb__caption">{t('onboarding.livePreview')}</p>
           </div>

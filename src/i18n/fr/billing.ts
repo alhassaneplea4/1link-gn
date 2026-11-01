@@ -115,6 +115,15 @@ export default {
       refunded: 'Le montant a été remboursé.',
     },
   },
+  upgrade: {
+    title: 'Fonctionnalité réservée',
+    text: 'Cette fonctionnalité est disponible avec l’offre {plan}.',
+    textFeature: '« {feature} » est disponible avec l’offre {plan}.',
+    question: 'Voulez-vous vous abonner ?',
+    trial: 'Voulez-vous vous abonner ? Vous profitez de 15 jours d’essai à la souscription.',
+    yes: 'Oui, m’abonner',
+    later: 'Non, plus tard',
+  },
   gate: {
     needPlan: 'Disponible avec l’offre {plan}',
     upgrade: 'Voir les offres',

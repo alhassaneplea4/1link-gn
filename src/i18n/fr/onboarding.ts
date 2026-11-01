@@ -7,8 +7,15 @@ export default {
   livePreview: 'Aperçu en direct de votre page',
   validate: 'Valider mon compte',
   steps: {
+    link: 'Votre lien',
     category: 'Type de compte',
     profile: 'Profil',
+  },
+  link: {
+    title: 'Choisissez votre lien 1Link',
+    lead: 'C’est l’adresse de votre page, celle que vous partagerez partout. Nous vérifions d’abord qu’elle est libre.',
+    available: 'Cette adresse est libre : elle est à vous.',
+    later: 'Vous pourrez la modifier plus tard depuis votre vue d’ensemble.',
   },
   category: { title: 'Quel type de compte ?', lead: 'Votre type de compte adapte les suggestions et votre tableau de bord. Vous pourrez le changer plus tard.', legend: 'Type de compte' },
   profile: {
@@ -23,6 +30,7 @@ export default {
     titleHint: 'Votre métier, votre rôle ou une accroche. Ex. « Architecte d’intérieur ».',
   },
   sections: {
+    link: { title: 'Votre adresse', hint: 'Lettres minuscules, chiffres, tirets et tirets bas (3 à 30 caractères).' },
     photos: { title: 'Photos', hint: 'Une couverture et une photo de profil donnent tout de suite confiance. Vous pourrez les changer à tout moment.' },
     identity: { title: 'Nom, secteur et titre', hint: 'Ce que vos visiteurs liront en premier.' },
   },

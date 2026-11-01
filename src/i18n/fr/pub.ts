@@ -84,7 +84,7 @@ export default {
     viewer: 'Visionneuse d’images',
     close: 'Fermer l’image',
   },
-  actions: { whatsapp: 'WhatsApp', call: 'Appeler', email: 'E-mail', share: 'Partager', copied: 'Lien copié' },
+  actions: { whatsapp: 'WhatsApp', call: 'Appeler', callMobile: 'Appeler (mobile)', callPro: 'Appeler (pro)', mobile: 'Mobile', pro: 'Pro', messageWhatsapp: 'Message WhatsApp', messageSms: 'Message SMS', switch: 'Choisir le canal', email: 'E-mail', share: 'Partager', copied: 'Lien copié' },
   cta: { title: 'Créez votre propre 1Link', text: 'Rassemblez vos liens, réseaux, services et contacts sur une seule page. C’est gratuit et prêt en quelques minutes.', button: 'Créer mon 1Link' },
   share: {
     title: 'Partager cette page',

@@ -115,6 +115,15 @@ export default {
       refunded: 'The amount was refunded.',
     },
   },
+  upgrade: {
+    title: 'Reserved feature',
+    text: 'This feature is available with the {plan} plan.',
+    textFeature: '“{feature}” is available with the {plan} plan.',
+    question: 'Would you like to subscribe?',
+    trial: 'Would you like to subscribe? You get a 15-day trial when you subscribe.',
+    yes: 'Yes, subscribe',
+    later: 'No, maybe later',
+  },
   gate: {
     needPlan: 'Available with the {plan} plan',
     upgrade: 'See plans',

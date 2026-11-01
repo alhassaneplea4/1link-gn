@@ -84,6 +84,15 @@ export async function registerNew(page: Page, email: string) {
   await expect(page).toHaveURL(/\/onboarding/);
 }
 
+/** Première étape de l'assistant : une adresse libre est proposée, on la garde (le serveur la revérifie au clic) et on passe à la suite. */
+export async function confirmLink(page: Page, username?: string) {
+  await expect(page.getByRole('heading', { name: 'Choisissez votre lien 1Link' })).toBeVisible();
+  if (username) await page.getByLabel(/Adresse de votre page/).fill(username);
+  await expect(page.getByLabel(/Adresse de votre page/)).not.toHaveValue('');
+  await page.getByRole('button', { name: /Continuer/ }).click();
+  await expect(page.getByRole('heading', { name: 'Quel type de compte ?' })).toBeVisible();
+}
+
 /** Connexion d'un compte SANS mot de passe : code reçu par e-mail. */
 export async function signInByCode(page: Page, email: string) {
   await page.goto('/auth/login');

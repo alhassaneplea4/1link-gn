@@ -17,6 +17,7 @@ export const digits = (phone: string) => phone.replace(/[^\d]/g, '');
 export const telHref = (phone: string) => `tel:+${digits(phone)}`;
 export const whatsappHref = (phone: string, message = '') =>
   `https://wa.me/${digits(phone)}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
+export const smsHref = (phone: string) => `sms:+${digits(phone)}`;
 export const mailHref = (email: string, subject = '') => `mailto:${email.trim()}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`;
 export const mapsHref = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 

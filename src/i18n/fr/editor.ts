@@ -51,6 +51,7 @@ export default {
     noImage: { cover: 'Aucune photo de couverture', avatar: 'Aucune photo de profil', thumb: 'Aucune image' },
     platformSearch: 'Rechercher : Facebook, Discord, Twitch…',
     platformNone: 'Aucune plateforme trouvée : utilisez « Lien générique ».',
+    platformUsed: 'Déjà ajouté',
     platformHint: 'Tapez le nom d’une des {count} plateformes ; l’adresse officielle est ajoutée, il ne reste que votre nom d’utilisateur.',
     chooseFile: 'Choisir une image',
     removeImage: 'Retirer',
@@ -160,8 +161,13 @@ export default {
   blocks: {
     profile: {
       label: 'Profil', description: 'Votre identité : photo, nom, présentation.',
-      fields: { displayName: 'Nom affiché', headline: 'Accroche', bio: 'Présentation', avatarUrl: 'Photo ou logo', coverUrl: 'Image de couverture', sector: 'Secteur d’activité', location: 'Localisation' },
-      hints: { coverUrl: 'Visible avec la disposition « couverture » du profil.' },
+      fields: { displayName: 'Nom affiché', headline: 'Accroche', bio: 'Présentation', avatarUrl: 'Photo ou logo', coverUrl: 'Image de couverture', sector: 'Secteur d’activité', location: 'Localisation', mobilePhone: 'Numéro mobile', proPhone: 'Numéro professionnel', whatsappPhone: 'Numéro WhatsApp' },
+      hints: {
+        coverUrl: 'Visible avec la disposition « couverture » du profil.',
+        mobilePhone: 'Reçoit les SMS et les appels. Format international, ex. +224 622 00 00 00.',
+        proPhone: 'Numéro de votre activité, utilisé pour l’appel direct si vous n’avez pas de mobile.',
+        whatsappPhone: 'Les visiteurs vous écrivent sur WhatsApp à ce numéro.',
+      },
     },
     text: { label: 'Texte', description: 'Un paragraphe libre : mission, parcours, annonce.', fields: { title: 'Titre', body: 'Texte' } },
     link: {

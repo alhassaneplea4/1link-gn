@@ -19,6 +19,24 @@ const profile = (extra: Record<string, unknown> = {}) => ({ id: 'blk_profile', t
 const doc = (username: string, blocks: unknown[] = [profile()], version = 0) =>
   ({ username, category: 'creator', blocks, appearance: DEFAULT_APPEARANCE, share: { title: '', description: '' }, version });
 
+describe('numéros de contact du profil', () => {
+  it('conserve les numéros mobile, pro et WhatsApp à la publication et les sert au public', async () => {
+    const { c } = await signedIn();
+    const name = uname();
+    const phones = { mobilePhone: '+224 622 00 11 22', proPhone: '+224 631 00 00 00', whatsappPhone: '+224 655 33 44 55' };
+    const pub = await c.post('/api/me/page/publish', doc(name, [profile(phones)]));
+    expect(pub.status).toBe(200);
+    expect(pub.body.blocks[0].data).toMatchObject(phones);
+    expect((await t.client().get(`/api/pages/${name}`)).body.page.blocks[0].data).toMatchObject(phones);
+  });
+
+  it('refuse un numéro mal formé à la publication', async () => {
+    const { c } = await signedIn();
+    const res = await c.post('/api/me/page/publish', doc(uname(), [profile({ mobilePhone: 'pas un numéro' })]));
+    expect(res.status).toBe(422);
+  });
+});
+
 describe('adresse 1Link (lien de la page)', () => {
   it('change le lien : l’ancien cesse de fonctionner, le nouveau sert la page', async () => {
     const { c } = await signedIn();

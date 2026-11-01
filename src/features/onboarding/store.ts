@@ -1,16 +1,19 @@
 /**
- * Données saisies pendant l'assistant de configuration (deux étapes : type de compte, puis profil).
+ * Données saisies pendant l'assistant de configuration (trois étapes : lien 1Link, type de compte, puis profil).
  * Elles vivent en mémoire pendant la saisie et sont synchronisées avec le serveur (brouillon de l'assistant, lié au compte) :
  * un rechargement ou un autre appareil reprend là où l'utilisateur s'est arrêté, et rien n'est conservé dans le navigateur.
  */
 import { create } from 'zustand';
 import { isCategoryId, type CategoryId } from '@/models/category';
 import { registerReset } from '@/state/lifecycle';
+import { validateUsername } from '@/utilities/validation';
 
-export const STEPS = ['category', 'profile'] as const;
+export const STEPS = ['link', 'category', 'profile'] as const;
 export type StepId = (typeof STEPS)[number];
 
 export interface OnboardingData {
+  /** Adresse 1Link choisie en premier (vérifiée auprès du serveur avant de continuer). */
+  username: string;
   category: CategoryId | null;
   /** Photo de profil, couverture et nom complet. */
   identity: { displayName: string; avatarUrl: string; coverUrl?: string };
@@ -29,6 +32,7 @@ interface State extends OnboardingData {
 }
 
 const empty: OnboardingData = {
+  username: '',
   category: null,
   identity: { displayName: '', avatarUrl: '', coverUrl: '' },
   activity: {},
@@ -48,8 +52,8 @@ registerReset(() => useOnboarding.getState().reset());
 
 /** Ce qui est envoyé au serveur (aucun secret : uniquement la saisie de l'assistant). */
 export function snapshotOnboarding(s: State): Record<string, unknown> {
-  const { category, identity, activity, step, visited } = s;
-  return { category, identity, activity, step, visited };
+  const { username, category, identity, activity, step, visited } = s;
+  return { username, category, identity, activity, step, visited };
 }
 
 const str = (v: unknown, max = 2000) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -60,15 +64,18 @@ export function restoreOnboarding(raw: unknown): void {
   const r = raw as Record<string, unknown>;
   const identity = (r.identity ?? {}) as Record<string, unknown>;
   const activity = (r.activity ?? {}) as Record<string, unknown>;
+  // Un brouillon sans adresse (ancien format) reprend à la première étape : le lien se choisit toujours en premier.
+  const username = typeof r.username === 'string' && !validateUsername(r.username) ? r.username : '';
   const restored: Partial<OnboardingData> & { step: number; visited: number } = {
+    username,
     category: isCategoryId(r.category) ? r.category : null,
     identity: { displayName: str(identity.displayName, 120), avatarUrl: str(identity.avatarUrl, 2048), coverUrl: str(identity.coverUrl, 2048) },
     activity: {
       ...(typeof activity.headline === 'string' ? { headline: str(activity.headline, 90) } : {}),
       ...(typeof activity.sector === 'string' ? { sector: str(activity.sector, 60) } : {}),
     },
-    step: Math.min(STEPS.length - 1, Math.max(0, Number.isInteger(r.step) ? (r.step as number) : 0)),
-    visited: Math.min(STEPS.length - 1, Math.max(0, Number.isInteger(r.visited) ? (r.visited as number) : 0)),
+    step: username ? Math.min(STEPS.length - 1, Math.max(0, Number.isInteger(r.step) ? (r.step as number) : 0)) : 0,
+    visited: username ? Math.min(STEPS.length - 1, Math.max(0, Number.isInteger(r.visited) ? (r.visited as number) : 0)) : 0,
   };
   useOnboarding.setState(restored);
 }

@@ -15,6 +15,7 @@ import { PgImage } from '../blocks/render/image';
 import { ProfileBadges } from '../blocks/render/profile';
 import { SocialRender } from '../blocks/render/links';
 import { safeHref, telHref, whatsappHref, mailHref } from '../blocks/urls';
+import { ContactActions, contactChannels } from './ContactActions';
 import type { RenderContext } from '../blocks/types';
 
 export type SectionId = 'about' | 'links' | 'offers' | 'showcase' | 'contact';
@@ -70,8 +71,11 @@ export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt,
   const ph = first('phone');
   const em = first('email');
   const actions: Action[] = [];
-  if (wa) actions.push({ key: 'wa', icon: 'whatsapp', label: t('pub.actions.whatsapp'), href: whatsappHref(wa.data.phone, wa.data.message), blockId: wa.id, external: true });
-  if (ph) actions.push({ key: 'ph', icon: 'phone', label: t('pub.actions.call'), href: telHref(ph.data.phone), blockId: ph.id });
+  // Les numéros du profil (mobile, pro, WhatsApp) ont leurs propres boutons ; les blocs WhatsApp / appel ne servent qu'à défaut.
+  const own = contactChannels(d);
+  const hasOwn = own.hasMessage || own.hasCall;
+  if (wa && !own.hasMessage) actions.push({ key: 'wa', icon: 'whatsapp', label: t('pub.actions.whatsapp'), href: whatsappHref(wa.data.phone, wa.data.message), blockId: wa.id, external: true });
+  if (ph && !own.hasCall) actions.push({ key: 'ph', icon: 'phone', label: t('pub.actions.call'), href: telHref(ph.data.phone), blockId: ph.id });
   if (em) actions.push({ key: 'em', icon: 'mail', label: t('pub.actions.email'), href: mailHref(em.data.email, em.data.subject), blockId: em.id });
 
   // « Partager » ouvre directement la feuille de partage du système (toutes les applications) avec le lien ET l'image du QR code ;
@@ -107,10 +111,11 @@ export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt,
           </ul>
         </div>
         <div className="pgp-actions">
+          <ContactActions profile={profile} ctx={ctx} />
           {actions.map((a, i) => (
             <a
               key={a.key}
-              className={`pgp-act ${i === 0 ? 'is-primary' : ''}`}
+              className={`pgp-act ${i === 0 && !hasOwn ? 'is-primary' : ''}`}
               href={ctx.preview ? undefined : a.href}
               role={ctx.preview ? 'link' : undefined}
               tabIndex={ctx.preview ? -1 : undefined}
@@ -121,7 +126,7 @@ export function ProfileHero({ page, profile, blocks, ctx, category, publishedAt,
               <Icon name={a.icon} size={17} /> <span>{a.label}</span>
             </a>
           ))}
-          <button type="button" className={`pgp-act ${actions.length === 0 ? 'is-primary' : ''}`} onClick={() => void share()} tabIndex={ctx.preview ? -1 : undefined}>
+          <button type="button" className={`pgp-act ${actions.length === 0 && !hasOwn ? 'is-primary' : ''}`} onClick={() => void share()} tabIndex={ctx.preview ? -1 : undefined}>
             <Icon name="share" size={17} /> <span>{t('pub.actions.share')}</span>
           </button>
           <button type="button" className="pgp-act" onClick={() => !ctx.preview && setShareOpen(true)} tabIndex={ctx.preview ? -1 : undefined} aria-label={t('pub.share.qrButton')}>

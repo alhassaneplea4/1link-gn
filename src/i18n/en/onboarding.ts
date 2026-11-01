@@ -7,8 +7,15 @@ export default {
   livePreview: 'Live preview of your page',
   validate: 'Confirm my account',
   steps: {
+    link: 'Your link',
     category: 'Account type',
     profile: 'Profile',
+  },
+  link: {
+    title: 'Choose your 1Link address',
+    lead: 'This is the address of your page, the one you will share everywhere. We check first that it is free.',
+    available: 'This address is free: it is yours.',
+    later: 'You can change it later from your overview.',
   },
   category: { title: 'Which type of account?', lead: 'Your account type adapts the suggestions and your dashboard. You can change it later.', legend: 'Account type' },
   profile: {
@@ -23,6 +30,7 @@ export default {
     titleHint: 'Your job, your role or a tagline. E.g. “Interior architect”.',
   },
   sections: {
+    link: { title: 'Your address', hint: 'Lowercase letters, digits, hyphens and underscores (3 to 30 characters).' },
     photos: { title: 'Photos', hint: 'A cover and a profile photo build trust right away. You can change them at any time.' },
     identity: { title: 'Name, sector and title', hint: 'What visitors read first.' },
   },

@@ -16,6 +16,8 @@ interface Props {
   onChange: (id: string) => void;
   /** Ajoute l'option « Lien générique » (icône neutre) en tête de liste. */
   allowLink?: boolean;
+  /** Plateformes déjà choisies ailleurs dans la liste : elles restent proposées, mais tout en bas. */
+  taken?: readonly string[];
 }
 
 /** Nom affiché d'une plateforme : nom de marque, sauf « Site web » et « Lien » traduits. */
@@ -29,7 +31,7 @@ export function platformLabel(id: string): string {
  * Sélecteur de plateforme à recherche : on tape quelques lettres (« dis », « twi »…) et la liste se réduit en montrant
  * nom et logo ; ↑ ↓ Entrée au clavier. Schéma ARIA « combobox » avec liste.
  */
-export function PlatformPicker({ id: idProp, label, hint, value, onChange, allowLink }: Props) {
+export function PlatformPicker({ id: idProp, label, hint, value, onChange, allowLink, taken }: Props) {
   const t = useT('editor');
   const uid = useId();
   const id = idProp ?? `pp-${uid}`;
@@ -41,11 +43,14 @@ export function PlatformPicker({ id: idProp, label, hint, value, onChange, allow
   const root = useRef<HTMLDivElement>(null);
 
   const options = useMemo<Option[]>(() => {
-    const found = searchPlatforms(query).map((p) => ({ id: p.id, name: platformLabel(p.id) }));
+    const used = new Set(taken ?? []);
+    // Partition stable : les plateformes encore libres gardent leur ordre, celles déjà ajoutées passent après.
+    const all = searchPlatforms(query).map((p) => ({ id: p.id, name: platformLabel(p.id) }));
+    const found = [...all.filter((o) => !used.has(o.id)), ...all.filter((o) => used.has(o.id))];
     const link = { id: 'link', name: platformLabel('link') };
     const wantsLink = allowLink && (!query.trim() || link.name.toLowerCase().includes(query.trim().toLowerCase()) || 'lien link autre other'.includes(query.trim().toLowerCase()));
     return wantsLink ? [link, ...found] : found;
-  }, [query, allowLink]);
+  }, [query, allowLink, taken]);
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {
@@ -70,6 +75,7 @@ export function PlatformPicker({ id: idProp, label, hint, value, onChange, allow
     if (open) document.getElementById(`${id}-opt-${active}`)?.scrollIntoView?.({ block: 'nearest' });
   }, [active, open, id]);
 
+  const takenSet = new Set(taken ?? []);
   const color = brandColor(current.id);
   return (
     <div className="field platform-picker" ref={root}>
@@ -99,6 +105,7 @@ export function PlatformPicker({ id: idProp, label, hint, value, onChange, allow
               >
                 <span className="platform-picker__logo" style={c ? { background: `#${c}` } : undefined} aria-hidden="true"><BrandIcon platform={o.id} size={16} /></span>
                 <span>{o.name}</span>
+                {takenSet.has(o.id) && o.id !== value && <small className="platform-picker__used">{t('editor.form.platformUsed')}</small>}
                 {o.id === value && <Icon name="check" size={14} className="platform-picker__check" />}
               </li>
             );

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Button, Icon, IconButton, Input, Select, Textarea, Toggle, useToast } from '@/components/ui';
 import { PlatformPicker } from './PlatformPicker';
-import { detectPlatform, urlForPlatform } from '@/models/platforms';
+import { PLATFORMS, detectPlatform, urlForPlatform } from '@/models/platforms';
 import { translate, useT, hasMessage } from '@/i18n/core';
 import type { MessageKey } from '@/i18n/types';
 import type { FieldDef, FieldErrors, ListField, ScalarField } from '@/features/page-engine/blocks/schema';
@@ -65,13 +65,29 @@ function ImageControl({ field, label, hint, value, error, onChange, onBlur, id }
   );
 }
 
+/** Plateformes déjà choisies par les autres éléments d'une liste (« site web » peut se répéter : il n'est jamais écarté). */
+const takenPlatforms = (items: Values[], except: number): string[] =>
+  items.flatMap((it, k) => (k !== except && typeof it.platform === 'string' && it.platform !== 'website' ? [it.platform] : []));
+
+/** Nouvel élément : pour une liste de réseaux, la première plateforme pas encore ajoutée (et non toujours Instagram). */
+function newItem(f: ListField, items: Values[]): Values {
+  const item = structuredClone(f.defaultItem) as Values;
+  if (!f.itemFields.some((sub) => sub.kind === 'platform')) return item;
+  const used = new Set(takenPlatforms(items, -1));
+  const next = PLATFORMS.find((p) => p.id !== 'website' && !used.has(p.id)) ?? PLATFORMS[0];
+  if (!next) return item;
+  item.platform = next.id;
+  if ('url' in item) item.url = urlForPlatform(next.id, '');
+  return item;
+}
+
 export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAllErrors, idPrefix = 'f' }: SchemaFormProps) {
   const t = useT('editor', 'common');
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const touch = (path: string) => setTouched((s) => (s.has(path) ? s : new Set(s).add(path)));
   const errorFor = (path: string) => (showAllErrors || touched.has(path)) && errors[path] ? tr(errors[path]!) : undefined;
 
-  const renderField = (f: FieldDef, values: Values, set: (patch: Values) => void, path: string): React.ReactNode => {
+  const renderField = (f: FieldDef, values: Values, set: (patch: Values) => void, path: string, taken?: readonly string[]): React.ReactNode => {
     const id = `${idPrefix}-${path.replace(/\./g, '-')}`;
     const label = tr(`${labelPrefix}.fields.${f.name}`);
     const hint = optional(`${labelPrefix}.hints.${f.name}`);
@@ -110,7 +126,7 @@ export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAl
         );
       case 'platform':
         return (
-          <PlatformPicker key={path} id={id} label={label} hint={hint} value={String(val ?? (f.allowLink ? 'link' : 'instagram'))} allowLink={f.allowLink}
+          <PlatformPicker key={path} id={id} label={label} hint={hint} value={String(val ?? (f.allowLink ? 'link' : 'instagram'))} allowLink={f.allowLink} taken={taken}
             onChange={(next) => set({ [f.name]: next, ...('url' in values ? { url: urlForPlatform(next, String(values.url ?? '')) } : {}) })} />
         );
       case 'toggle':
@@ -138,12 +154,12 @@ export function SchemaForm({ labelPrefix, fields, data, errors, onChange, showAl
                 </span>
               </div>
               <div className="list-field__fields">
-                {f.itemFields.map((sub) => renderField(sub, item, (patch) => update(items.map((it, k) => (k === i ? { ...it, ...patch } : it))), `${path}.${i}.${sub.name}`))}
+                {f.itemFields.map((sub) => renderField(sub, item, (patch) => update(items.map((it, k) => (k === i ? { ...it, ...patch } : it))), `${path}.${i}.${sub.name}`, takenPlatforms(items, i)))}
               </div>
             </li>
           ))}
         </ol>
-        <Button size="sm" variant="secondary" iconLeft="plus" disabled={items.length >= f.max} onClick={() => update([...items, structuredClone(f.defaultItem)])}>
+        <Button size="sm" variant="secondary" iconLeft="plus" disabled={items.length >= f.max} onClick={() => update([...items, newItem(f, items)])}>
           {t('editor.form.addItem')}
         </Button>
         {items.length >= f.max && <p className="field__hint">{t('editor.form.maxItems', { max: f.max })}</p>}

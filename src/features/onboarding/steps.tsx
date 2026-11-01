@@ -7,6 +7,9 @@ import type { MessageKey } from '@/i18n/types';
 import { CATEGORY_IDS } from '@/models/category';
 import { useSession } from '@/state/session';
 import { initials } from '@/utilities/misc';
+import { slugifyUsername, validateUsername } from '@/utilities/validation';
+import { env } from '@/app/configuration/env';
+import { checkLink, pickUsername, type LinkStatus } from './link';
 import { useOnboarding } from './store';
 import type { StepErrors } from './validate';
 
@@ -80,7 +83,55 @@ function ProfileMedia({ name, avatarUrl, coverUrl, onAvatar, onCover }: { name: 
   );
 }
 
-/* — 1. Catégorie — */
+/* — 1. Lien 1Link : choisi et vérifié en premier — */
+export function LinkStep({ errors, showErrors, status, onStatus }: StepProps & { status: LinkStatus; onStatus: (s: LinkStatus) => void }) {
+  const t = useT('onboarding', 'editor', 'common');
+  const username = useOnboarding((s) => s.username);
+  const set = useOnboarding((s) => s.set);
+  const sessionName = useSession((s) => s.session?.user.name ?? '');
+
+  // Première visite : une adresse libre dérivée du nom est proposée, la personne la garde ou la change.
+  useEffect(() => {
+    if (username || !sessionName) return;
+    let live = true;
+    void pickUsername(sessionName).then((u) => { if (live && !useOnboarding.getState().username) set('username', u); });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Disponibilité (temporisée), alignée sur la règle serveur.
+  useEffect(() => {
+    if (!username) { onStatus('idle'); return; }
+    const local = validateUsername(username);
+    if (local) { onStatus(local === 'common.validation.usernameReserved' ? 'reserved' : 'invalid'); return; }
+    onStatus('checking');
+    let live = true;
+    const id = setTimeout(() => { void checkLink(username).then((s) => live && onStatus(s)); }, 350);
+    return () => { live = false; clearTimeout(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
+
+  const message: Partial<Record<LinkStatus, string>> = {
+    taken: t('editor.publish.taken'), reserved: t('common.validation.usernameReserved'), invalid: t('common.validation.usernameFormat'),
+  };
+  const error = message[status] ?? err(errors, 'username', showErrors);
+
+  return (
+    <div className="stepform">
+      <StepSection icon="link" title={t('onboarding.sections.link.title')} hint={t('onboarding.sections.link.hint')}>
+        <Input
+          label={t('editor.publish.username')} value={username} onChange={(e) => set('username', slugifyUsername(e.target.value))}
+          prefix={`${env.publicDomain || '1link.gn'}/`} autoComplete="off" spellCheck={false} maxLength={30} required data-autofocus=""
+          hint={status === 'available' ? t('onboarding.link.available') : t('editor.publish.usernameHint')} error={error}
+          suffix={status === 'checking' ? <span className="spinner" style={{ width: 14, height: 14 }} aria-label={t('editor.publish.checking')} /> : status === 'available' ? <Icon name="check-circle" size={18} label={t('editor.publish.available')} /> : undefined}
+        />
+        <p className="field__hint">{t('onboarding.link.later')}</p>
+      </StepSection>
+    </div>
+  );
+}
+
+/* — 2. Catégorie — */
 export function CategoryStep({ errors, showErrors }: StepProps) {
   const t = useT('onboarding', 'common');
   const category = useOnboarding((s) => s.category);
@@ -109,7 +160,7 @@ export function CategoryStep({ errors, showErrors }: StepProps) {
   );
 }
 
-/* — 2. Profil : photo, couverture, nom complet, secteur d'activité et titre — */
+/* — 3. Profil : photo, couverture, nom complet, secteur d'activité et titre — */
 export function ProfileStep({ errors, showErrors }: StepProps) {
   const t = useT('onboarding', 'editor', 'common');
   const identity = useOnboarding((s) => s.identity);

@@ -51,6 +51,7 @@ export default {
     noImage: { cover: 'No cover photo', avatar: 'No profile photo', thumb: 'No image' },
     platformSearch: 'Search: Facebook, Discord, Twitch…',
     platformNone: 'No platform found: use “Generic link”.',
+    platformUsed: 'Already added',
     platformHint: 'Type the name of one of {count} platforms; the official address is added, you only need to add your username.',
     chooseFile: 'Choose an image',
     removeImage: 'Remove',
@@ -160,8 +161,13 @@ export default {
   blocks: {
     profile: {
       label: 'Profile', description: 'Your identity: photo, name, introduction.',
-      fields: { displayName: 'Display name', headline: 'Tagline', bio: 'Introduction', avatarUrl: 'Photo or logo', coverUrl: 'Cover image', sector: 'Business sector', location: 'Location' },
-      hints: { coverUrl: 'Visible with the “cover” profile layout.' },
+      fields: { displayName: 'Display name', headline: 'Tagline', bio: 'Introduction', avatarUrl: 'Photo or logo', coverUrl: 'Cover image', sector: 'Business sector', location: 'Location', mobilePhone: 'Mobile number', proPhone: 'Work number', whatsappPhone: 'WhatsApp number' },
+      hints: {
+        coverUrl: 'Visible with the “cover” profile layout.',
+        mobilePhone: 'Receives SMS and calls. International format, e.g. +224 622 00 00 00.',
+        proPhone: 'Your business number, used for direct calls if you have no mobile.',
+        whatsappPhone: 'Visitors message you on WhatsApp at this number.',
+      },
     },
     text: { label: 'Text', description: 'A free paragraph: mission, background, announcement.', fields: { title: 'Title', body: 'Text' } },
     link: {

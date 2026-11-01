@@ -5,15 +5,23 @@ import { restoreOnboarding, snapshotOnboarding, STEPS, useOnboarding, type Onboa
 import { isBlockComplete } from '@/features/page-engine/blocks/registry';
 
 const base = (over: Partial<OnboardingData> = {}): OnboardingData => ({
+  username: 'mamadou-keita',
   category: 'professional',
   identity: { displayName: 'Mamadou Keita', avatarUrl: 'https://exemple.com/a.png', coverUrl: 'https://exemple.com/c.png' },
   activity: { headline: 'Développeur', sector: 'Informatique' },
   ...over,
 });
 
-describe('assistant en deux étapes', () => {
-  it('ne comporte que le type de compte puis le profil', () => {
-    expect([...STEPS]).toEqual(['category', 'profile']);
+describe('assistant en trois étapes', () => {
+  it('commence par le lien 1Link, puis le type de compte et le profil', () => {
+    expect([...STEPS]).toEqual(['link', 'category', 'profile']);
+  });
+
+  it('exige d’abord une adresse valide et non réservée', () => {
+    expect(validateStep('link', base({ username: '' }))).toEqual({ username: 'common.validation.required' });
+    expect(validateStep('link', base({ username: 'a b' }))).toEqual({ username: 'common.validation.usernameFormat' });
+    expect(validateStep('link', base({ username: 'admin' }))).toEqual({ username: 'common.validation.usernameReserved' });
+    expect(validateStep('link', base())).toEqual({});
   });
 
   it('exige un type de compte, puis un nom complet', () => {
@@ -51,11 +59,15 @@ describe('composition du document', () => {
 describe('reprise du brouillon de l’assistant', () => {
   it('réinjecte un brouillon valide et ignore un ancien format ou des données corrompues', () => {
     useOnboarding.getState().reset();
-    restoreOnboarding({ category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '', username: 'ancien' }, activity: { headline: 'Chef', bio: 'ancien champ' }, links: [{ title: 'x' }], step: 1, visited: 1 });
-    expect(snapshotOnboarding(useOnboarding.getState())).toEqual({ category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '' }, activity: { headline: 'Chef' }, step: 1, visited: 1 });
+    restoreOnboarding({ username: 'awa-chef', category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '', username: 'ancien' }, activity: { headline: 'Chef', bio: 'ancien champ' }, links: [{ title: 'x' }], step: 1, visited: 1 });
+    expect(snapshotOnboarding(useOnboarding.getState())).toEqual({ username: 'awa-chef', category: 'creator', identity: { displayName: 'Awa', avatarUrl: '', coverUrl: '' }, activity: { headline: 'Chef' }, step: 1, visited: 1 });
     useOnboarding.getState().reset();
     restoreOnboarding({ category: 'inconnue', identity: 42, activity: null, step: 99, visited: -3 });
-    expect(useOnboarding.getState()).toMatchObject({ category: null, step: 1, visited: 0 });
+    expect(useOnboarding.getState()).toMatchObject({ category: null, username: '', step: 0, visited: 0 });
+    // Ancien brouillon sans adresse : on reprend au choix du lien.
+    useOnboarding.getState().reset();
+    restoreOnboarding({ category: 'creator', identity: { displayName: 'Awa' }, activity: {}, step: 1, visited: 1 });
+    expect(useOnboarding.getState()).toMatchObject({ category: 'creator', username: '', step: 0, visited: 0 });
     useOnboarding.getState().reset();
   });
 });

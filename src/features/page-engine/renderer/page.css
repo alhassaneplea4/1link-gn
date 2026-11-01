@@ -332,6 +332,15 @@
 .pgp-act:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: 2px; }
 .pgp-act.is-primary { background: linear-gradient(120deg, var(--pg-primary), var(--pg-accent)); color: var(--pg-on-gradient); box-shadow: 0 10px 24px -12px var(--pg-shadow); }
 .pgp-act[aria-disabled='true'] { cursor: default; }
+/* Bouton double : l'action principale + un sélecteur de canal (WhatsApp / SMS, mobile / pro). */
+.pgp-duo { display: inline-flex; align-items: stretch; max-width: 100%; }
+.pgp-duo > .pgp-act { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.pgp-duo:not(:has(.pgp-switch)) > .pgp-act { border-radius: var(--pg-btn-radius); }
+.pgp-switch { display: inline-flex; align-items: stretch; border: 1.5px solid var(--pg-border); border-left: 0; border-radius: 0 var(--pg-btn-radius) var(--pg-btn-radius) 0; overflow: hidden; background: var(--pg-soft); }
+.pgp-switch button { min-height: 44px; min-width: 44px; padding: 0 10px; border: 0; background: transparent; color: var(--pg-muted); font: inherit; font-size: 0.76em; font-weight: 800; cursor: pointer; }
+.pgp-switch button + button { border-left: 1px solid var(--pg-border); }
+.pgp-switch button[aria-pressed='true'] { background: var(--pg-surface); color: var(--pg-text); box-shadow: inset 0 -3px 0 var(--pg-primary); }
+.pgp-switch button:focus-visible { outline: 3px solid var(--pg-accent); outline-offset: -3px; }
 .pgp-bio { color: var(--pg-muted); max-width: 62ch; margin: 0 auto; text-align: center; padding: 0 6px; font-size: 1.02em; }
 .pgp-socials { display: flex; justify-content: center; }
 .pgp-socials .pg-block { animation: none; }

@@ -123,3 +123,31 @@ describe('page publique : réseaux', () => {
     expect(container.querySelectorAll('.pgp-socials svg')).toHaveLength(2);
   });
 });
+
+describe('réseaux déjà ajoutés', () => {
+  const Many = ({ onData }: { onData: (d: Record<string, unknown>) => void }) => {
+    const [data, setData] = useState<Record<string, unknown>>({ items: [{ platform: 'instagram', url: 'https://instagram.com/awa' }] });
+    return <SchemaForm labelPrefix="editor.blocks.social" fields={FIELDS} data={data} errors={{}} onChange={(p) => { const next = { ...data, ...p }; setData(next); onData(next); }} />;
+  };
+
+  it('un nouveau réseau ne reprend pas un réseau déjà ajouté : Facebook succède à Instagram, puis TikTok', async () => {
+    const seen = vi.fn();
+    render(<Many onData={seen} />);
+    await userEvent.click(screen.getByRole('button', { name: /Ajouter/ }));
+    expect(seen).toHaveBeenLastCalledWith({ items: [{ platform: 'instagram', url: 'https://instagram.com/awa' }, { platform: 'facebook', url: 'https://facebook.com/' }] });
+    await userEvent.click(screen.getByRole('button', { name: /Ajouter/ }));
+    expect((seen.mock.lastCall![0] as { items: { platform: string }[] }).items.map((i) => i.platform)).toEqual(['instagram', 'facebook', 'tiktok']);
+  });
+
+  it('dans la liste de choix, les réseaux déjà ajoutés passent tout en bas', async () => {
+    render(<Many onData={() => undefined} />);
+    await userEvent.click(screen.getByRole('button', { name: /Ajouter/ }));
+    const second = screen.getAllByRole('combobox')[1]!;
+    await userEvent.click(second);
+    const names = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent ?? '');
+    expect(names[0]).toMatch(/Facebook/); // sa propre valeur courante, en tête car libre
+    expect(names.at(-1)).toMatch(/Instagram/);
+    expect(names.at(-1)).toMatch(/Déjà ajouté/);
+    expect(names.findIndex((n) => /Instagram/.test(n))).toBe(names.length - 1);
+  });
+});

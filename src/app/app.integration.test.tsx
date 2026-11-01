@@ -159,6 +159,11 @@ describe('inscription et onboarding', () => {
     await waitFor(() => expect(r.state.location.pathname).toBe('/onboarding'));
     expect(useSession.getState().session?.user).toMatchObject({ email: 'awa.test@exemple.com', emailVerified: true, hasPassword: false });
 
+    // 0. le lien 1Link d'abord : une adresse libre est proposée, une adresse prise est refusée
+    expect(await screen.findByRole('heading', { name: 'Choisissez votre lien 1Link' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/Adresse de votre page/)).toHaveValue('awa-test'), { timeout: 10000 });
+    await userEvent.click(screen.getByRole('button', { name: /Continuer/ }));
+
     // 1. type de compte (bloqué tant qu'aucun n'est choisi)
     await userEvent.click(await screen.findByRole('button', { name: /Continuer/ }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();

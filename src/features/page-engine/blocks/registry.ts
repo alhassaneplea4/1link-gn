@@ -30,8 +30,8 @@ const def = <K extends BlockType>(d: BlockDefinition<K>): BlockDefinition<K> => 
 export const blockRegistry: BlockRegistry = {
   profile: def({
     type: 'profile', group: 'identity', icon: 'user', singleton: true, required: true,
-    fields: [text('displayName', { required: true, max: 60 }), text('headline', { max: 90 }), area('bio', { max: 320 }), image('avatarUrl'), image('coverUrl'), text('sector', { max: 60 }), text('location', { max: 60 })],
-    create: () => ({ displayName: '', headline: '', bio: '', avatarUrl: '', coverUrl: '', location: '', sector: '', verified: false }),
+    fields: [text('displayName', { required: true, max: 60 }), text('headline', { max: 90 }), area('bio', { max: 320 }), image('avatarUrl'), image('coverUrl'), text('sector', { max: 60 }), text('location', { max: 60 }), { kind: 'tel', name: 'mobilePhone' }, { kind: 'tel', name: 'proPhone' }, { kind: 'tel', name: 'whatsappPhone' }],
+    create: () => ({ displayName: '', headline: '', bio: '', avatarUrl: '', coverUrl: '', location: '', sector: '', mobilePhone: '', proPhone: '', whatsappPhone: '', verified: false }),
     summary: (d) => d.displayName || d.headline,
     Render: ProfileRender,
   }),
