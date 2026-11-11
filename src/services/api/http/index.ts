@@ -44,7 +44,6 @@ const auth: AuthApi = {
   disableTotp: (proof) => request('POST', '/me/mfa/totp/disable', { body: proof }),
   regenerateRecoveryCodes: (proof) => request<{ recoveryCodes: string[] }>('POST', '/me/mfa/recovery', { body: proof }).then((r) => r.recoveryCodes),
   setPassword: (newPassword, proof) => request('POST', '/me/password', { body: { newPassword, ...proof } }),
-  signUp: (input) => request('POST', '/auth/sign-up', { body: input }),
   signOut: () => request('POST', '/auth/sign-out'),
   requestOtp: (input) => request('POST', '/auth/otp/request', { body: input }),
   verifyOtp: (input) => request('POST', '/auth/otp/verify', { body: input }),

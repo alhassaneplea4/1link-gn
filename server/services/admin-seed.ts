@@ -9,6 +9,7 @@ import { pages, subscriptions, users, type PageContent } from '../db/schema.js';
 import { BASE, avatarPng, coverPng, storeMedia } from './test-accounts.js';
 import { usernameProblem } from './pages.js';
 import { audit } from '../lib/audit.js';
+import { claimUnverifiedAccount } from './accounts.js';
 import { hashPassword, newId } from '../lib/crypto.js';
 
 export interface AdminSeed {
@@ -56,8 +57,14 @@ export async function seedPlatformAdmin(db: Db, seed: AdminSeed, scryptLog2N: nu
       if (!existing.verified) await db.update(users).set({ verified: true, updatedAt: now }).where(eq(users.id, existing.id));
       return (await ensureAdminPage(db, existing.id, seed, now)) || !existing.verified ? 'role_granted' : 'unchanged';
     }
+    if (!existing.emailVerifiedAt) {
+      // Un compte dont l'adresse n'a JAMAIS été prouvée n'est pas adopté tel quel : n'importe qui a pu le créer avant l'amorçage
+      // avec son propre mot de passe (ou son propre téléphone) et deviendrait super administrateur. Il est repris à neuf : mot
+      // de passe de l'amorçage (connu du seul déployeur), aucune session, aucun téléphone ni double authentification hérités.
+      await claimUnverifiedAccount(db, existing.id, now, { passwordHash: await hashPassword(seed.password, scryptLog2N), subject: 'Compte non vérifié repris par l’amorçage de l’administrateur : identifiants remplacés' });
+    }
     await db.update(users).set({ adminRole: 'super_admin', verified: true, status: 'active', emailVerifiedAt: existing.emailVerifiedAt ?? now, updatedAt: now }).where(eq(users.id, existing.id));
-    await audit(db, { actorId: null, actorLabel: 'Amorçage', action: 'Rôle super_admin attribué', target: email, ip: null, level: 'warning' }, now);
+    await audit(db, { actorId: null, actorLabel: 'Amorçage', action: existing.emailVerifiedAt ? 'Rôle super_admin attribué' : 'Rôle super_admin attribué (compte non vérifié : identifiants remplacés)', target: email, ip: null, level: 'warning' }, now);
     await ensureAdminPage(db, existing.id, seed, now);
     return 'role_granted';
   }

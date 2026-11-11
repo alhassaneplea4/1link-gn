@@ -15,6 +15,21 @@ const data: VcardData = {
 };
 
 describe('vCard', () => {
+  it('neutralise l’injection de lignes : ni propriété ni seconde fiche ne peuvent être ajoutées', () => {
+    const hostile = buildVCard({ ...data, website: 'https://exemple.com/x\r\nEND:VCARD\r\nBEGIN:VCARD\r\nFN:Support 1Link', note: 'a\rEND:VCARD\rBEGIN:VCARD', address: 'x\u0000\nEND:VCARD' });
+    const lines = hostile.split('\r\n');
+    expect(lines.filter((l) => l === 'BEGIN:VCARD')).toHaveLength(1);
+    expect(lines.filter((l) => l === 'END:VCARD')).toHaveLength(1);
+    expect(lines.filter((l) => l.startsWith('FN:'))).toHaveLength(1);
+    expect(hostile).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/);
+  });
+
+  it('n’écrit une adresse de site que si elle est en http(s)', () => {
+    expect(buildVCard({ ...data, website: 'javascript:alert(1)' })).not.toContain('URL:');
+    expect(buildVCard({ ...data, website: 'data:text/html,x' })).not.toContain('URL:');
+    expect(buildVCard({ ...data, website: ' https://exemple.com/ok ' })).toContain('URL:https://exemple.com/ok');
+  });
+
   it('produit une carte 3.0 valide avec échappements et fins de ligne CRLF', () => {
     const v = buildVCard(data);
     expect(v.startsWith('BEGIN:VCARD\r\nVERSION:3.0\r\n')).toBe(true);

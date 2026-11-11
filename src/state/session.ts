@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { api } from '@/services/api';
 import { onUnauthorized } from '@/services/api/http/client';
-import type { MfaMethod, Permission, Session, SignInResult, SignUpInput } from '@/models/auth';
+import type { MfaMethod, Permission, Session, SignInResult } from '@/models/auth';
 import { resetUserScopedState } from './lifecycle';
 
 export type SessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'expired';
@@ -17,7 +17,6 @@ interface SessionState {
   init(): Promise<void>;
   signIn(email: string, password: string): Promise<SignInResult>;
   completeTwoFactor(challenge: string, code: string, method?: MfaMethod | 'recovery'): Promise<Session>;
-  signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
   setSession(session: Session): void;
   /** Départ volontaire en cours (demande de suppression) : un 401 reçu pendant ce temps n'est pas une « session expirée ». */
@@ -51,12 +50,6 @@ export const useSession = create<SessionState>((set, get) => ({
 
   async completeTwoFactor(challenge, code, method) {
     const session = await api.auth.completeTwoFactor(challenge, code, method);
-    set({ status: 'authenticated', session });
-    return session;
-  },
-
-  async signUp(input) {
-    const session = await api.auth.signUp(input);
     set({ status: 'authenticated', session });
     return session;
   },

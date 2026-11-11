@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createTestApp, type TestApp } from '../testing/harness.js';
+import { createTestApp, lastMailCode, signUpByCode, type TestApp } from '../testing/harness.js';
 import { createUser, uniqueEmail } from '../testing/fixtures.js';
 import { authTokens, sessions, users } from '../db/schema.js';
 import { OTP_MAX_ATTEMPTS, OTP_RESEND_SEC, OTP_TTL_SEC } from '../services/accounts.js';
@@ -9,25 +9,33 @@ let t: TestApp;
 beforeAll(async () => void (t = await createTestApp()));
 afterAll(async () => t.close());
 
-const signUp = (c = t.client(), email = uniqueEmail('new')) => c.post('/api/auth/sign-up', { name: 'Awa Test', email, password: 'MotDePasse-2026', acceptTerms: true }).then((r) => ({ c, email, r }));
+/** Inscription réelle du produit : code reçu par e-mail (la route d'inscription par mot de passe n'existe plus). */
+const signUp = (c = t.client(), email = uniqueEmail('new')) => signUpByCode(t, { client: c, email });
+/** Compte hérité : créé sans preuve de l'adresse (ancienne inscription par mot de passe), puis connecté avec son mot de passe. */
+async function legacyUnverified() {
+  const u = await createUser(t.db, { emailVerified: false });
+  const c = t.client();
+  const r = await c.post('/api/auth/sign-in', { email: u.email, password: u.password });
+  expect(r.status).toBe(200);
+  return { c, email: u.email!, password: u.password, id: u.user.id };
+}
 const settle = () => new Promise((r) => setTimeout(r, 40));
 const linkToken = (mail: { text: string }) => decodeURIComponent(/token=([^\s&]+)/.exec(mail.text)![1]!);
 
 describe('inscription par e-mail', () => {
-  it('crée le compte, une session (cookie httpOnly) et envoie la vérification', async () => {
+  it('crée le compte avec la preuve de l’adresse : session (cookie httpOnly), adresse vérifiée, sans mot de passe', async () => {
     const { c, email, r } = await signUp();
     expect(r.status).toBe(200);
-    expect(r.body.user).toMatchObject({ email, emailVerified: false, phoneVerified: false, plan: 'free', adminRole: null, onboardingDone: false });
+    expect(r.body.user).toMatchObject({ email, emailVerified: true, phoneVerified: false, hasPassword: false, plan: 'free', adminRole: null, onboardingDone: false });
     expect(r.body.permissions).toEqual([]);
     expect(r.body.entitlements.maxBlocks).toBe(12);
     expect(r.body.access).toMatchObject({ phase: 'free_trial', plan: 'free', locked: false, paidTrialAvailable: true });
     expect(r.headers.get('set-cookie')).toMatch(/onelink_session=.+HttpOnly.+SameSite=Lax/i);
     expect((await c.get('/api/auth/session')).body.user.email).toBe(email);
     await settle();
-    expect(t.mailer.outbox.at(-1)).toMatchObject({ to: email });
+    expect(t.mailer.outbox.some((m) => m.to === email && m.subject === 'Bienvenue sur 1Link')).toBe(true);
     const [row] = await t.db.select().from(users).where(eq(users.email, email));
-    expect(row!.passwordHash).toMatch(/^scrypt\$/);
-    expect(row!.passwordHash).not.toContain('MotDePasse');
+    expect(row!.passwordHash).toBeNull();
   });
 
   it('ne stocke jamais le jeton de session en clair', async () => {
@@ -37,14 +45,54 @@ describe('inscription par e-mail', () => {
     expect(rows.some((s) => s.id === cookie)).toBe(false);
   });
 
-  it('refuse un e-mail déjà pris, un mot de passe faible, un e-mail invalide et les conditions non acceptées', async () => {
-    const { email } = await signUp();
-    expect((await t.client().post('/api/auth/sign-up', { name: 'X', email, password: 'MotDePasse-2026', acceptTerms: true })).body).toMatchObject({ message: 'email_taken' });
-    const dup = await t.client().post('/api/auth/sign-up', { name: 'X', email: email.toUpperCase(), password: 'MotDePasse-2026', acceptTerms: true });
-    expect(dup.status).toBe(409);
-    expect((await t.client().post('/api/auth/sign-up', { name: 'X', email: uniqueEmail(), password: 'password123', acceptTerms: true })).body.message).toBe('weak_password');
-    expect((await t.client().post('/api/auth/sign-up', { name: 'X', email: 'pas-un-email', password: 'MotDePasse-2026', acceptTerms: true })).status).toBe(422);
-    expect((await t.client().post('/api/auth/sign-up', { name: 'X', email: uniqueEmail(), password: 'MotDePasse-2026', acceptTerms: false })).status).toBe(422);
+  it('la route d’inscription par mot de passe a disparu : aucun compte ne se crée sans preuve de l’adresse', async () => {
+    const email = uniqueEmail('sansPreuve');
+    const r = await t.client().post('/api/auth/sign-up', { name: 'Pirate', email, password: 'MotDePasse-2026', acceptTerms: true });
+    expect(r.status).toBe(404);
+    expect(await t.db.select().from(users).where(eq(users.email, email))).toHaveLength(0);
+  });
+
+  it('refuse un code incorrect et des adresses mal formées, y compris celles qui piègent l’analyseur d’adresses', async () => {
+    const email = uniqueEmail('mauvaisCode');
+    const c = t.client();
+    await c.post('/api/auth/email-code/request', { email });
+    expect((await c.post('/api/auth/email-code/verify', { email, code: '000000', acceptTerms: true })).status).toBe(422);
+    for (const bad of ['pas-un-email', 'a<victime@gmail.com>.com', '"a>"@exemple.test', 'a@exemple.test,b@exemple.test', 'a b@exemple.test', 'a;b@exemple.test', 'a@exemple']) {
+      expect((await t.client().post('/api/auth/email-code/request', { email: bad })).status, bad).toBe(422);
+    }
+  });
+});
+
+describe('pré-piratage de compte (adresse prise avant sa preuve)', () => {
+  it('à la première preuve de l’adresse par code, le mot de passe, le téléphone et les sessions posés sans preuve sont effacés', async () => {
+    const attacker = await legacyUnverified();
+    await t.db.update(users).set({ phone: '+224622000111', phoneVerifiedAt: new Date(), twoFactorSms: true }).where(eq(users.id, attacker.id));
+    expect((await attacker.c.get('/api/auth/session')).body.user.email).toBe(attacker.email);
+
+    // La vraie propriétaire de l'adresse se connecte par code : elle prouve la possession de la boîte.
+    const owner = t.client();
+    await owner.post('/api/auth/email-code/request', { email: attacker.email });
+    const login = await owner.post('/api/auth/email-code/verify', { email: attacker.email, code: lastMailCode(t, attacker.email), acceptTerms: true });
+    expect(login.status).toBe(200);
+    expect(login.body.user).toMatchObject({ emailVerified: true, hasPassword: false, phone: null, twoFactorSms: false });
+
+    // L'attaquant n'a plus rien : ni session, ni mot de passe, ni téléphone.
+    expect((await attacker.c.get('/api/auth/session')).body).toBeNull();
+    expect((await t.client().post('/api/auth/sign-in', { email: attacker.email, password: attacker.password })).status).toBe(401);
+    const [row] = await t.db.select().from(users).where(eq(users.id, attacker.id));
+    expect(row).toMatchObject({ passwordHash: null, phone: null, phoneVerifiedAt: null, twoFactorSms: false });
+    expect((await t.db.select().from(sessions).where(eq(sessions.userId, attacker.id))).length).toBe(1); // seulement celle de la propriétaire
+  });
+
+  it('un compte dont l’adresse est déjà vérifiée garde son mot de passe et ses sessions à la connexion par code', async () => {
+    const u = await createUser(t.db);
+    const other = t.client();
+    await other.post('/api/auth/sign-in', { email: u.email, password: u.password });
+    const c = t.client();
+    await c.post('/api/auth/email-code/request', { email: u.email });
+    expect((await c.post('/api/auth/email-code/verify', { email: u.email, code: lastMailCode(t, u.email!), acceptTerms: true })).status).toBe(200);
+    expect((await other.get('/api/auth/session')).body.user.email).toBe(u.email);
+    expect((await t.client().post('/api/auth/sign-in', { email: u.email, password: u.password })).status).toBe(200);
   });
 });
 
@@ -117,21 +165,25 @@ describe('protection CSRF', () => {
   });
 });
 
-describe('vérification de l’e-mail', () => {
-  it('valide l’adresse avec le lien reçu, une seule fois', async () => {
-    const { c, email } = await signUp();
+describe('vérification de l’e-mail (comptes hérités)', () => {
+  it('valide l’adresse avec le lien reçu, une seule fois, et efface ce qui avait été posé sans preuve', async () => {
+    const { c, email, id } = await legacyUnverified();
     await c.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
     const ok = await c.post('/api/auth/email/verify', { token });
     expect(ok.status).toBe(200);
-    expect(ok.body.user.emailVerified).toBe(true);
+    expect(ok.body).toBeNull(); // première preuve : les sessions sont fermées, la personne se reconnecte par code
+    const [row] = await t.db.select().from(users).where(eq(users.id, id));
+    expect(row!.emailVerifiedAt).not.toBeNull();
+    expect(row!.passwordHash).toBeNull();
+    expect((await c.get('/api/auth/session')).body).toBeNull();
     expect((await c.post('/api/auth/email/verify', { token })).body.message).toBe('token_expired');
     expect((await c.post('/api/auth/email/verify', { token: 'x'.repeat(40) })).body.message).toBe('invalid_token');
   });
 
   it('n’ouvre pas de session quand le lien est ouvert dans un autre navigateur', async () => {
-    const { c: owner, email } = await signUp();
+    const { c: owner, email, id } = await legacyUnverified();
     await owner.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
@@ -139,12 +191,12 @@ describe('vérification de l’e-mail', () => {
     const r = await other.post('/api/auth/email/verify', { token });
     expect(r.status).toBe(200);
     expect(r.body).toBeNull();
-    const [row] = await t.db.select().from(users).where(eq(users.email, email));
+    const [row] = await t.db.select().from(users).where(eq(users.id, id));
     expect(row!.emailVerifiedAt).not.toBeNull();
   });
 
   it('refuse un jeton expiré', async () => {
-    const { c, email } = await signUp();
+    const { c, email } = await legacyUnverified();
     await c.post('/api/auth/email/resend');
     await settle();
     const token = linkToken(t.mailer.outbox.filter((m) => m.to === email).at(-1)!);
@@ -153,7 +205,7 @@ describe('vérification de l’e-mail', () => {
   });
 
   it('renvoie le lien (3 fois par heure au plus)', async () => {
-    const { c } = await signUp();
+    const { c } = await legacyUnverified();
     for (let i = 0; i < 3; i++) expect((await c.post('/api/auth/email/resend')).status).toBe(204);
     expect((await c.post('/api/auth/email/resend')).status).toBe(429);
   });

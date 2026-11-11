@@ -9,7 +9,7 @@ Le contrat TypeScript côté interface est `src/services/api/types.ts`, son impl
 |---|---|
 | `GET /auth/session` | Session courante ou `null` (200) |
 | `POST /auth/email-code/{request,verify}` | **Inscription et connexion par code reçu par e-mail** (sans mot de passe) : le code prouve l'adresse, ouvre le compte ou le crée (conditions acceptées) |
-| `POST /auth/sign-up` · `/auth/sign-in` · `/auth/sign-out` | Compte e-mail + mot de passe (comptes existants) |
+| `POST /auth/sign-in` · `/auth/sign-out` | Connexion par mot de passe (comptes qui en ont défini un depuis *Sécurité*). **`/auth/sign-up` a été retiré** : il créait un compte sans preuve de l'adresse (pré-piratage) ; toute inscription passe par `/auth/email-code` ou par un code SMS |
 | `POST /auth/otp/request` · `/auth/otp/verify` | Connexion / inscription par code WhatsApp ou SMS (`mode: sign_in \| sign_up`) |
 | `POST /auth/password/forgot` · `/auth/password/reset` | Réinitialisation par e-mail (jeton à usage unique) |
 | `POST /auth/password/forgot-phone` · `/auth/password/reset-phone` | Réinitialisation par **code SMS** (réponse identique que le numéro ait un compte ou non ; coupe les sessions ouvertes) |

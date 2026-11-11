@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createTestApp, type TestApp } from '../testing/harness.js';
+import { createTestApp, signUpByCode, type TestApp } from '../testing/harness.js';
+import { nameFromEmail } from '../../src/utilities/validation.js';
 import { createPendingVerification, createReport, createUser, FIXTURE_APPEARANCE, fixtureContent, uniqueEmail } from '../testing/fixtures.js';
 
 let t: TestApp;
@@ -9,18 +10,18 @@ afterAll(async () => t.close());
 let ip = 1;
 const tick = () => new Promise((r) => setTimeout(r, 30));
 const mailsTo = (email: string) => t.mailer.outbox.filter((m) => m.to === email);
+const welcomeTo = (email: string) => mailsTo(email).filter((m) => /Bienvenue sur 1Link|Welcome to 1Link/.test(m.subject));
 const doc = (username: string, version = 0) => ({ username, category: 'creator', blocks: fixtureContent('A').blocks, appearance: FIXTURE_APPEARANCE, share: { title: '', description: '' }, version });
 
 describe('e-mails de bienvenue et de suivi', () => {
   it('envoie UN seul message d’accueil (sans confirmation d’adresse exigée) à l’inscription, en HTML et en texte', async () => {
     const email = uniqueEmail('accueil');
-    const c = t.client({ 'x-real-ip': `203.0.113.${ip++}` });
-    await c.post('/api/auth/sign-up', { name: 'Awa Camara', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+    await signUpByCode(t, { email, headers: { 'x-real-ip': `203.0.113.${ip++}` } });
     await tick();
-    const mails = mailsTo(email!);
+    const mails = welcomeTo(email!); // le code de vérification est un autre message : l'accueil, lui, est unique
     expect(mails).toHaveLength(1);
     expect(mails[0]!.subject).toMatch(/Bienvenue sur 1Link/);
-    expect(mails[0]!.text).toContain('Awa Camara');
+    expect(mails[0]!.text).toContain(nameFromEmail(email));
     expect(mails[0]!.text).not.toMatch(/token=/);
     expect(mails[0]!.text).toContain('http://localhost:5173/onboarding');
     expect(mails[0]!.html).toContain('<a href="http://localhost:5173/onboarding"');
@@ -28,20 +29,19 @@ describe('e-mails de bienvenue et de suivi', () => {
   });
 
   it('échappe le nom de l’utilisateur dans la version HTML', async () => {
-    const email = uniqueEmail('xss');
-    await t.client({ 'x-real-ip': `203.0.113.${ip++}` }).post('/api/auth/sign-up', { name: '<img src=x onerror=alert(1)>', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+    const { email } = await createUser(t.db, { name: '<img src=x onerror=alert(1)>' });
+    await t.client({ 'x-real-ip': `203.0.113.${ip++}` }).post('/api/auth/password/forgot', { email: email! });
     await tick();
-    const html = mailsTo(email!)[0]!.html!;
+    const html = mailsTo(email!).at(-1)!.html!;
     expect(html).not.toContain('<img src=x');
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
   it('écrit en anglais quand l’interface est en anglais, et garde la langue du compte', async () => {
     const email = uniqueEmail('english');
-    const c = t.client({ 'x-real-ip': `203.0.113.${ip++}`, 'accept-language': 'en' });
-    await c.post('/api/auth/sign-up', { name: 'John', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
+    await signUpByCode(t, { email, headers: { 'x-real-ip': `203.0.113.${ip++}`, 'accept-language': 'en' } });
     await tick();
-    expect(mailsTo(email!)[0]!.subject).toMatch(/Welcome to 1Link/);
+    expect(welcomeTo(email!)[0]!.subject).toMatch(/Welcome to 1Link/);
     await t.client({ 'x-real-ip': `203.0.113.${ip++}` }).post('/api/auth/password/forgot', { email: email! });
     await tick();
     expect(mailsTo(email!).at(-1)!.subject).toBe('Reset your password'); // langue du compte, pas celle de la requête
@@ -111,8 +111,9 @@ describe('e-mails de bienvenue et de suivi', () => {
     try {
       vi.spyOn(failing.mailer, 'send').mockRejectedValue(new Error('SMTP down'));
       const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-      const r = await failing.client({ 'x-real-ip': '203.0.113.250' }).post('/api/auth/sign-up', { name: 'Panne', email: uniqueEmail('panne'), password: 'MotDePasse-Solide-1', acceptTerms: true });
-      expect(r.status).toBe(200); // le compte est créé ; l'utilisateur pourra demander un nouvel envoi
+      const { email } = await createUser(failing.db, { email: uniqueEmail('panne') });
+      const r = await failing.client({ 'x-real-ip': '203.0.113.250' }).post('/api/auth/password/forgot', { email: email! });
+      expect(r.status).toBe(204); // aucune erreur n'est révélée : l'envoi échoue en silence, l'utilisateur pourra réessayer
       quiet.mockRestore();
     } finally {
       await failing.close();

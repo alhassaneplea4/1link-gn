@@ -47,7 +47,7 @@ export const testConfig = (databaseUrl: string, overrides: Partial<AppConfig> = 
 /** Vide toutes les tables (isolation entre deux tests d'un même fichier). */
 export async function resetData(db: Db): Promise<void> {
   const { sql } = await import('drizzle-orm');
-  await db.execute(sql.raw('truncate table users, otp_codes, rate_limits, audit_logs, security_events, activity_events, app_errors, support_tickets, payments restart identity cascade'));
+  await db.execute(sql.raw('truncate table users, otp_codes, rate_limits, audit_logs, security_events, activity_events, app_errors, support_tickets, payments, username_holds restart identity cascade'));
 }
 
 export interface Clock {
@@ -164,4 +164,24 @@ export async function createTestApp(opts: { adminUrl?: string; overrides?: Parti
       await a.end();
     },
   };
+}
+
+/** Dernier code reçu par e-mail pour une adresse (objet « 123456 est votre code 1Link »). */
+export function lastMailCode(t: Pick<TestApp, 'mailer'>, to: string): string {
+  const m = t.mailer.outbox.filter((x) => x.to === to && /est votre code 1Link|is your 1Link code/.test(x.subject)).at(-1);
+  if (!m) throw new Error(`aucun code reçu par ${to}`);
+  return /(\d{6})/.exec(m.subject)![1]!;
+}
+
+/**
+ * Inscription telle que le produit la propose : un code envoyé à l'adresse, puis sa saisie (la possession de l'adresse est prouvée).
+ * La route d'inscription par mot de passe n'existe plus : c'est le seul chemin pour créer un compte par e-mail.
+ */
+export async function signUpByCode(t: TestApp, opts: { email?: string; client?: TestClient; headers?: Record<string, string> } = {}) {
+  const email = opts.email ?? `code.${randomBytes(5).toString('hex')}@exemple.test`;
+  const c = opts.client ?? t.client(opts.headers);
+  const req = await c.post('/api/auth/email-code/request', { email });
+  if (req.status !== 200) throw new Error(`demande de code refusée (${req.status} ${JSON.stringify(req.body)})`);
+  const r = await c.post('/api/auth/email-code/verify', { email, code: lastMailCode(t, email), acceptTerms: true });
+  return { c, email, r };
 }

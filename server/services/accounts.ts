@@ -1,10 +1,10 @@
 /** Comptes : création, mots de passe, jetons à usage unique (e-mail, réinitialisation) et codes OTP. */
 import { and, desc, eq, gt, isNull } from 'drizzle-orm';
 import type { C, Deps, UserRow } from '../context.js';
-import { authTokens, otpCodes, pages, subscriptions, users } from '../db/schema.js';
+import { authTokens, otpCodes, pages, sessions, subscriptions, users } from '../db/schema.js';
 import type { Executor } from '../db/client.js';
 import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, verifyPassword } from '../lib/crypto.js';
-import { activity, audit } from '../lib/audit.js';
+import { activity, audit, securityEvent } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, HttpError, tooMany } from '../lib/errors.js';
 import { enforce, hit, keyFor } from '../lib/ratelimit.js';
 import { emailCodeMessage, pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
@@ -18,6 +18,8 @@ export const OTP_TTL_SEC = 300;
 export const OTP_RESEND_SEC = 30;
 export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_MAX_PER_HOUR = 5;
+/** Filet par adresse e-mail, toutes adresses IP confondues (borne le bombardement d'une boîte sans la verrouiller). */
+export const EMAIL_CODES_PER_ADDRESS_PER_HOUR = 30;
 const VERIFY_TOKEN_TTL_MS = 24 * 3_600_000;
 const RESET_TOKEN_TTL_MS = 3_600_000;
 const DELETE_TOKEN_TTL_MS = 7 * 86_400_000;
@@ -94,6 +96,27 @@ export async function createAccount(deps: Deps, input: NewAccount): Promise<User
     if (constraint) throw conflict('email_taken', { email: 'taken' });
     throw e;
   }
+}
+
+/**
+ * Première PREUVE de possession de l'adresse e-mail sur un compte qui existait déjà sans cette preuve (comptes hérités de
+ * l'ancienne inscription par mot de passe). Quiconque a créé ce compte avant la preuve a pu y poser n'importe quoi : mot de
+ * passe, téléphone, double authentification, sessions ouvertes. Seule la personne qui prouve l'adresse doit en hériter :
+ * tout ce qui a été établi sans preuve est donc effacé et toutes les sessions sont fermées (anti « pré-piratage » de compte).
+ * `passwordHash` permet à l'amorçage de l'administrateur de poser lui-même un mot de passe connu de lui seul.
+ */
+export async function claimUnverifiedAccount(db: Executor, userId: string, now: Date, opts: { passwordHash?: string | null; subject?: string } = {}): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({
+        passwordHash: opts.passwordHash ?? null, phone: null, phoneVerifiedAt: null, twoFactorSms: false, twoFactorEmail: false,
+        totpSecret: null, totpEnabledAt: null, recoveryCodes: null, emailVerifiedAt: now, updatedAt: now,
+      })
+      .where(eq(users.id, userId));
+    await tx.delete(sessions).where(eq(sessions.userId, userId));
+    await securityEvent(tx, { kind: 'suspicious_activity', subject: opts.subject ?? 'Identifiants posés avant la preuve de l’adresse : effacés à la première vérification', userId, ip: null, level: 'warning' }, now);
+  });
 }
 
 /** Construit la session à partir de l'état COURANT de la base (e-mail vérifié, plan, pseudonyme…). */
@@ -193,6 +216,9 @@ export async function issueOtp(c: C, deps: Deps, phone: string, channel: OtpChan
 
   const ip = c.get('ip');
   await enforce(deps.db, keyFor('otp-ip', ip), 20, 3600, now, 'too_many_requests');
+  // Plafond GLOBAL (anti « SMS pumping » : numéros surtaxés ou nombreux, depuis de multiples adresses IP). Il protège la facture
+  // des fournisseurs SMS ; les envois à l'e-mail, gratuits ou presque, n'ont volontairement pas de plafond commun.
+  await enforce(deps.db, keyFor('otp-global'), deps.config.limits.otpGlobalPerHour, 3600, now, 'too_many_requests');
   const resend = await hit(deps.db, keyFor('otp-resend', phone), 1, OTP_RESEND_SEC, now);
   if (!resend.allowed) throw tooMany('resend_too_soon', resend.retryAfterSec);
   const hourly = await hit(deps.db, keyFor('otp-hour', phone), OTP_MAX_PER_HOUR, 3600, now);
@@ -247,11 +273,16 @@ export async function issueEmailCode(c: C, deps: Deps, email: string, options: {
   const to = email.trim().toLowerCase();
   const key = emailCodeKey(to);
   if (deps.mailer.provider === 'none') throw new HttpError(503, 'mail_unavailable');
-  await enforce(deps.db, keyFor('mailcode-ip', c.get('ip')), 20, 3600, now, 'too_many_requests');
-  const resend = await hit(deps.db, keyFor('mailcode-resend', to), 1, OTP_RESEND_SEC, now);
+  const ip = c.get('ip');
+  await enforce(deps.db, keyFor('mailcode-ip', ip), 20, 3600, now, 'too_many_requests');
+  // Les plafonds par adresse sont liés au COUPLE (IP, adresse) : un tiers qui demande des codes pour l'adresse d'une victime
+  // n'épuise que SON quota, et la victime (autre IP) peut toujours se connecter. Le filet par adresse seule est large exprès :
+  // il borne le bombardement d'une boîte e-mail sans permettre de la verrouiller en 5 requêtes.
+  const resend = await hit(deps.db, keyFor('mailcode-resend', ip, to), 1, OTP_RESEND_SEC, now);
   if (!resend.allowed) throw tooMany('resend_too_soon', resend.retryAfterSec);
-  const hourly = await hit(deps.db, keyFor('mailcode-hour', to), OTP_MAX_PER_HOUR, 3600, now);
+  const hourly = await hit(deps.db, keyFor('mailcode-hour', ip, to), OTP_MAX_PER_HOUR, 3600, now);
   if (!hourly.allowed) throw tooMany('too_many_requests', hourly.retryAfterSec);
+  await enforce(deps.db, keyFor('mailcode-addr', to), EMAIL_CODES_PER_ADDRESS_PER_HOUR, 3600, now, 'too_many_requests');
   const dev = deps.mailer.provider === 'dev';
   // Même forme de réponse qu'un envoi réel : rien ne distingue une adresse inconnue d'un compte existant.
   if (options.silent) return { expiresInSec: OTP_TTL_SEC, resendInSec: OTP_RESEND_SEC, ...(dev ? { devCode: randomCode() } : {}) };

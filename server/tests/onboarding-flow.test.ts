@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestApp, type TestApp } from '../testing/harness.js';
+import { createTestApp, signUpByCode, type TestApp } from '../testing/harness.js';
 import { fixtureContent, uniqueEmail } from '../testing/fixtures.js';
 import { DEFAULT_APPEARANCE } from '../../src/models/themes.js';
 
@@ -23,9 +23,9 @@ describe('inscription → configuration → publication, sans confirmation d’e
   it('accueille sans lien de confirmation et laisse publier tout de suite', async () => {
     const email = uniqueEmail('nouveau');
     const c = t.client(ip());
-    const up = await c.post('/api/auth/sign-up', { name: 'Awa Nouvelle', email, password: 'MotDePasse-2026', acceptTerms: true });
+    const { r: up } = await signUpByCode(t, { client: c, email });
     expect(up.status).toBe(200);
-    expect(up.body.user.emailVerified).toBe(false);
+    expect(up.body.user.emailVerified).toBe(true); // l'adresse est prouvée par le code : aucun lien de confirmation n'est envoyé ensuite
     await settle();
     const mail = t.mailer.outbox.filter((m) => m.to === email).at(-1)!;
     expect(mail.subject).toBe('Bienvenue sur 1Link');
@@ -42,9 +42,27 @@ describe('inscription → configuration → publication, sans confirmation d’e
     expect(soc).toEqual(['discord', 'twitch']);
   });
 
+  it('refuse les caractères de contrôle dans les champs adresse (injection de lignes dans la fiche de contact)', async () => {
+    const c = t.client(ip());
+    await signUpByCode(t, { client: c, email: uniqueEmail('ctl') });
+    const withVcard = (website: string) => {
+      const doc = page('awa-controle', []);
+      return { ...doc, blocks: [...doc.blocks, { id: 'blk_vc', type: 'vcard', visible: true, data: { label: '', fullName: 'Awa', organization: '', jobTitle: '', phone: '', email: '', website, address: '', note: '' } }] };
+    };
+    const hostile = 'https://exemple.com/x\r\nEND:VCARD\r\nBEGIN:VCARD\r\nFN:Support 1Link';
+    const bad = await c.put('/api/me/page/draft', withVcard(hostile));
+    expect([bad.status, bad.body.message]).toEqual([422, 'invalid']);
+    expect((await c.put('/api/me/page/draft', withVcard('https://exemple.com\tx'))).status).toBe(422);
+    // Une adresse propre passe (bloc « lien », disponible dans l'offre gratuite).
+    const clean = page('awa-controle', [{ platform: 'discord', url: 'https://exemple.com/propre' }]);
+    expect((await c.put('/api/me/page/draft', clean)).status).toBe(200);
+    const dirty = page('awa-controle', [{ platform: 'discord', url: 'https://exemple.com/pro\npre' }]);
+    expect((await c.put('/api/me/page/draft', { ...dirty, version: 1 })).status).toBe(422);
+  });
+
   it('accepte les nouvelles plateformes et refuse un identifiant inconnu', async () => {
     const c = t.client(ip());
-    await c.post('/api/auth/sign-up', { name: 'Awa Plateformes', email: uniqueEmail('pl'), password: 'MotDePasse-2026', acceptTerms: true });
+    await signUpByCode(t, { client: c, email: uniqueEmail('pl') });
     const all = ['snapchat', 'pinterest', 'github', 'spotify', 'kofi', 'audiomack', 'boomplay', 'kick', 'bluesky', 'googleplay'].map((p) => ({ platform: p, url: `https://exemple.com/${p}` }));
     expect((await c.put('/api/me/page/draft', page('awa-plateformes', all.slice(0, 10)))).status).toBe(200);
     expect((await c.put('/api/me/page/draft', { ...page('awa-plateformes', [{ platform: 'myspace', url: 'https://myspace.com/awa' }]), version: 1 })).status).toBe(422);
@@ -52,7 +70,7 @@ describe('inscription → configuration → publication, sans confirmation d’e
 
   it('le brouillon garde la photo de couverture téléversée', async () => {
     const c = t.client(ip());
-    await c.post('/api/auth/sign-up', { name: 'Awa Couverture', email: uniqueEmail('cv'), password: 'MotDePasse-2026', acceptTerms: true });
+    await signUpByCode(t, { client: c, email: uniqueEmail('cv') });
     const form = new FormData();
     form.append('file', new File([Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40, 1)])], 'cover.png', { type: 'image/png' }));
     const up = await c.send('POST', '/api/me/media', form);

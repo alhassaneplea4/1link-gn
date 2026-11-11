@@ -10,7 +10,7 @@ import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { optionalAuth, requireAuth } from '../middleware.js';
 import {
-  assertCanSignIn, assertStrongPassword, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, emailCodeKey, findUserByEmail, findUserByPhone, issueEmailCode, issueOtp,
+  assertCanSignIn, assertStrongPassword, claimUnverifiedAccount, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, emailCodeKey, findUserByEmail, findUserByPhone, issueEmailCode, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
 import { challengedUser, enabledMethods, mfaChallenge, sendMfaCode, verifyMfa, type PrimaryFactor } from '../services/mfa.js';
@@ -18,7 +18,7 @@ import { accountDeletedMessage, passwordChangedMessage, securityNoticeMessage, w
 import { confirmDeletion, deletionTarget } from '../services/account-deletion.js';
 import { notify } from '../services/notifications.js';
 import { clearSessionCookie, endSession, endUserSessions, loadSession, startSession } from '../services/sessions.js';
-import { challengeBody, deleteCodeBody, deleteConfirmBody, emailCodeRequestBody, emailCodeVerifyBody, forgotBody, mfaSendBody, mfaVerifyBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, signUpBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
+import { challengeBody, deleteCodeBody, deleteConfirmBody, emailCodeRequestBody, emailCodeVerifyBody, forgotBody, mfaSendBody, mfaVerifyBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
 
 export const authRoutes = new Hono<HonoEnv>();
 
@@ -140,7 +140,9 @@ authRoutes.post('/email-code/verify', async (c) => {
   if (user) {
     assertCanSignIn(user);
     if (!user.emailVerifiedAt) {
-      await deps.db.update(users).set({ emailVerifiedAt: now, updatedAt: now }).where(eq(users.id, user.id));
+      // Compte créé AVANT toute preuve de l'adresse (ancienne inscription par mot de passe) : la personne qui la prouve maintenant
+      // en hérite à neuf. Mot de passe, téléphone, double authentification et sessions posés sans preuve sont effacés.
+      await claimUnverifiedAccount(deps.db, user.id, now);
       await maybeBootstrapAdmin(deps, user.id);
       user = (await findUserByEmail(deps.db, body.email))!;
     }
@@ -154,17 +156,10 @@ authRoutes.post('/email-code/verify', async (c) => {
   return c.json(await buildSession(deps, user.id, expiresAt));
 });
 
-authRoutes.post('/sign-up', async (c) => {
-  const deps = c.get('deps');
-  const body = await readJson(c, signUpBody);
-  await enforce(deps.db, keyFor('signup-ip', c.get('ip')), 10, 3600, deps.now());
-  assertStrongPassword(body.password, [body.email, body.email.split('@')[0] ?? '']);
-  const user = await createAccount(deps, { name: body.name, email: body.email, password: body.password, country: country(c), locale: c.get('locale') });
-  // Accueil seul, envoyé après la réponse (SMTP : plusieurs secondes). La confirmation de l'adresse est facultative (Sécurité).
-  notify(deps, user, (to, name, locale) => welcomeSimpleMessage(to, name, `${deps.config.publicUrl}/onboarding`, locale));
-  const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
-});
+// L'inscription par mot de passe (`POST /auth/sign-up`) a été RETIRÉE : elle créait un compte et ouvrait une session sans aucune
+// preuve de possession de l'adresse, ce qui permettait de « pré-pirater » l'adresse d'un tiers (le mot de passe et la session de
+// l'attaquant survivaient à la première connexion par code de la vraie personne). Toute inscription passe par `/email-code`
+// (ou par un code SMS) ; le mot de passe s'ajoute ensuite depuis la page Sécurité.
 
 // — Confirmation finale de la suppression du compte (lien reçu par e-mail après 15 jours sans activité) —
 
@@ -235,7 +230,9 @@ authRoutes.post('/password/forgot', async (c) => {
   const body = await readJson(c, forgotBody);
   const now = deps.now();
   await enforce(deps.db, keyFor('forgot-ip', c.get('ip')), 10, 3600, now);
-  await enforce(deps.db, keyFor('forgot-email', body.email), 3, 3600, now);
+  // Par couple (IP, adresse) : un tiers ne peut pas épuiser le quota de la vraie personne ; le filet par adresse borne le bombardement.
+  await enforce(deps.db, keyFor('forgot-email', c.get('ip'), body.email), 3, 3600, now);
+  await enforce(deps.db, keyFor('forgot-addr', body.email), 10, 3600, now);
   const user = await findUserByEmail(deps.db, body.email);
   if (user && user.status === 'active') deps.defer(sendPasswordReset(c, deps, user).catch((e) => console.error('[auth] reset :', (e as Error).message)));
   return c.body(null, 204);
@@ -290,10 +287,18 @@ authRoutes.post('/email/verify', optionalAuth, async (c) => {
   await enforce(deps.db, keyFor('verify-ip', c.get('ip')), 30, 3600, deps.now());
   const userId = await consumeAuthToken(deps, body.token, 'email_verify');
   const now = deps.now();
-  await deps.db.update(users).set({ emailVerifiedAt: now, updatedAt: now }).where(eq(users.id, userId));
+  const [owner] = await deps.db.select({ verifiedAt: users.emailVerifiedAt }).from(users).where(eq(users.id, userId)).limit(1);
+  // Première preuve sur un compte jamais prouvé : tout ce qui y a été posé sans preuve est effacé (voir claimUnverifiedAccount).
+  const claimed = Boolean(owner && !owner.verifiedAt);
+  if (claimed) await claimUnverifiedAccount(deps.db, userId, now);
+  else await deps.db.update(users).set({ emailVerifiedAt: now, updatedAt: now }).where(eq(users.id, userId));
   await maybeBootstrapAdmin(deps, userId);
   await audit(deps.db, { actorId: userId, actorLabel: 'Système', action: 'E-mail vérifié', target: userId, ip: c.get('ip') }, now);
   const auth = c.get('auth');
+  if (claimed) {
+    clearSessionCookie(c, deps); // les sessions du compte viennent d'être fermées : la personne se reconnecte par code
+    return c.json(null);
+  }
   return c.json(auth && auth.user.id === userId ? await buildSession(deps, userId, auth.expiresAt) : null);
 });
 

@@ -7,7 +7,8 @@ description: Inscription et connexion par code e-mail (sans mot de passe), véri
 
 ## Parcours
 - **Inscription = adresse e-mail seule.** `POST /auth/email-code/request` puis `/verify` (conditions acceptées) : crée le compte (nom provisoire tiré de l'adresse, e-mail vérifié, aucun mot de passe) ou ouvre le compte existant. Le code vit dans `otp_codes` (clé `mail:<adresse>`, canal `email`), mêmes plafonds que le SMS (30 s, 5/h, 5 essais, 5 min). Sans fournisseur d'e-mail : `mail_unavailable`.
-- Connexion par mot de passe conservée (comptes existants) ; un mot de passe se définit dans Sécurité.
+- Connexion par mot de passe conservée (comptes existants) ; un mot de passe se définit dans Sécurité. **Il n'existe plus de `POST /auth/sign-up`** : aucun compte ne se crée sans preuve de possession de l'adresse (code) ou du numéro (SMS).
+- **Comptes hérités non vérifiés** (créés avant la preuve de l'adresse) : à la PREMIÈRE preuve (`/email-code/verify` ou `/email/verify`), `claimUnverifiedAccount()` efface mot de passe, téléphone, double authentification et sessions posés sans preuve (anti « pré-piratage »). L'amorçage `ADMIN_SEED_*` applique la même règle.
 - Assistant (`/onboarding`) : 2 étapes (type de compte, profil : photo, couverture, nom complet, secteur, titre) → « Valider mon compte » crée et publie la page (adresse automatique `usernameCandidates`) → vue d'ensemble.
 
 ## Vérification en deux étapes (`server/services/mfa.ts`)
@@ -25,5 +26,9 @@ Méthodes : `sms` (`users.two_factor_sms`, numéro vérifié), `email` (`two_fac
 
 ## Règles
 - Jamais de réponse qui révèle si une adresse a un compte avant la preuve de possession.
+- Tout facteur de connexion ajouté ou remplacé (téléphone, TOTP, mot de passe) exige `confirmIdentity()` : une session volée ne doit pas suffire à poser le sien. Remplacer un numéro ferme les autres sessions.
+- Plafonds d'envoi par adresse : liés au couple (IP, adresse) + un filet large par adresse ; un tiers ne doit jamais pouvoir épuiser le quota d'une victime. Plafond GLOBAL pour les SMS (coût).
+- Un code TOTP ne sert qu'une fois (`users.totp_last_step`, mise à jour atomique et monotone).
+- Adresses e-mail : `isEmail` (src/utilities/validation.ts) est strict exprès, car la valeur part telle quelle vers l'analyseur d'adresses du serveur d'envoi.
 - Tests : `server/tests/mfa.test.ts`, `seo-deletion.test.ts`, `auth.test.ts`, `sms.test.ts` ; e2e `e2e/plans.spec.ts` (section sécurité).
 - Après tout changement : revue avec `1link-security-review`.

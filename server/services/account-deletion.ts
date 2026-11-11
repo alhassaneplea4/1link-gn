@@ -5,12 +5,13 @@
  */
 import { and, eq, isNotNull, isNull, lte, or } from 'drizzle-orm';
 import type { C, Deps } from '../context.js';
-import { authTokens, otpCodes, payments, securityEvents, users, type users as usersTable } from '../db/schema.js';
+import { activityEvents, authTokens, otpCodes, pages, payments, securityEvents, users, type users as usersTable } from '../db/schema.js';
 import { audit } from '../lib/audit.js';
 import { sha256 } from '../lib/crypto.js';
 import { badRequest, conflict } from '../lib/errors.js';
 import { deletionConfirmMessage } from '../lib/emails.js';
 import { issueAuthToken } from './accounts.js';
+import { holdUsername } from './pages.js';
 import { confirmIdentity, type Identity } from './identity.js';
 import { asLocale, notify } from './notifications.js';
 import { securityNoticeMessage } from '../lib/emails.js';
@@ -38,6 +39,12 @@ export async function deleteAccount(deps: Deps, user: UserRow, ip: string | null
       if (user.phone) await tx.delete(otpCodes).where(eq(otpCodes.phone, user.phone));
     }
     await tx.delete(securityEvents).where(and(eq(securityEvents.userId, user.id)));
+    // Le fil d'activité (Admin Center) cite le nom d'affichage (inscription) ou le pseudonyme (publication) : ces lignes partent aussi.
+    const [page] = await tx.select({ username: pages.username }).from(pages).where(eq(pages.userId, user.id)).limit(1);
+    // Le pseudonyme libéré reste réservé 30 jours : les liens et cartes déjà partagés ne mènent pas à la page d'un tiers.
+    if (page?.username) await holdUsername(tx, page.username, user.id, now);
+    const labels = [user.name, page?.username].filter((s): s is string => Boolean(s));
+    if (labels.length) await tx.delete(activityEvents).where(or(...labels.map((s) => eq(activityEvents.subject, s))));
     await tx.delete(users).where(eq(users.id, user.id)); // cascade : pages, médias, sessions, jetons, abonnement, vérifications…
     await audit(tx, { actorId: null, actorLabel: 'Titulaire du compte', action: 'Compte supprimé à la demande de son titulaire', target: user.id, ip, level: 'warning' }, now);
   });

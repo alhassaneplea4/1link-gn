@@ -31,6 +31,42 @@ async function signUpByEmail() {
   return { email, c, session: up.body };
 }
 
+describe('plafonds des codes par e-mail : un tiers ne peut pas verrouiller la connexion d’une adresse', () => {
+  it('épuiser son propre quota pour l’adresse d’une victime ne bloque pas la victime (autre adresse IP)', async () => {
+    const victim = await createUser(t.db);
+    const attacker = t.client({ 'x-real-ip': '203.0.113.200' });
+    for (let i = 0; i < 5; i++) {
+      expect((await attacker.post('/api/auth/email-code/request', { email: victim.email })).status).toBe(200);
+      wait(31);
+    }
+    expect((await attacker.post('/api/auth/email-code/request', { email: victim.email })).body.message).toBe('too_many_requests');
+    const owner = t.client({ 'x-real-ip': '198.51.100.77' });
+    expect((await owner.post('/api/auth/email-code/request', { email: victim.email })).status).toBe(200);
+    const login = await owner.post('/api/auth/email-code/verify', { email: victim.email, code: mailCode(victim.email!), acceptTerms: true });
+    expect(login.status).toBe(200);
+  });
+
+  it('le filet par adresse (toutes adresses IP confondues) borne tout de même le bombardement d’une boîte', async () => {
+    const victim = await createUser(t.db);
+    const { EMAIL_CODES_PER_ADDRESS_PER_HOUR } = await import('../services/accounts.js');
+    let blocked = 0;
+    for (let i = 0; i < EMAIL_CODES_PER_ADDRESS_PER_HOUR + 5; i++) {
+      const r = await t.client({ 'x-real-ip': `192.0.2.${(i % 250) + 1}` }).post('/api/auth/email-code/request', { email: victim.email });
+      if (r.status === 429) blocked++;
+      if (i % 5 === 4) wait(31);
+    }
+    expect(blocked).toBeGreaterThanOrEqual(5);
+  });
+
+  it('la réinitialisation de mot de passe est plafonnée par couple IP + adresse', async () => {
+    const victim = await createUser(t.db);
+    const attacker = t.client({ 'x-real-ip': '203.0.113.201' });
+    for (let i = 0; i < 4; i++) await attacker.post('/api/auth/password/forgot', { email: victim.email });
+    expect((await attacker.post('/api/auth/password/forgot', { email: victim.email })).status).toBe(429);
+    expect((await t.client({ 'x-real-ip': '198.51.100.78' }).post('/api/auth/password/forgot', { email: victim.email })).status).toBe(204);
+  });
+});
+
 describe('inscription et connexion par code reçu par e-mail', () => {
   it('crée le compte avec la seule adresse : actif, adresse vérifiée, sans mot de passe, essai de 7 jours', async () => {
     const { email, session } = await signUpByEmail();
@@ -171,8 +207,17 @@ describe('vérification en deux étapes (désactivée par défaut)', () => {
     expect(step1.body.twoFactor).toMatchObject({ methods: ['totp'], method: 'totp' });
     const ch = step1.body.twoFactor.challenge as string;
     expect((await c2.post('/api/auth/sign-in/mfa', { challenge: ch, method: 'totp', code: '123456' })).status).toBe(422);
-    const ok = await c2.post('/api/auth/sign-in/mfa', { challenge: ch, method: 'totp', code: totpAt(secret, t.clock.now().getTime()) });
+    const used = totpAt(secret, t.clock.now().getTime());
+    const ok = await c2.post('/api/auth/sign-in/mfa', { challenge: ch, method: 'totp', code: used });
     expect(ok.status).toBe(200);
+
+    // Anti-rejeu : le même code ne sert qu'UNE fois, même dans sa fenêtre de validité (défi encore valable, autre navigateur).
+    const replay = t.client(ip());
+    const chReplay = (await replay.post('/api/auth/sign-in', { email: u.email, password: u.password })).body.twoFactor.challenge as string;
+    const refused = await replay.post('/api/auth/sign-in/mfa', { challenge: chReplay, method: 'totp', code: used });
+    expect([refused.status, refused.body.message]).toEqual([422, 'invalid_code']);
+    wait(31); // le pas suivant, lui, est accepté
+    expect((await replay.post('/api/auth/sign-in/mfa', { challenge: chReplay, method: 'totp', code: totpAt(secret, t.clock.now().getTime()) })).status).toBe(200);
 
     // Code de secours : accepté une fois seulement.
     const c3 = t.client(ip());

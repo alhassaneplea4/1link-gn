@@ -52,13 +52,21 @@ export function totpAt(secretBase32: string, timeMs: number): string {
   return String(bin % 10 ** TOTP_DIGITS).padStart(TOTP_DIGITS, '0');
 }
 
-/** Accepte le pas courant et un pas de part et d'autre (dérive d'horloge du téléphone). */
-export function verifyTotp(secretBase32: string, code: string, now: Date): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
-  let ok = false;
-  for (const drift of [-1, 0, 1]) ok = safeEqual(totpAt(secretBase32, now.getTime() + drift * TOTP_STEP_SEC * 1000), code) || ok;
-  return ok;
+/**
+ * Accepte le pas courant et un pas de part et d'autre (dérive d'horloge du téléphone) et renvoie le NUMÉRO de pas qui correspond
+ * (ou `null`). Les trois pas sont toujours calculés : le temps de réponse ne dépend pas du pas trouvé.
+ */
+export function matchTotpStep(secretBase32: string, code: string, now: Date): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
+  const current = Math.floor(now.getTime() / 1000 / TOTP_STEP_SEC);
+  let found: number | null = null;
+  for (const drift of [-1, 0, 1]) {
+    if (safeEqual(totpAt(secretBase32, (current + drift) * TOTP_STEP_SEC * 1000), code)) found = current + drift;
+  }
+  return found;
 }
+
+export const verifyTotp = (secretBase32: string, code: string, now: Date): boolean => matchTotpStep(secretBase32, code, now) !== null;
 
 export const otpauthUri = (secretBase32: string, account: string, issuer = '1Link') =>
   `otpauth://totp/${encodeURIComponent(`${issuer}:${account}`)}?secret=${secretBase32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${TOTP_DIGITS}&period=${TOTP_STEP_SEC}`;

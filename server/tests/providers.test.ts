@@ -15,6 +15,36 @@ const spy = (status = 200) => {
 };
 afterEach(() => vi.unstubAllGlobals());
 
+describe('configuration fermée par défaut (outils de développement)', () => {
+  const inconnu = { DATABASE_URL: 'postgres://x' }; // ni NODE_ENV ni VERCEL_ENV : hébergement non reconnu
+
+  it('sans NODE_ENV ni VERCEL_ENV : aucun fournisseur « dev » (qui renverrait les codes), aucun secret public', () => {
+    const c = loadConfig(inconnu);
+    expect([c.mail.provider, c.otp.provider, c.devRoutes]).toEqual(['none', 'none', false]);
+    expect(c.secret).not.toContain('dev-only');
+    expect(c.secret.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it('refuse explicitement un fournisseur « dev » hors développement, sans ENABLE_DEV_ROUTES=1', () => {
+    expect(() => loadConfig({ ...inconnu, MAIL_PROVIDER: 'dev' })).toThrow(/MAIL_PROVIDER=dev/);
+    expect(() => loadConfig({ ...inconnu, OTP_PROVIDER: 'dev' })).toThrow(/OTP_PROVIDER=dev/);
+    expect(() => loadConfig({ ...inconnu, NODE_ENV: 'production', MAIL_PROVIDER: 'dev' })).toThrow(/MAIL_PROVIDER=dev/);
+    expect(() => loadConfig({ ...inconnu, NODE_ENV: 'production', ENABLE_DEV_ROUTES: '1' })).toThrow(/ENABLE_DEV_ROUTES/);
+  });
+
+  it('les fournisseurs « dev » et le secret de développement ne s’ouvrent qu’avec ENABLE_DEV_ROUTES=1 (ou en test)', () => {
+    const dev = loadConfig({ ...inconnu, NODE_ENV: 'development', ENABLE_DEV_ROUTES: '1' });
+    expect([dev.mail.provider, dev.otp.provider, dev.secret]).toEqual(['dev', 'dev', expect.stringContaining('dev-only')]);
+    expect(loadConfig({ NODE_ENV: 'test', DATABASE_URL: 'postgres://x' }).mail.provider).toBe('dev');
+  });
+
+  it('expose les plafonds et la rétention configurables', () => {
+    const c = loadConfig({ ...inconnu, OTP_GLOBAL_PER_HOUR: '50', RETENTION_ACTIVITY_DAYS: '30' });
+    expect([c.limits.otpGlobalPerHour, c.retentionDays.activity]).toEqual([50, 30]);
+    expect(loadConfig(inconnu).limits.otpGlobalPerHour).toBe(600);
+  });
+});
+
 describe('Twilio (codes WhatsApp / SMS)', () => {
   const tw = { ...base, OTP_PROVIDER: 'twilio', TWILIO_ACCOUNT_SID: 'ACtest', TWILIO_AUTH_TOKEN: 'secret-token', TWILIO_SMS_FROM: '+15005550006', TWILIO_WHATSAPP_FROM: '+14155238886' };
 

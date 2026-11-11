@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createTestApp, type TestApp } from '../testing/harness.js';
+import { createTestApp, signUpByCode, type TestApp } from '../testing/harness.js';
 import { createUser, fixtureContent, FIXTURE_APPEARANCE } from '../testing/fixtures.js';
-import { authTokens, media, otpCodes, rateLimits, sessions } from '../db/schema.js';
+import { activityEvents, authTokens, media, otpCodes, rateLimits, sessions, usernameHolds } from '../db/schema.js';
 import { loadConfig } from '../config.js';
 import { hashPassword, needsRehash, verifyPassword } from '../lib/crypto.js';
 import { sniffImage } from '../services/media.js';
@@ -121,9 +121,13 @@ describe('maintenance, santé et robustesse', () => {
     await t.db.insert(otpCodes).values({ id: 'otp_old', phone: '+224600000000', codeHash: 'x', channel: 'sms', expiresAt: new Date(0), createdAt: new Date(Date.now() - 3 * 86_400_000) });
     await t.db.insert(authTokens).values({ id: 'tok_old', userId: u.user.id, kind: 'email_verify', tokenHash: 'h', expiresAt: new Date(Date.now() - 30 * 86_400_000) });
     await t.db.insert(rateLimits).values({ key: 'old', count: 1, windowStart: new Date(Date.now() - 5 * 86_400_000) });
+    await t.db.insert(activityEvents).values([{ kind: 'signup', subject: 'Ancien nom', at: new Date(Date.now() - 200 * 86_400_000) }, { kind: 'signup', subject: 'Récent', at: new Date() }]);
+    await t.db.insert(usernameHolds).values([{ username: 'echue', userId: 'usr_x', until: new Date(Date.now() - 86_400_000) }, { username: 'en-cours', userId: 'usr_x', until: new Date(Date.now() + 86_400_000) }]);
     const r = await t.client().get('/api/cron/maintenance', { authorization: 'Bearer cron-secret-for-tests' });
     expect(r.status).toBe(200);
-    expect(r.body.purged).toMatchObject({ sessions: 1, otp: 1, tokens: 1, rateLimits: 1 });
+    expect(r.body.purged).toMatchObject({ sessions: 1, otp: 1, tokens: 1, rateLimits: 1, activity: 1, usernameHolds: 1 });
+    expect((await t.db.select().from(usernameHolds)).map((h) => h.username)).toEqual(['en-cours']);
+    expect((await t.db.select().from(activityEvents)).map((e) => e.subject)).toEqual(['Récent']);
     expect(await t.db.select().from(sessions).where(eq(sessions.id, 'old-session'))).toHaveLength(0);
   });
 
@@ -189,35 +193,38 @@ describe('mots de passe et configuration', () => {
 });
 
 describe('amorçage du premier administrateur', () => {
-  it('attribue super_admin à l’adresse prévue, une fois son e-mail confirmé, et seulement si aucun super administrateur n’existe', async () => {
+  it('attribue super_admin à l’adresse prévue, une fois son e-mail prouvé par code, et seulement si aucun super administrateur n’existe', async () => {
     const app = await createTestApp();
     try {
       app.deps.config.bootstrapAdminEmail = 'chef@exemple.test';
-      const verify = async (email: string, ip: string) => {
-        const c = app.client({ 'x-real-ip': ip });
-        await c.post('/api/auth/sign-up', { name: 'Chef', email, password: 'MotDePasse-Solide-1', acceptTerms: true });
-        await c.post('/api/auth/email/resend'); // la confirmation d'adresse est facultative : on demande le lien
-        await new Promise((r) => setTimeout(r, 40));
-        const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === email).at(-1)!.text)![1]!);
-        await c.post('/api/auth/email/verify', { token });
-        return (await c.get('/api/auth/session')).body.user;
-      };
-      expect((await verify('autre@exemple.test', '198.18.5.1')).adminRole).toBeNull(); // adresse différente
-      const chef = await app.client({ 'x-real-ip': '198.18.5.2' }).post('/api/auth/sign-up', { name: 'Chef', email: 'chef@exemple.test', password: 'MotDePasse-Solide-1', acceptTerms: true });
-      expect(chef.body.user.adminRole).toBeNull(); // l'inscription seule ne suffit pas : il faut prouver la possession de l'adresse
-      const mine = app.client({ 'x-real-ip': '198.18.5.2' });
-      await mine.post('/api/auth/sign-in', { email: 'chef@exemple.test', password: 'MotDePasse-Solide-1' });
-      await mine.post('/api/auth/email/resend');
-      await new Promise((r) => setTimeout(r, 40));
-      const token = decodeURIComponent(/token=([^\s&]+)/.exec(app.mailer.outbox.filter((m) => m.to === 'chef@exemple.test').at(-1)!.text)![1]!);
-      const c = app.client({ 'x-real-ip': '198.18.5.3' });
-      await c.post('/api/auth/sign-in', { email: 'chef@exemple.test', password: 'MotDePasse-Solide-1' });
-      const after = await c.post('/api/auth/email/verify', { token });
-      expect(after.body.user.adminRole).toBe('super_admin');
-      expect(after.body.permissions).toContain('users:write');
+      const prove = async (email: string, ip: string) => (await signUpByCode(app, { email, headers: { 'x-real-ip': ip } })).r.body;
+      expect((await prove('autre@exemple.test', '198.18.5.1')).user.adminRole).toBeNull(); // adresse différente
+      const chef = await prove('chef@exemple.test', '198.18.5.2');
+      expect(chef.user.adminRole).toBe('super_admin');
+      expect(chef.permissions).toContain('users:write');
       // un second compte portant l'adresse prévue n'obtient rien : un super administrateur existe déjà
       app.deps.config.bootstrapAdminEmail = 'troisieme@exemple.test';
-      expect((await verify('troisieme@exemple.test', '198.18.5.4')).adminRole).toBeNull();
+      expect((await prove('troisieme@exemple.test', '198.18.5.4')).user.adminRole).toBeNull();
+    } finally {
+      await app.close();
+    }
+  }, 90_000);
+
+  it('un compte pré-enregistré sur l’adresse d’amorçage ne devient pas administrateur pour son créateur', async () => {
+    const app = await createTestApp();
+    try {
+      app.deps.config.bootstrapAdminEmail = 'chef@exemple.test';
+      // L'attaquant a pris l'adresse AVANT sa preuve (compte hérité), avec son propre mot de passe et une session ouverte.
+      const attacker = await createUser(app.db, { email: 'chef@exemple.test', emailVerified: false, password: 'Mot-de-passe-attaquant-1' });
+      const mine = app.client({ 'x-real-ip': '198.18.6.1' });
+      expect((await mine.post('/api/auth/sign-in', { email: 'chef@exemple.test', password: attacker.password })).status).toBe(200);
+
+      // Le vrai propriétaire de la boîte prouve l'adresse : il devient super administrateur, l'attaquant perd tout.
+      const owner = await signUpByCode(app, { email: 'chef@exemple.test', headers: { 'x-real-ip': '198.18.6.2' } });
+      expect(owner.r.body.user.adminRole).toBe('super_admin');
+      expect((await mine.get('/api/auth/session')).body).toBeNull();
+      expect((await mine.get('/api/admin/users')).status).toBe(401);
+      expect((await app.client({ 'x-real-ip': '198.18.6.3' }).post('/api/auth/sign-in', { email: 'chef@exemple.test', password: attacker.password })).status).toBe(401);
     } finally {
       await app.close();
     }

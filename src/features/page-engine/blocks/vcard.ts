@@ -1,7 +1,19 @@
 import type { VcardData } from '@/models/blocks';
 
-/** Échappement vCard (RFC 6350 §3.4) : antislash, saut de ligne, point-virgule, virgule. */
-const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
+/** Caractères de contrôle (sauf \t \n \r) : jamais écrits dans le fichier. */
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+/**
+ * Échappement vCard (RFC 6350 §3.4) : antislash, TOUS les sauts de ligne (\r\n, \r et \n : un saut de ligne non échappé
+ * permettrait d'ajouter des propriétés, voire une seconde fiche), point-virgule, virgule.
+ */
+const esc = (v: string) => v.replace(CONTROL, '').replace(/\\/g, '\\\\').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
+
+/** Adresse de site : uniquement http(s), sans espace ni caractère de contrôle (jamais de saut de ligne dans une ligne `URL:`). */
+const siteUrl = (v: string): string => {
+  const clean = v.replace(/[\u0000-\u0020\u007F]/g, '');
+  return /^https?:\/\/[^/]/i.test(clean) ? clean : '';
+};
 
 /** Plie une ligne à 75 caractères (RFC 6350 §3.2) : les continuations commencent par une espace. */
 function fold(line: string): string {
@@ -26,7 +38,7 @@ export function buildVCard(d: VcardData): string {
     d.jobTitle.trim() && `TITLE:${esc(d.jobTitle.trim())}`,
     d.phone.trim() && `TEL;TYPE=CELL,VOICE:${d.phone.replace(/[^\d+]/g, '')}`,
     d.email.trim() && `EMAIL;TYPE=INTERNET:${esc(d.email.trim())}`,
-    d.website.trim() && `URL:${d.website.trim()}`,
+    siteUrl(d.website) && `URL:${siteUrl(d.website)}`,
     d.address.trim() && `ADR;TYPE=WORK:;;${esc(d.address.trim())};;;;`,
     d.note.trim() && `NOTE:${esc(d.note.trim())}`,
     'END:VCARD',

@@ -29,6 +29,9 @@ describe('double authentification — interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Recevoir le code' }));
     await screen.findByText(/Aucun message n’est réellement envoyé/);
     await userEvent.click(screen.getByRole('button', { name: 'Remplir' }));
+    // L'association d'un numéro exige aussi la preuve d'identité du titulaire : sans elle, « Valider » reste inactif.
+    expect(screen.getByRole('button', { name: 'Valider' })).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Mot de passe actuel/), u.password);
     await userEvent.click(screen.getByRole('button', { name: 'Valider' }));
     expect(await screen.findByText(/Numéro vérifié et associé/)).toBeInTheDocument();
     expect(card).toHaveTextContent('+224');

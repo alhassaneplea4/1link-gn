@@ -16,17 +16,26 @@ export type PageMode = 'draft' | 'publish';
 /** Emplacement des images téléversées sur ce serveur. */
 export const MEDIA_PATH = /^\/api\/media\/med_[a-f0-9]{20}$/;
 const DANGEROUS_SCHEME = /^\s*(?:javascript|data|vbscript|file|blob)\s*:/i;
+/**
+ * Caractères de contrôle. Un champ « adresse » (lien, image, e-mail, téléphone) n'en admet AUCUN : `new URL` ignore les tabulations
+ * et sauts de ligne, donc `isUrl` acceptait une valeur qui en contenait, et ils se retrouvaient ensuite dans des fichiers
+ * (vCard) ou des schémas déguisés (`java\tscript:`). Un champ texte admet seulement la tabulation et les sauts de ligne.
+ */
+const CTL_ANY = /[\u0000-\u001F\u007F]/;
+const CTL_TEXT = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+const noCtlAny = (v: string) => !CTL_ANY.test(v);
+const noCtlText = (v: string) => !CTL_TEXT.test(v);
 
 const isoDate = z.iso.datetime({ offset: true });
 
 function build(mode: PageMode) {
   const strict = mode === 'publish';
-  const str = (max: number) => z.string().max(strict ? max : Math.max(max * 3, 400)).default('');
+  const str = (max: number) => z.string().max(strict ? max : Math.max(max * 3, 400)).default('').refine(noCtlText, 'control');
 
-  const link = z.string().max(2048).default('').refine((v) => !DANGEROUS_SCHEME.test(v), 'unsafe_url').refine((v) => !strict || v.trim() === '' || isLink(v), 'url');
-  const image = z.string().max(2048).default('').refine((v) => !DANGEROUS_SCHEME.test(v), 'unsafe_url').refine((v) => !strict || v.trim() === '' || isUrl(v) || MEDIA_PATH.test(v.trim()), 'url');
-  const email = z.string().max(254).default('').refine((v) => !strict || v.trim() === '' || isEmail(v), 'email');
-  const tel = z.string().max(40).default('').refine((v) => !strict || v.trim() === '' || isPhone(v), 'phone');
+  const link = z.string().max(2048).default('').refine(noCtlAny, 'control').refine((v) => !DANGEROUS_SCHEME.test(v), 'unsafe_url').refine((v) => !strict || v.trim() === '' || isLink(v), 'url');
+  const image = z.string().max(2048).default('').refine(noCtlAny, 'control').refine((v) => !DANGEROUS_SCHEME.test(v), 'unsafe_url').refine((v) => !strict || v.trim() === '' || isUrl(v) || MEDIA_PATH.test(v.trim()), 'url');
+  const email = z.string().max(254).default('').refine(noCtlAny, 'control').refine((v) => !strict || v.trim() === '' || isEmail(v), 'email');
+  const tel = z.string().max(40).default('').refine(noCtlAny, 'control').refine((v) => !strict || v.trim() === '' || isPhone(v), 'phone');
   const list = <T extends z.ZodType>(item: T, max: number) => z.array(item).max(max).default([]);
 
   const data: { [K in BlockType]: z.ZodType<BlockDataMap[K], unknown> } = {
@@ -95,7 +104,7 @@ function build(mode: PageMode) {
     category: z.enum(CATEGORY_IDS),
     blocks: z.array(block).max(500),
     appearance,
-    share: z.object({ title: z.string().max(120).default(''), description: z.string().max(300).default('') }),
+    share: z.object({ title: z.string().max(120).default('').refine(noCtlText, 'control'), description: z.string().max(300).default('').refine(noCtlText, 'control') }),
     version: z.number().int().min(0).max(2_000_000_000),
   });
 }

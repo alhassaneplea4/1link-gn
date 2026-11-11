@@ -10,9 +10,17 @@ export type ValidationKey =
   | 'common.validation.usernameReserved'
   | 'common.validation.tooLong';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/**
+ * Adresse e-mail : un seul « @ », partie locale en « atome pointé » (jamais de < > " ; , ( ) [ ] \ ni d'espace), domaine en
+ * étiquettes DNS. Volontairement plus stricte que la RFC 5322 : ces adresses sont passées telles quelles à un serveur d'envoi dont
+ * l'analyseur d'adresses ne doit jamais pouvoir lire un AUTRE destinataire que celui saisi (« a<victime@gmail.com>.com »).
+ */
+const EMAIL_RE = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z][A-Za-z0-9-]{0,61}[A-Za-z0-9]$/;
 
-export const isEmail = (v: string) => EMAIL_RE.test(v.trim());
+export const isEmail = (v: string): boolean => {
+  const value = v.trim();
+  return value.length <= 254 && (value.split('@')[0]?.length ?? 0) <= 64 && EMAIL_RE.test(value);
+};
 
 export function isUrl(v: string): boolean {
   try {

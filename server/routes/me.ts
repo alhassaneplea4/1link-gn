@@ -17,7 +17,7 @@ import { confirmIdentity, sendIdentityCode } from '../services/identity.js';
 import { securityRoutes } from './me-security.js';
 import { myCardRoutes } from './cards.js';
 import { userBadges } from '../services/nav-badges.js';
-import { clearSessionCookie } from '../services/sessions.js';
+import { clearSessionCookie, endUserSessions } from '../services/sessions.js';
 import { MAX_DOC_BYTES, pageInput } from '../validation/page.js';
 import { badgesOf, changeUsername, getOwnerPage, ownerDocument, unpublish, writePage } from '../services/pages.js';
 import { getVerificationState, requestVerification, verificationInput } from '../services/verification.js';
@@ -144,11 +144,16 @@ meRoutes.post('/phone/request', async (c) => {
   return c.json(issued);
 });
 
-/** Étape 2 : la preuve de possession (code correct) associe et valide le numéro. */
+/**
+ * Étape 2 : la preuve de possession du numéro (code correct) ET la preuve d'identité du titulaire (mot de passe, ou code envoyé à
+ * son adresse) associent et valident le numéro. Sans la seconde, une session volée suffirait à poser son propre téléphone comme
+ * moyen de connexion — ou comme second facteur — du compte, et à garder l'accès après un changement de mot de passe.
+ */
 meRoutes.post('/phone/verify', async (c) => {
   const deps = c.get('deps');
   const auth = c.get('auth')!;
   const body = await readJson(c, phoneLinkVerifyBody);
+  await confirmIdentity(c, deps, auth.user, { password: body.password, code: body.identityCode }); // avant de consommer le code du numéro
   await checkOtp(c, deps, body.phone, body.code);
   const now = deps.now();
   try {
@@ -157,6 +162,8 @@ meRoutes.post('/phone/verify', async (c) => {
     if (uniqueViolation(e)) throw conflict('phone_taken');
     throw e;
   }
+  // Un numéro remplacé change le moyen de connexion : les autres sessions ouvertes sont fermées.
+  if (auth.user.phone && auth.user.phone !== body.phone) await endUserSessions(deps, auth.user.id, auth.sessionId);
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_linked', locale));
   return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
 });

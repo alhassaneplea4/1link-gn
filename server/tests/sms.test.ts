@@ -23,10 +23,10 @@ async function signedIn(opts: Parameters<typeof createUser>[1] = {}): Promise<{ 
   return { c, email: created.email!, password: created.password, id: created.user.id };
 }
 
-/** Associe `phone` au compte connecté par la voie normale (code SMS + preuve de possession). */
-async function linkPhone(c: TestClient, phone: string) {
+/** Associe `phone` au compte connecté par la voie normale : code SMS (possession du numéro) + preuve d'identité du titulaire. */
+async function linkPhone(c: TestClient, phone: string, password = FIXTURE_PASSWORD) {
   expect((await c.post('/api/me/phone/request', { phone })).status).toBe(200);
-  const done = await c.post('/api/me/phone/verify', { phone, code: lastCode() });
+  const done = await c.post('/api/me/phone/verify', { phone, code: lastCode(), password });
   t.clock.advance((OTP_RESEND_SEC + 1) * 1000); // le délai anti-rafale du numéro est écoulé quand la connexion suivante demande un code
   return done;
 }
@@ -39,14 +39,60 @@ describe('ajout du numéro de téléphone au compte', () => {
     expect(req.body).toMatchObject({ channel: 'sms', resendInSec: OTP_RESEND_SEC });
     expect(t.otp.sent.at(-1)).toMatchObject({ phone, channel: 'sms' });
 
-    const bad = await c.post('/api/me/phone/verify', { phone, code: lastCode() === '000000' ? '111111' : '000000' });
+    const bad = await c.post('/api/me/phone/verify', { phone, code: lastCode() === '000000' ? '111111' : '000000', password: FIXTURE_PASSWORD });
     expect(bad.body.message).toBe('invalid_code');
     const [before] = await t.db.select().from(users).where(eq(users.id, id));
     expect(before!.phone).toBeNull();
 
-    const ok = await c.post('/api/me/phone/verify', { phone, code: lastCode() });
+    const ok = await c.post('/api/me/phone/verify', { phone, code: lastCode(), password: FIXTURE_PASSWORD });
     expect(ok.status).toBe(200);
     expect(ok.body.user).toMatchObject({ phone, phoneVerified: true, twoFactorSms: false });
+  });
+
+  it('exige AUSSI la preuve d’identité du titulaire : une session volée ne suffit pas à poser son propre téléphone', async () => {
+    const { c, id } = await signedIn();
+    const phone = nextPhone();
+    await c.post('/api/me/phone/request', { phone });
+    const code = lastCode();
+    // Sans preuve, ou avec un mauvais mot de passe : refusé, le numéro n'est pas associé…
+    const none = await c.post('/api/me/phone/verify', { phone, code });
+    expect([none.status, none.body.message]).toEqual([422, 'confirmation_required']);
+    const wrong = await c.post('/api/me/phone/verify', { phone, code, password: 'Mauvais-mot-de-passe' });
+    expect(wrong.body.message).toBe('wrong_password');
+    const [row] = await t.db.select().from(users).where(eq(users.id, id));
+    expect(row!.phone).toBeNull();
+    // …et le code du numéro n'a pas été consommé par ces refus : le titulaire peut conclure sans redemander un SMS.
+    const ok = await c.post('/api/me/phone/verify', { phone, code, password: FIXTURE_PASSWORD });
+    expect(ok.status).toBe(200);
+  });
+
+  it('un compte sans mot de passe prouve son identité par un code reçu à son adresse (identityCode)', async () => {
+    const created = await createUser(t.db, { email: 'sans.mdp@exemple.test' });
+    await t.db.update(users).set({ passwordHash: null }).where(eq(users.id, created.user.id));
+    const c = t.client({ 'x-real-ip': nextIp() });
+    await c.post('/api/auth/email-code/request', { email: 'sans.mdp@exemple.test' });
+    const mailCode = /(\d{6}) est votre code/.exec(t.mailer.outbox.filter((m) => m.to === 'sans.mdp@exemple.test').at(-1)!.subject)![1]!;
+    expect((await c.post('/api/auth/email-code/verify', { email: 'sans.mdp@exemple.test', code: mailCode, acceptTerms: true })).status).toBe(200);
+    t.clock.advance(31_000);
+    expect((await c.post('/api/me/identity/code')).status).toBe(200);
+    const identityCode = /(\d{6}) est votre code/.exec(t.mailer.outbox.filter((m) => m.to === 'sans.mdp@exemple.test').at(-1)!.subject)![1]!;
+    const phone = nextPhone();
+    await c.post('/api/me/phone/request', { phone });
+    const ok = await c.post('/api/me/phone/verify', { phone, code: lastCode(), identityCode });
+    expect(ok.status).toBe(200);
+    expect(ok.body.user).toMatchObject({ phone, phoneVerified: true });
+  });
+
+  it('remplacer le numéro ferme les autres sessions (un facteur de connexion a changé)', async () => {
+    const { c, email, password } = await signedIn();
+    await linkPhone(c, nextPhone());
+    const other = t.client({ 'x-real-ip': nextIp() });
+    expect((await other.post('/api/auth/sign-in', { email, password })).status).toBe(200);
+    expect((await other.get('/api/auth/session')).body.user.email).toBe(email);
+    t.clock.advance(31_000);
+    await linkPhone(c, nextPhone());
+    expect((await other.get('/api/auth/session')).body).toBeNull();
+    expect((await c.get('/api/auth/session')).body.user.email).toBe(email);
   });
 
   it('refuse un numéro déjà utilisé par un autre compte', async () => {
@@ -54,7 +100,7 @@ describe('ajout du numéro de téléphone au compte', () => {
     await createUser(t.db, { email: null, phone: taken, phoneVerified: true });
     const { c } = await signedIn();
     expect((await c.post('/api/me/phone/request', { phone: taken })).status).toBe(200);
-    const r = await c.post('/api/me/phone/verify', { phone: taken, code: lastCode() });
+    const r = await c.post('/api/me/phone/verify', { phone: taken, code: lastCode(), password: FIXTURE_PASSWORD });
     expect([r.status, r.body.message]).toEqual([409, 'phone_taken']);
   });
 
@@ -254,8 +300,38 @@ describe('réinitialisation du mot de passe par SMS', () => {
   });
 });
 
+describe('plafond global des envois de SMS (anti « SMS pumping »)', () => {
+  it('au-delà du plafond horaire commun, aucun SMS ne part, quelles que soient l’adresse IP et le numéro', async () => {
+    const small = await createTestApp({ overrides: { limits: { otpGlobalPerHour: 3 } } });
+    try {
+      const statuses: number[] = [];
+      for (let i = 0; i < 5; i++) statuses.push((await small.client({ 'x-real-ip': `203.0.113.${10 + i}` }).post('/api/auth/otp/request', { phone: `+22462299${String(1000 + i)}`, channel: 'sms' })).status);
+      expect(statuses).toEqual([200, 200, 200, 429, 429]);
+      expect(small.otp.sent).toHaveLength(3);
+    } finally {
+      await small.close();
+    }
+  });
+});
+
 describe('amorçage du premier administrateur', () => {
   const seed = { email: 'admin.seed@exemple.test', password: 'Mot-de-passe-solide-1', name: 'ALHASSANA CAMARA', phone: '+224624629400' };
+
+  it('reprend à neuf un compte dont l’adresse n’a jamais été prouvée (pré-enregistré par un tiers) au lieu de l’adopter', async () => {
+    const { seedPlatformAdmin } = await import('../services/admin-seed.js');
+    const attacker = await createUser(t.db, { email: 'pris.seed@exemple.test', emailVerified: false, password: 'Mot-de-passe-attaquant-1' });
+    await t.db.update(users).set({ phone: '+224624629455', phoneVerifiedAt: new Date(), twoFactorSms: true }).where(eq(users.id, attacker.user.id));
+    const theirs = t.client({ 'x-real-ip': nextIp() });
+    expect((await theirs.post('/api/auth/sign-in', { email: attacker.email, password: attacker.password })).status).toBe(200);
+
+    expect(await seedPlatformAdmin(t.db, { ...seed, email: 'pris.seed@exemple.test' }, 10)).toBe('role_granted');
+
+    expect((await theirs.get('/api/auth/session')).body).toBeNull(); // sessions fermées
+    expect((await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: attacker.email, password: attacker.password })).status).toBe(401);
+    const admin = await t.client({ 'x-real-ip': nextIp() }).post('/api/auth/sign-in', { email: attacker.email, password: seed.password });
+    expect(admin.status).toBe(200); // mot de passe de l'amorçage, connu du seul déployeur
+    expect(admin.body.user).toMatchObject({ adminRole: 'super_admin', emailVerified: true, phone: null, twoFactorSms: false });
+  });
 
   it('crée un super administrateur utilisable, avec un numéro non vérifié, puis ne réécrit jamais son mot de passe', async () => {
     const { seedPlatformAdmin } = await import('../services/admin-seed.js');

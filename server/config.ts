@@ -41,13 +41,17 @@ export interface AppConfig {
   devRoutes: boolean;
   /** Multiplie les plafonds de débit (e2e UNIQUEMENT : tous les navigateurs de test partagent une adresse IP). Toujours 1 en production. */
   rateLimitScale: number;
-  retentionDays: { events: number; errors: number };
+  retentionDays: { events: number; errors: number; activity: number };
+  /** Plafonds globaux (toutes adresses IP confondues). */
+  limits: { otpGlobalPerHour: number };
   commit: string;
   /** Adresse qui devient super administrateur à la confirmation de son e-mail, tant qu'aucun super administrateur n'existe (amorçage). */
   bootstrapAdminEmail: string;
 }
 
 type Source = Record<string, string | undefined>;
+
+let warnedDerivedSecret = false;
 
 const trim = (v: string | undefined) => (v ?? '').trim();
 
@@ -58,18 +62,29 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     vercelEnv === 'production' ? 'production' : vercelEnv === 'preview' ? 'preview' : nodeEnv === 'production' ? 'production' : nodeEnv === 'test' ? 'test' : 'development';
   const hardened = appEnv === 'production' || appEnv === 'preview';
   const problems: string[] = [];
+  // Outils de développement (fournisseurs « dev » qui renvoient les codes dans la réponse, secret de développement connu) :
+  // FERMÉS PAR DÉFAUT. Ils exigent un choix explicite (ENABLE_DEV_ROUTES=1) ou l'environnement de test ; un hébergement dont
+  // NODE_ENV / VERCEL_ENV ne sont pas posés ne peut donc jamais les activer par accident.
+  const devTools = trim(env.ENABLE_DEV_ROUTES) === '1' || appEnv === 'test';
 
   const databaseUrl = trim(env.DATABASE_URL);
   if (!databaseUrl) problems.push('DATABASE_URL est obligatoire.');
 
   let secret = trim(env.APP_SECRET);
   if (!secret) {
-    // Sans APP_SECRET explicite, le secret est DÉRIVÉ du mot de passe de la base (HMAC) : il n'a jamais besoin d'être saisi,
-    // reste inconnu de l'extérieur, et ne protège que des valeurs éphémères (codes OTP, empreintes quotidiennes).
-    if (hardened && databaseUrl) secret = createHmac('sha256', databaseUrl).update('1link:app-secret:v1').digest('base64url');
-    else if (hardened) problems.push('APP_SECRET est obligatoire (32 caractères minimum) ou, à défaut, DATABASE_URL pour le dériver.');
-    else secret = 'dev-only-secret-do-not-use-in-production-0123456789';
+    // Sans APP_SECRET explicite, le secret est DÉRIVÉ de l'URL de la base (HMAC) : il n'a jamais besoin d'être saisi et reste
+    // inconnu de l'extérieur. Il sert aux codes OTP, aux défis de double authentification et au chiffrement des secrets TOTP :
+    // définir un APP_SECRET dédié est recommandé (voir docs/DEPLOYMENT.md : une rotation du mot de passe de la base change
+    // sinon ce secret). Le secret de développement, public, n'est utilisé qu'avec les outils de développement.
+    if (devTools) secret = 'dev-only-secret-do-not-use-in-production-0123456789';
+    else if (databaseUrl) secret = createHmac('sha256', databaseUrl).update('1link:app-secret:v1').digest('base64url');
+    else problems.push('APP_SECRET est obligatoire (32 caractères minimum) ou, à défaut, DATABASE_URL pour le dériver.');
   } else if (secret.length < 32) problems.push('APP_SECRET doit contenir au moins 32 caractères.');
+
+  if (hardened && !trim(env.APP_SECRET) && !warnedDerivedSecret) {
+    warnedDerivedSecret = true;
+    console.warn('[config] APP_SECRET n’est pas défini : le secret est dérivé de DATABASE_URL. Définissez APP_SECRET (voir docs/DEPLOYMENT.md) : une rotation du mot de passe de la base invaliderait sinon les secrets TOTP.');
+  }
 
   const vercelHost = trim(env.VERCEL_PROJECT_PRODUCTION_URL) || trim(env.VERCEL_URL);
   const publicUrl = (trim(env.APP_URL) || (vercelHost ? `https://${vercelHost}` : 'http://localhost:5173')).replace(/\/+$/, '');
@@ -81,11 +96,11 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
   const smtpUser = trim(env.SMTP_USER);
   const smtpPass = trim(env.SMTP_PASS).replace(/\s+/g, ''); // les mots de passe d'application Google s'affichent en groupes séparés par des espaces
   const smtpPort = Number(trim(env.SMTP_PORT) || 465);
-  const mailChoice = trim(env.MAIL_PROVIDER) || (smtpUser && smtpPass ? 'smtp' : resendKey ? 'resend' : hardened ? 'none' : 'dev');
+  const mailChoice = trim(env.MAIL_PROVIDER) || (smtpUser && smtpPass ? 'smtp' : resendKey ? 'resend' : devTools ? 'dev' : 'none');
   if (!['smtp', 'resend', 'dev', 'none'].includes(mailChoice)) problems.push('MAIL_PROVIDER doit valoir smtp, resend, dev ou none.');
   if (mailChoice === 'smtp' && !(smtpUser && smtpPass)) problems.push('SMTP_USER et SMTP_PASS sont requis quand MAIL_PROVIDER=smtp.');
   if (mailChoice === 'resend' && !resendKey) problems.push('RESEND_API_KEY est requis quand MAIL_PROVIDER=resend.');
-  if (mailChoice === 'dev' && hardened) problems.push('MAIL_PROVIDER=dev est interdit en production et prévisualisation.');
+  if (mailChoice === 'dev' && !devTools) problems.push('MAIL_PROVIDER=dev est réservé aux tests et au développement local (ENABLE_DEV_ROUTES=1) : jamais en production ni en prévisualisation.');
 
   const tw = {
     sid: trim(env.TWILIO_ACCOUNT_SID), token: trim(env.TWILIO_AUTH_TOKEN), smsFrom: trim(env.TWILIO_SMS_FROM),
@@ -93,14 +108,14 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
   };
   const sms8 = { apiKey: trim(env.SMS8_API_KEY), baseUrl: (trim(env.SMS8_BASE_URL) || 'https://app.sms8.io').replace(/\/+$/, ''), devices: trim(env.SMS8_DEVICES), option: Number(trim(env.SMS8_OPTION) || 0) };
   const smsmobile = { apiKey: trim(env.SMSMOBILEAPI_KEY), baseUrl: (trim(env.SMSMOBILEAPI_BASE_URL) || 'https://api.smsmobileapi.com').replace(/\/+$/, ''), port: trim(env.SMSMOBILEAPI_PORT), device: trim(env.SMSMOBILEAPI_DEVICE), whatsapp: trim(env.SMSMOBILEAPI_WHATSAPP) === '1' };
-  const otpChoice = trim(env.OTP_PROVIDER) || (smsmobile.apiKey ? 'smsmobile' : sms8.apiKey ? 'sms8' : tw.sid && tw.token ? 'twilio' : hardened ? 'none' : 'dev');
+  const otpChoice = trim(env.OTP_PROVIDER) || (smsmobile.apiKey ? 'smsmobile' : sms8.apiKey ? 'sms8' : tw.sid && tw.token ? 'twilio' : devTools ? 'dev' : 'none');
   if (!['smsmobile', 'sms8', 'twilio', 'dev', 'none'].includes(otpChoice)) problems.push('OTP_PROVIDER doit valoir smsmobile, sms8, twilio, dev ou none.');
   if (otpChoice === 'smsmobile' && !smsmobile.apiKey) problems.push('SMSMOBILEAPI_KEY est requis quand OTP_PROVIDER=smsmobile.');
   if (otpChoice === 'smsmobile' && !smsmobile.baseUrl.startsWith('https://')) problems.push('SMSMOBILEAPI_BASE_URL doit être en https.');
   if (otpChoice === 'sms8' && !sms8.apiKey) problems.push('SMS8_API_KEY est requis quand OTP_PROVIDER=sms8.');
   if (otpChoice === 'sms8' && !sms8.baseUrl.startsWith('https://')) problems.push('SMS8_BASE_URL doit être en https.');
   if (otpChoice === 'twilio' && !(tw.sid && tw.token)) problems.push('TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN sont requis quand OTP_PROVIDER=twilio.');
-  if (otpChoice === 'dev' && hardened) problems.push('OTP_PROVIDER=dev est interdit en production et prévisualisation.');
+  if (otpChoice === 'dev' && !devTools) problems.push('OTP_PROVIDER=dev est réservé aux tests et au développement local (ENABLE_DEV_ROUTES=1) : jamais en production ni en prévisualisation.');
 
   const dials = trim(env.OTP_ALLOWED_DIAL_CODES);
   const allowedDialCodes = dials ? dials.split(',').map((d) => d.trim()).filter(Boolean) : COUNTRIES.map((c) => c.dial);
@@ -135,7 +150,8 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     otp: { provider: otpChoice as OtpProvider, allowedDialCodes, smsmobile, sms8, twilio: tw },
     cronSecret: trim(env.CRON_SECRET),
     devRoutes, rateLimitScale,
-    retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90) },
+    retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90), activity: num(env.RETENTION_ACTIVITY_DAYS, 90) },
+    limits: { otpGlobalPerHour: num(env.OTP_GLOBAL_PER_HOUR, 600) },
     commit: trim(env.VERCEL_GIT_COMMIT_SHA).slice(0, 7),
     bootstrapAdminEmail: trim(env.BOOTSTRAP_ADMIN_EMAIL).toLowerCase(),
     ...overrides,

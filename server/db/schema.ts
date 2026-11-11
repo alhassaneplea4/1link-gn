@@ -66,6 +66,8 @@ export const users = pgTable(
     /** Application d'authentification (TOTP) : secret chiffré (AES-GCM) ; actif seulement quand `totpEnabledAt` est posé. */
     totpSecret: text('totp_secret'),
     totpEnabledAt: ts('totp_enabled_at'),
+    /** Dernier pas TOTP (30 s) accepté à la connexion : un code n'est valable qu'UNE fois (RFC 6238 §5.2, anti-rejeu). */
+    totpLastStep: bigint('totp_last_step', { mode: 'number' }),
     /** Codes de secours : empreintes SHA-256 des codes non utilisés. */
     recoveryCodes: jsonb('recovery_codes').$type<string[]>(),
     /** Suppression de compte demandée (délai de 15 jours sans activité avant la confirmation finale). */
@@ -176,6 +178,21 @@ export const pages = pgTable(
     check('pages_username_ck', sql`${t.username} is null or ${t.username} ~ '^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$'`),
     check('pages_status_ck', sql`${t.status} in (${list(PAGE_STATUSES)})`),
   ],
+);
+
+/**
+ * Pseudonymes en quarantaine : une adresse /pseudo libérée (changement de pseudonyme, suppression du compte) reste réservée à son
+ * ancien titulaire pendant un délai, pour que les liens et cartes déjà partagés ne mènent pas à la page d'un tiers qui l'aurait aussitôt prise.
+ * `userId` est volontairement SANS clé étrangère : à la suppression du compte, la réservation doit survivre (personne d'autre ne peut la reprendre).
+ */
+export const usernameHolds = pgTable(
+  'username_holds',
+  {
+    username: text('username').primaryKey(),
+    userId: text('user_id').notNull(),
+    until: ts('until').notNull(),
+  },
+  (t) => [index('username_holds_until_idx').on(t.until)],
 );
 
 export const media = pgTable(

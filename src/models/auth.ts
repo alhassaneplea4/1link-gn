@@ -56,13 +56,6 @@ export interface Session {
   expiresAt: string;
 }
 
-export interface SignUpInput {
-  name: string;
-  email: string;
-  password: string;
-  acceptTerms: boolean;
-}
-
 /** Un contact vérifié (e-mail OU téléphone) suffit pour publier. */
 export const isContactVerified = (u: Pick<SessionUser, 'emailVerified' | 'phoneVerified'>) => u.emailVerified || u.phoneVerified;
 

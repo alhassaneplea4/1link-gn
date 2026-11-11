@@ -1,7 +1,8 @@
 /** Pages : brouillon, publication, résolution publique, pseudonymes. */
 import { and, eq, ne, sql } from 'drizzle-orm';
 import type { AuthContext, Deps } from '../context.js';
-import { pages, users, subscriptions, type PageContent } from '../db/schema.js';
+import { pages, users, subscriptions, usernameHolds, type PageContent } from '../db/schema.js';
+import type { Executor } from '../db/client.js';
 import { newId } from '../lib/crypto.js';
 import { activity } from '../lib/audit.js';
 import { pageLiveMessage } from '../lib/emails.js';
@@ -21,6 +22,21 @@ import type { PlanId } from '../../src/models/auth.js';
 import { badgesFor, isVerifiedBy, type BadgeId } from '../../src/models/badges.js';
 
 export type PageRow = typeof pages.$inferSelect;
+
+/** Durée pendant laquelle un pseudonyme libéré reste réservé à son ancien titulaire. */
+export const USERNAME_HOLD_DAYS = 30;
+
+/** Réserve `username` à `userId` pour `USERNAME_HOLD_DAYS` jours (appelé quand un pseudonyme est libéré). */
+export async function holdUsername(db: Executor, username: string, userId: string, now: Date): Promise<void> {
+  const until = new Date(now.getTime() + USERNAME_HOLD_DAYS * 86_400_000);
+  await db.insert(usernameHolds).values({ username, userId, until }).onConflictDoUpdate({ target: usernameHolds.username, set: { userId, until } });
+}
+
+/** Vrai si `username` est réservé à quelqu'un d'autre que `userId` (réservation en cours). */
+export async function isUsernameHeld(db: Executor, username: string, userId: string | null, now: Date): Promise<boolean> {
+  const [hold] = await db.select({ userId: usernameHolds.userId, until: usernameHolds.until }).from(usernameHolds).where(eq(usernameHolds.username, username)).limit(1);
+  return Boolean(hold && hold.until > now && hold.userId !== userId);
+}
 
 export function usernameProblem(value: string): 'invalid' | 'reserved' | null {
   const v = value.trim().toLowerCase();
@@ -94,6 +110,7 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
       assertPageRights(RIGHTS[auth.planId], input, existing?.draft.appearance ?? null);
       const username = input.username || existing?.username || null;
       if (opts.publish && !username) throw badRequest('username_invalid', { username: 'invalid' });
+      if (username && username !== existing?.username && (await isUsernameHeld(tx, username, auth.user.id, now))) throw conflict('username_taken', { username: 'taken' });
       const snapshot: PageContent | null = opts.publish ? { ...content, blocks: content.blocks.filter((b) => b.visible) } : (existing?.published ?? null);
 
       let saved: PageRow;
@@ -113,6 +130,7 @@ export async function writePage(deps: Deps, auth: AuthContext, input: PageInput,
           .returning();
         if (!saved) throw conflict('version_conflict');
       }
+      if (existing?.username && username !== existing.username) await holdUsername(tx, existing.username, auth.user.id, now);
       await tx.update(users).set({ category: input.category, ...(opts.publish ? { onboardingDone: true } : {}), updatedAt: now }).where(eq(users.id, auth.user.id));
       if (opts.publish) {
         firstPublication = !existing?.publishedAt;
@@ -172,7 +190,8 @@ export async function resolvePublicPage(deps: Deps, username: string): Promise<P
 
 /**
  * Change l'adresse 1Link (pseudonyme) de la page. L'ancienne adresse cesse aussitôt de fonctionner (les liens déjà partagés
- * ne redirigent pas) : l'interface demande une confirmation explicite. Au plus 5 changements par jour.
+ * ne redirigent pas) : l'interface demande une confirmation explicite. Au plus 5 changements par jour. L'ancienne adresse reste
+ * RÉSERVÉE à son titulaire pendant `USERNAME_HOLD_DAYS` jours : personne d'autre ne peut la prendre aussitôt.
  */
 export async function changeUsername(deps: Deps, auth: AuthContext, username: string): Promise<PageDocument> {
   assertNotLocked(auth.access);
@@ -182,16 +201,15 @@ export async function changeUsername(deps: Deps, auth: AuthContext, username: st
   await enforce(deps.db, keyFor('username-change', auth.user.id), 5, 86_400, deps.now());
   const now = deps.now();
   try {
-    const [row] = await deps.db
-      .update(pages)
-      .set({ username: v, version: pagesVersionBump(), updatedAt: now })
-      .where(and(eq(pages.userId, auth.user.id), ne(pages.status, 'suspended')))
-      .returning();
-    if (!row) {
-      const existing = await getOwnerPage(deps, auth.user.id);
-      if (existing?.status === 'suspended') throw forbidden('page_suspended');
-      throw new HttpError(404, 'no_page');
-    }
+    const row = await deps.db.transaction(async (tx) => {
+      const [current] = await tx.select().from(pages).where(eq(pages.userId, auth.user.id)).for('update').limit(1);
+      if (!current) throw new HttpError(404, 'no_page');
+      if (current.status === 'suspended') throw forbidden('page_suspended');
+      if (current.username !== v && (await isUsernameHeld(tx, v, auth.user.id, now))) throw conflict('username_taken', { username: 'taken' });
+      const [updated] = await tx.update(pages).set({ username: v, version: pagesVersionBump(), updatedAt: now }).where(eq(pages.id, current.id)).returning();
+      if (current.username && current.username !== v) await holdUsername(tx, current.username, auth.user.id, now);
+      return updated!;
+    });
     return ownerDocument(row, badgesOf(auth.user, badgePlanOf(auth.access)));
   } catch (e) {
     if (uniqueViolation(e)?.includes('username')) throw conflict('username_taken', { username: 'taken' });
@@ -205,6 +223,7 @@ export async function usernameAvailability(deps: Deps, username: string, selfUse
   if (problem) return { available: false as const, reason: problem };
   const [owner] = await deps.db.select({ userId: pages.userId }).from(pages).where(eq(pages.username, v)).limit(1);
   if (owner && owner.userId !== selfUserId) return { available: false as const, reason: 'taken' as const };
+  if (await isUsernameHeld(deps.db, v, selfUserId, deps.now())) return { available: false as const, reason: 'taken' as const };
   return { available: true as const };
 }
 

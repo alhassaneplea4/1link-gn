@@ -6,7 +6,7 @@
 import type { Paged, ListQuery } from '@/models/api';
 import type { AdminCardOrder, AdminCardOrderRow, CardCatalog, CardDesign, CardItem, CardOrder, CardOrderInput, CardOrderStatus, CardPaymentMethod, CardProduct, NfcTestResult } from '@/models/cards';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
-import type { CodeSent, DeletionTarget, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, SignUpInput, TotpSetup } from '@/models/auth';
+import type { CodeSent, DeletionTarget, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, TotpSetup } from '@/models/auth';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { AnalyticsReport, DateRange } from '@/models/analytics';
 import type { ChangePlanResult, Invoice, Subscription } from '@/models/billing';
@@ -36,7 +36,6 @@ export interface AuthApi {
   requestEmailCode(email: string): Promise<CodeSent>;
   /** Vérifie le code : ouvre le compte existant ou le crée (conditions acceptées). */
   verifyEmailCode(input: { email: string; code: string }): Promise<SignInResult>;
-  signUp(input: SignUpInput): Promise<Session>;
   signOut(): Promise<void>;
   /** Envoie un code à usage unique (WhatsApp ou SMS). Le numéro est au format E.164. */
   requestOtp(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
@@ -48,7 +47,8 @@ export interface AuthApi {
   resetPasswordByPhone(input: { phone: string; code: string; password: string }): Promise<void>;
   /** Associe un numéro au compte connecté : envoi du code, puis vérification (preuve de possession). */
   requestPhoneLink(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
-  verifyPhoneLink(input: { phone: string; code: string }): Promise<Session>;
+  /** `code` : code reçu sur le nouveau numéro ; `password` ou `identityCode` : preuve d'identité du titulaire. */
+  verifyPhoneLink(input: { phone: string; code: string; password?: string; identityCode?: string }): Promise<Session>;
   removePhone(proof: IdentityProof): Promise<Session>;
   /** Envoie le code de confirmation d'identité (e-mail du compte, sinon SMS) quand le compte n'a pas de mot de passe. */
   requestIdentityCode(): Promise<CodeSent & { via: 'email' | 'sms' }>;

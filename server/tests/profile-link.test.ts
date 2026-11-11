@@ -100,3 +100,60 @@ describe('galerie : cinq images au plus', () => {
     expect([r.status, r.body.fields.feature]).toEqual([403, 'block:gallery']);
   });
 });
+
+describe('pseudonymes libérés : quarantaine de 30 jours', () => {
+  it('l’ancienne adresse reste réservée à son titulaire : un tiers ne peut ni la publier ni la prendre, puis elle se libère', async () => {
+    const app = await createTestApp(); // horloge propre : on avance de 31 jours
+    try {
+      const mk = async (f: UserFixture = {}) => {
+        const u = await createUser(app.db, f);
+        const c = app.client({ 'x-real-ip': `203.0.113.${n++}` });
+        expect((await c.post('/api/auth/sign-in', { email: u.email, password: u.password })).status).toBe(200);
+        return { ...u, c };
+      };
+      const owner = await mk();
+      const thief = await mk();
+      const old = uname();
+      const next = uname();
+      await owner.c.post('/api/me/page/publish', doc(old));
+      expect((await owner.c.patch('/api/me/page/username', { username: next })).status).toBe(200);
+
+      // Disponibilité, changement de lien et première publication : « pris » pour un tiers.
+      expect((await thief.c.get(`/api/usernames/check?username=${old}`)).body).toEqual({ available: false, reason: 'taken' });
+      await thief.c.post('/api/me/page/publish', doc(uname()));
+      expect((await thief.c.patch('/api/me/page/username', { username: old })).body.message).toBe('username_taken');
+      const fresh = await mk();
+      expect((await fresh.c.post('/api/me/page/publish', doc(old))).body.message).toBe('username_taken');
+
+      // Son ancien titulaire, lui, peut la reprendre.
+      expect((await owner.c.get(`/api/usernames/check?username=${old}`)).body).toEqual({ available: true });
+      expect((await owner.c.patch('/api/me/page/username', { username: old })).status).toBe(200);
+      expect((await owner.c.patch('/api/me/page/username', { username: next })).status).toBe(200);
+
+      // Après 30 jours, la réservation est échue : l'adresse est libre pour tous.
+      app.clock.advance(31 * 86_400_000);
+      expect((await thief.c.get(`/api/usernames/check?username=${old}`)).body).toEqual({ available: true });
+    } finally {
+      await app.close();
+    }
+  }, 60_000);
+
+  it('l’adresse d’un compte supprimé reste réservée 30 jours', async () => {
+    const app = await createTestApp();
+    try {
+      const { deleteAccount } = await import('../services/account-deletion.js');
+      const name = uname();
+      const gone = await createUser(app.db, { page: { username: name, published: true } });
+      const other = await createUser(app.db);
+      const c = app.client({ 'x-real-ip': `203.0.113.${n++}` });
+      await c.post('/api/auth/sign-in', { email: other.email, password: other.password });
+      await deleteAccount(app.deps, gone.user, null);
+      expect((await app.client().get(`/api/pages/${name}`)).body).toEqual({ state: 'not_found' });
+      expect((await c.get(`/api/usernames/check?username=${name}`)).body).toEqual({ available: false, reason: 'taken' });
+      app.clock.advance(31 * 86_400_000);
+      expect((await c.get(`/api/usernames/check?username=${name}`)).body).toEqual({ available: true });
+    } finally {
+      await app.close();
+    }
+  }, 60_000);
+});

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { createTestApp, type TestApp } from '../testing/harness.js';
 import { createUser } from '../testing/fixtures.js';
-import { media, pages, securityEvents, users } from '../db/schema.js';
+import { activityEvents, media, pages, securityEvents, users } from '../db/schema.js';
 import { processDeletionRequests } from '../services/account-deletion.js';
 
 let t: TestApp;
@@ -77,6 +77,7 @@ describe('suppression du compte (15 jours sans activité, puis confirmation par 
     await c.post('/api/auth/sign-in', { email: u.email, password: u.password });
     await t.db.insert(media).values({ id: 'med_aaaaaaaaaaaaaaaaaaaa', userId: u.user.id, mime: 'image/png', size: 1, sha256: 'x', data: Buffer.from([1]), createdAt: new Date() });
     await t.db.insert(securityEvents).values({ id: 'sec_x1', at: new Date(), kind: 'failed_login', subject: u.email!, userId: null, ip: '1.2.3.4', level: 'info' });
+    await t.db.insert(activityEvents).values([{ kind: 'signup', subject: 'Partant' }, { kind: 'publish', subject: 'partant' }, { kind: 'signup', subject: 'Quelqu’un d’autre' }]);
 
     expect((await c.post('/api/me/delete/request', {})).status).toBe(422);
     expect((await c.post('/api/me/delete/request', { password: 'Mauvais-mot-de-passe' })).body.message).toBe('wrong_password');
@@ -105,6 +106,10 @@ describe('suppression du compte (15 jours sans activité, puis confirmation par 
     expect((await t.db.select().from(pages).where(eq(pages.username, 'partant'))).length).toBe(0);
     expect((await t.db.select().from(media).where(eq(media.userId, u.user.id))).length).toBe(0);
     expect((await t.db.select().from(securityEvents).where(eq(securityEvents.subject, u.email!))).length).toBe(0);
+    // Le fil d'activité de l'Admin Center ne garde ni le nom ni le pseudonyme de la personne (les autres lignes restent).
+    expect((await t.db.select().from(activityEvents)).map((e) => e.subject)).not.toEqual(expect.arrayContaining(['Partant']));
+    expect((await t.db.select().from(activityEvents).where(eq(activityEvents.subject, 'partant')))).toHaveLength(0);
+    expect((await t.db.select().from(activityEvents).where(eq(activityEvents.subject, 'Quelqu’un d’autre')))).toHaveLength(1);
     expect((await t.client(ip()).get('/api/pages/partant')).body.state).toBe('not_found');
     expect((await t.client(ip()).post('/api/auth/sign-in', { email: u.email, password: u.password })).status).toBe(401);
     expect((await anon.post('/api/auth/delete/confirm', { token, password: u.password })).status).toBe(422); // le lien ne sert qu'une fois

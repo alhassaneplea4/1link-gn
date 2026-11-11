@@ -35,11 +35,22 @@ for (let attempt = 1; ; attempt++) {
       // Premier administrateur (ADMIN_SEED_*) : créé une seule fois, jamais écrasé ensuite. Les variables peuvent être retirées après le premier déploiement.
       const seed = adminSeedFromEnv(process.env);
       const log2N = Number(process.env.SCRYPT_LOG2_N) || 15;
-      if (seed) console.log(`[migrate] administrateur ${seed.email} : ${await seedPlatformAdmin(handle.db, seed, log2N)}.`);
+      if (seed) {
+        const outcome = await seedPlatformAdmin(handle.db, seed, log2N);
+        console.log(`[migrate] administrateur ${seed.email} : ${outcome}.`);
+        if (outcome === 'unchanged') console.warn('[migrate] ATTENTION : ADMIN_SEED_* est toujours défini alors que l’administrateur existe. Retirez ces variables de Vercel (elles ne servent qu’au premier déploiement).');
+      }
       // Comptes de test (un par type de profil), sur demande explicite : mêmes accès que l'administrateur, jamais recréés s'ils existent.
+      // Les comptes de test (adresses prévisibles) ont leur PROPRE mot de passe : réutiliser celui du super administrateur le
+      // ferait dépendre de cinq comptes de plus.
       if (process.env.SEED_TEST_ACCOUNTS === '1' && seed) {
-        const made = await seedTestAccounts(handle.db, seed.password, log2N);
-        console.log(`[migrate] comptes de test : ${made.filter((m) => m.created).length} créé(s), ${made.filter((m) => !m.created).length} déjà présent(s).`);
+        const testPassword = process.env.TEST_ACCOUNTS_PASSWORD ?? '';
+        if (testPassword.length < 12 || testPassword === seed.password) {
+          console.warn('[migrate] comptes de test IGNORÉS : TEST_ACCOUNTS_PASSWORD (12 caractères minimum, différent de ADMIN_SEED_PASSWORD) est obligatoire.');
+        } else {
+          const made = await seedTestAccounts(handle.db, testPassword, log2N);
+          console.log(`[migrate] comptes de test : ${made.filter((m) => m.created).length} créé(s), ${made.filter((m) => !m.created).length} déjà présent(s).`);
+        }
       }
     } finally {
       await client.query('select pg_advisory_unlock(727274)').catch(() => undefined);

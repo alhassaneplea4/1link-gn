@@ -7,12 +7,6 @@ const e164 = z.string().regex(/^\+\d{8,15}$/, 'phone');
 const token = z.string().min(16).max(200);
 
 export const signInBody = z.object({ email, password });
-export const signUpBody = z.object({
-  name: z.string().trim().min(1).max(80),
-  email,
-  password: z.string().min(8).max(200),
-  acceptTerms: z.literal(true),
-});
 export const otpRequestBody = z.object({ phone: e164, channel: z.enum(['whatsapp', 'sms']) });
 export const otpVerifyBody = z.object({
   phone: e164,
@@ -29,7 +23,16 @@ export const mfaSendBody = z.object({ challenge: z.string().min(20).max(600), me
 export const challengeBody = z.object({ challenge: z.string().min(20).max(600) });
 export const phoneRequestBody = z.object({ phone: e164, channel: z.enum(['whatsapp', 'sms']).default('sms') });
 export const phoneResetBody = z.object({ phone: e164, code: z.string().regex(/^\d{6}$/, 'code'), password: z.string().min(1).max(200) });
-export const phoneLinkVerifyBody = z.object({ phone: e164, code: z.string().regex(/^\d{6}$/, 'code') });
+/**
+ * Association d'un numéro : `code` est le code reçu sur le NOUVEAU numéro ; la preuve d'identité du titulaire est distincte
+ * (mot de passe, ou `identityCode` envoyé à l'adresse du compte) pour qu'une session volée ne suffise pas à changer de téléphone.
+ */
+export const phoneLinkVerifyBody = z.object({
+  phone: e164,
+  code: z.string().regex(/^\d{6}$/, 'code'),
+  password: z.string().min(1).max(200).optional(),
+  identityCode: z.string().regex(/^\d{6}$/, 'code').optional(),
+});
 /** Preuve d'identité : mot de passe, ou code reçu par e-mail / SMS pour un compte sans mot de passe. */
 export const identityBody = z.object({ password: z.string().min(1).max(200).optional(), code: z.string().regex(/^\d{6}$/, 'code').optional() });
 export const passwordConfirmBody = identityBody;

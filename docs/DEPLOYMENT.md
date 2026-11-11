@@ -43,16 +43,20 @@ Le test `server/tests/imports.test.ts` et la commande `npm run verify:vercel` ga
 | Variable | Obligatoire | Rôle |
 |---|---|---|
 | `DATABASE_URL` | oui | Chaîne PostgreSQL pooled |
-| `APP_SECRET` | oui | 32+ caractères (`openssl rand -base64 48`). Les codes OTP et empreintes de visiteurs en dépendent : **ne pas la changer** sans conséquence (codes en cours invalidés) |
+| `APP_SECRET` | **oui (à définir)** | 32+ caractères (`openssl rand -base64 48`). Signe les défis de double authentification, protège les codes OTP et **chiffre les secrets des applications d'authentification (TOTP)**. **Ne pas la changer** : les codes en cours seraient invalidés et les utilisateurs TOTP ne pourraient plus utiliser leur application (seuls leurs codes de secours fonctionneraient). Sans `APP_SECRET`, le serveur la dérive de `DATABASE_URL` : une rotation du mot de passe de la base la changerait alors aussi. Pour garder le secret actuel, définissez `APP_SECRET` à la valeur dérivée : `node -e "console.log(require('crypto').createHmac('sha256', process.env.DATABASE_URL).update('1link:app-secret:v1').digest('base64url'))"` (avec la `DATABASE_URL` de production) |
 | `APP_URL` | recommandé | URL publique (liens des e-mails). Déduite de Vercel sinon |
 | `CRON_SECRET` | oui | Autorise la tâche de maintenance quotidienne |
 | `SMTP_USER` + `SMTP_PASS` + `MAIL_FROM` (ou `RESEND_API_KEY`) | pour les e-mails | Accueil, vérification d'adresse, mot de passe oublié, page en ligne, décisions de modération |
-| `ADMIN_SEED_EMAIL` · `ADMIN_SEED_PASSWORD` · `ADMIN_SEED_NAME` · `ADMIN_SEED_PHONE` · `ADMIN_SEED_USERNAME` (adresse publique de sa page) · `SEED_TEST_ACCOUNTS=1` (5 comptes de test, un par type de profil, même mot de passe, supprimables par `npm run test-accounts -- remove`) | non | Crée **une seule fois**, au premier déploiement, le super administrateur (mot de passe ≥ 12 caractères ; un compte existant n'est jamais écrasé). À retirer des variables Vercel ensuite. Le numéro reste non vérifié jusqu'à la saisie d'un code SMS dans *Sécurité* |
+| `ADMIN_SEED_EMAIL` · `ADMIN_SEED_PASSWORD` · `ADMIN_SEED_NAME` · `ADMIN_SEED_PHONE` · `ADMIN_SEED_USERNAME` (adresse publique de sa page) | non | Crée **une seule fois**, au premier déploiement, le super administrateur (mot de passe ≥ 12 caractères). Un compte existant dont l'adresse est **vérifiée** garde son mot de passe ; un compte existant dont l'adresse n'a **jamais été prouvée** est repris à neuf (mot de passe de l'amorçage, sessions et téléphone effacés) : il a pu être créé par un tiers. **À retirer des variables Vercel après le premier déploiement** (le build avertit tant qu'elles restent). Le numéro reste non vérifié jusqu'à la saisie d'un code SMS dans *Sécurité* |
+| `SEED_TEST_ACCOUNTS=1` + `TEST_ACCOUNTS_PASSWORD` | non | 5 comptes de test (adresses `…@comptes-test.invalid`), supprimables par `npm run test-accounts -- remove`. `TEST_ACCOUNTS_PASSWORD` (12 caractères minimum) est **obligatoire et doit différer de `ADMIN_SEED_PASSWORD`** : sinon les comptes ne sont pas créés. Déconseillé en production |
+| `OTP_ALLOWED_DIAL_CODES` | recommandé | Indicatifs autorisés pour les codes SMS (ex. `224,221,225,223`). Vide = tous les pays proposés : exposé à la fraude aux SMS vers des destinations surtaxées |
+| `OTP_GLOBAL_PER_HOUR` | non (600) | Plafond **global** de SMS par heure, toutes adresses IP confondues (anti « SMS pumping ») ; à ajuster à votre trafic |
+| `RETENTION_ACTIVITY_DAYS` | non (90) | Durée de conservation du fil d'activité de l'Admin Center (il cite des noms et pseudonymes) |
 | `SMSMOBILEAPI_KEY` (ou `SMS8_API_KEY`, `TWILIO_*`) | pour le téléphone | Codes par SMS pour 3 usages : inscription/connexion par téléphone, **double authentification** (code après le mot de passe) et **mot de passe oublié par SMS**. Choix automatique : smsmobileapi > SMS8 > Twilio |
 | `MIGRATE_ON_BUILD=1` | **Production uniquement** | Applique les migrations pendant le build |
 
 Sans fournisseur configuré, l'API **refuse honnêtement** (`mail_unavailable`, `otp_unavailable`) au lieu de simuler un envoi.
-En production, `MAIL_PROVIDER=dev`, `OTP_PROVIDER=dev` et `ENABLE_DEV_ROUTES=1` sont **interdits** : le serveur refuse de démarrer.
+Les fournisseurs « dev » (qui renvoient le code dans la réponse), le secret de développement et `ENABLE_DEV_ROUTES=1` sont **fermés par défaut** : ils exigent `ENABLE_DEV_ROUTES=1` (ou `NODE_ENV=test`), et `MAIL_PROVIDER=dev`, `OTP_PROVIDER=dev` ou `ENABLE_DEV_ROUTES=1` font **refuser le démarrage** en production et en prévisualisation. Un hébergement sans `NODE_ENV` ni `VERCEL_ENV` n'ouvre donc jamais ces outils par accident.
 
 ## 3. Première mise en ligne
 

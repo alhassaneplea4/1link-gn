@@ -3,13 +3,13 @@
  * Tout est désactivé par défaut. La première étape (mot de passe, code e-mail ou code SMS) ne suffit pas à ouvrir une session
  * quand au moins une méthode est active : un défi signé de 10 minutes lie la seconde étape à la première.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, lt, or } from 'drizzle-orm';
 import type { C, Deps, UserRow } from '../context.js';
 import { users } from '../db/schema.js';
 import { decryptSecret, encryptSecret, newToken, safeEqual, sha256, signPayload, verifyPayload } from '../lib/crypto.js';
 import { badRequest, HttpError, unauthorized } from '../lib/errors.js';
 import { enforce, keyFor } from '../lib/ratelimit.js';
-import { newTotpSecret, otpauthUri, verifyTotp } from '../lib/totp.js';
+import { matchTotpStep, newTotpSecret, otpauthUri } from '../lib/totp.js';
 import { maskPhone } from '../../src/utilities/phone.js';
 import { maskEmail } from '../../src/utilities/validation.js';
 import type { MfaMethod, TwoFactorChallenge } from '../../src/models/auth.js';
@@ -97,10 +97,22 @@ export async function verifyMfa(c: C, deps: Deps, user: UserRow, primary: Primar
   await verifyTotpFor(deps, user, code);
 }
 
-export async function verifyTotpFor(deps: Deps, user: UserRow, code: string): Promise<void> {
+/**
+ * Vérifie un code TOTP. À la connexion (`consume`), un pas déjà utilisé est refusé : la mise à jour du dernier pas accepté est
+ * monotone ET atomique (une seule requête conditionnelle), donc deux requêtes simultanées avec le même code ne passent pas toutes les deux.
+ */
+export async function verifyTotpFor(deps: Deps, user: UserRow, code: string, opts: { consume?: boolean } = {}): Promise<void> {
   await enforce(deps.db, keyFor('mfa-totp', user.id), 10, 900, deps.now(), 'too_many_attempts');
   const secret = user.totpSecret ? decryptSecret(deps.config.secret, user.totpSecret) : null;
-  if (!secret || !verifyTotp(secret, code, deps.now())) throw new HttpError(422, 'invalid_code', { attemptsLeft: '0' });
+  const step = secret ? matchTotpStep(secret, code, deps.now()) : null;
+  if (step === null) throw new HttpError(422, 'invalid_code', { attemptsLeft: '0' });
+  if (opts.consume === false) return;
+  const claimed = await deps.db
+    .update(users)
+    .set({ totpLastStep: step })
+    .where(and(eq(users.id, user.id), or(isNull(users.totpLastStep), lt(users.totpLastStep, step))))
+    .returning({ id: users.id });
+  if (claimed.length === 0) throw new HttpError(422, 'invalid_code', { attemptsLeft: '0' }); // code déjà utilisé
 }
 
 // — Gestion depuis la page Sécurité —
@@ -117,7 +129,7 @@ export function newRecoveryCodes(): { plain: string[]; hashes: string[] } {
 export async function beginTotpSetup(deps: Deps, user: UserRow): Promise<{ secret: string; uri: string }> {
   if (user.totpEnabledAt) throw badRequest('already_enabled');
   const secret = newTotpSecret();
-  await deps.db.update(users).set({ totpSecret: encryptSecret(deps.config.secret, secret), totpEnabledAt: null, updatedAt: deps.now() }).where(eq(users.id, user.id));
+  await deps.db.update(users).set({ totpSecret: encryptSecret(deps.config.secret, secret), totpEnabledAt: null, totpLastStep: null, updatedAt: deps.now() }).where(eq(users.id, user.id));
   return { secret, uri: otpauthUri(secret, user.email ?? user.phone ?? user.id) };
 }
 
@@ -125,12 +137,12 @@ export async function beginTotpSetup(deps: Deps, user: UserRow): Promise<{ secre
 export async function finishTotpSetup(deps: Deps, user: UserRow, code: string): Promise<string[]> {
   if (user.totpEnabledAt) throw badRequest('already_enabled');
   if (!user.totpSecret) throw badRequest('setup_required');
-  await verifyTotpFor(deps, user, code);
+  await verifyTotpFor(deps, user, code, { consume: false }); // le code d'association n'est pas une connexion
   const { plain, hashes } = newRecoveryCodes();
   await deps.db.update(users).set({ totpEnabledAt: deps.now(), recoveryCodes: hashes, updatedAt: deps.now() }).where(eq(users.id, user.id));
   return plain;
 }
 
 export async function disableTotp(deps: Deps, userId: string): Promise<void> {
-  await deps.db.update(users).set({ totpSecret: null, totpEnabledAt: null, recoveryCodes: null, updatedAt: deps.now() }).where(eq(users.id, userId));
+  await deps.db.update(users).set({ totpSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null, updatedAt: deps.now() }).where(eq(users.id, userId));
 }

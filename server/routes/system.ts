@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { lt, sql } from 'drizzle-orm';
 import type { HonoEnv } from '../context.js';
-import { appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions } from '../db/schema.js';
+import { activityEvents, appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions, usernameHolds } from '../db/schema.js';
 import { forbidden, HttpError } from '../lib/errors.js';
 import { safeEqual } from '../lib/crypto.js';
 import { processDeletionRequests } from '../services/account-deletion.js';
@@ -51,7 +51,10 @@ systemRoutes.get('/cron/maintenance', async (c) => {
     rateLimits: await count(db.delete(rateLimits).where(lt(rateLimits.windowStart, ago(2 * day))) as never),
     events: await count(db.delete(pageEvents).where(lt(pageEvents.at, ago(config.retentionDays.events * day))) as never),
     security: await count(db.delete(securityEvents).where(lt(securityEvents.at, ago(365 * day))) as never),
+    usernameHolds: await count(db.delete(usernameHolds).where(lt(usernameHolds.until, t)) as never),
     errors: await count(db.delete(appErrors).where(lt(appErrors.at, ago(config.retentionDays.errors * day))) as never),
+    // Le fil d'activité de l'Admin Center cite le nom ou le pseudonyme des personnes : il n'est pas conservé indéfiniment.
+    activity: await count(db.delete(activityEvents).where(lt(activityEvents.at, ago(config.retentionDays.activity * day))) as never),
   };
   const deletions = await processDeletionRequests(c.get('deps'));
   return c.json({ ok: true, purged, deletions });

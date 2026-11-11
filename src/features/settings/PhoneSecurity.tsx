@@ -85,7 +85,9 @@ export function PhoneSecurity() {
     if (!/^\d{6}$/.test(code)) return setFieldError(t('auth.phone.errors.codeFormat'));
     setFieldError(undefined);
     void run(async () => {
-      setSession(await api.auth.verifyPhoneLink({ phone: e164, code }));
+      // Preuve d'identité du titulaire (mot de passe, ou code envoyé à son adresse) : distincte du code reçu sur le nouveau numéro.
+      setSession(await api.auth.verifyPhoneLink({ phone: e164, code, password: identity.proof.password, identityCode: identity.proof.code }));
+      identity.reset();
       setStep('idle');
       setNational('');
       setNotice(t('dashboard.security.phoneLinked'));
@@ -153,11 +155,12 @@ export function PhoneSecurity() {
               label={t('auth.phone.code')} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} error={fieldError}
               inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} className="otp-input" required
             />
+            {identity.field}
             <div className="auth-form__split">
               <Button type="button" variant="ghost" size="sm" iconLeft="refresh" disabled={cooldown > 0 || busy} onClick={() => sendCode()}>
                 {cooldown > 0 ? t('auth.phone.resendIn', { s: cooldown }) : t('auth.phone.resend')}
               </Button>
-              <Button type="submit" variant="gradient" size="sm" loading={busy} disabled={code.length !== 6}>{t('auth.phone.verify')}</Button>
+              <Button type="submit" variant="gradient" size="sm" loading={busy} disabled={code.length !== 6 || !identity.ready}>{t('auth.phone.verify')}</Button>
             </div>
           </form>
         )}

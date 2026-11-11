@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { pages, users } from '../server/db/schema.js';
 import { uniqueEmail } from '../server/testing/fixtures.js';
+import { nameFromEmail } from '../src/utilities/validation.js';
 import { confirmLink, expect, latestMail, registerNew, signIn, signInByCode, test as base, tokenFrom, type Account } from './fixtures';
 
 const test = base.extend<{ mariama: Account }>({
@@ -340,9 +341,15 @@ test.describe('Admin Center', () => {
     await page.getByRole('button', { name: /Connecter|Se connecter|Démarrer/ }).click();
     await expect(page.getByText(/Connecté|En direct/).first()).toBeVisible({ timeout: 10_000 });
     const anon = await playwright.request.newContext({ baseURL: 'http://localhost:4173' });
-    const res = await anon.post('/api/auth/sign-up', { data: { name: 'Nouvel Inscrit', email: uniqueEmail('rt'), password: 'MotDePasse-Solide-123', acceptTerms: true }, headers: { origin: 'http://localhost:4173' } });
+    // Inscription réelle : un code envoyé à l'adresse (le serveur e2e est en mode test : le code est renvoyé), puis sa saisie.
+    const email = uniqueEmail('rt');
+    const headers = { origin: 'http://localhost:4173' };
+    const requested = await anon.post('/api/auth/email-code/request', { data: { email }, headers });
+    expect(requested.status()).toBe(200);
+    const { devCode } = (await requested.json()) as { devCode: string };
+    const res = await anon.post('/api/auth/email-code/verify', { data: { email, code: devCode, acceptTerms: true }, headers });
     expect(res.status()).toBe(200);
-    await expect(page.locator('.adm-feed li').first()).toContainText('Nouvel Inscrit', { timeout: 12_000 });
+    await expect(page.locator('.adm-feed li').first()).toContainText(nameFromEmail(email), { timeout: 12_000 });
     await anon.dispose();
   });
 
