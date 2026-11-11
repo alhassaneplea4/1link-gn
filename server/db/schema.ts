@@ -108,8 +108,71 @@ export const sessions = pgTable(
     lastSeenAt: ts('last_seen_at').notNull().defaultNow(),
     ip: text('ip'),
     userAgent: text('user_agent'),
+    /** Pays de l'ouverture de la session (en-tête de la plateforme) : affiché dans « Appareils connectés ». */
+    country: text('country'),
+    /**
+     * Facteurs réellement franchis pour ouvrir CETTE session : `single` (un seul : mot de passe, code e-mail ou code SMS), `mfa` (un second
+     * facteur a été validé) ou `passkey` (clé d'accès, qui vérifie déjà la présence ET l'utilisateur). L'Admin Center n'ouvre pas une session `single`.
+     */
+    authFactor: text('auth_factor').notNull().default('single'),
   },
-  (t) => [index('sessions_user_idx').on(t.userId), index('sessions_expires_idx').on(t.expiresAt)],
+  (t) => [
+    index('sessions_user_idx').on(t.userId),
+    index('sessions_expires_idx').on(t.expiresAt),
+    check('sessions_factor_ck', sql`${t.authFactor} in ('single', 'mfa', 'passkey')`),
+  ],
+);
+
+/**
+ * Appareils connus d'un compte : un cookie d'appareil de longue durée (dont seule l'empreinte est stockée) permet de reconnaître un
+ * navigateur déjà utilisé. Une connexion depuis un appareil INCONNU, alors que le compte en a déjà un, déclenche un e-mail d'alerte.
+ */
+export const userDevices = pgTable(
+  'user_devices',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    /** SHA-256 du cookie d'appareil. */
+    deviceHash: text('device_hash').notNull(),
+    /** « Chrome sur Windows » : jamais la chaîne User-Agent brute. */
+    label: text('label').notNull().default(''),
+    country: text('country'),
+    firstSeenAt: createdAt(),
+    lastSeenAt: ts('last_seen_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('user_devices_pk').on(t.userId, t.deviceHash), index('user_devices_seen_idx').on(t.lastSeenAt)],
+);
+
+/** Clés d'accès (WebAuthn / passkeys) d'un compte. La clé publique n'est pas un secret ; la clé privée ne quitte jamais l'appareil. */
+export const passkeys = pgTable(
+  'passkeys',
+  {
+    /** Identifiant d'identifiant WebAuthn (base64url). */
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    publicKey: text('public_key').notNull(),
+    /** Compteur de signatures (0 pour les clés synchronisées qui n'en tiennent pas) : une régression signale une clé clonée. */
+    counter: bigint('counter', { mode: 'number' }).notNull().default(0),
+    transports: jsonb('transports').$type<string[]>().notNull().default([]),
+    deviceType: text('device_type').notNull().default('multiDevice'),
+    backedUp: boolean('backed_up').notNull().default(false),
+    name: text('name').notNull().default(''),
+    createdAt: createdAt(),
+    lastUsedAt: ts('last_used_at'),
+  },
+  (t) => [index('passkeys_user_idx').on(t.userId)],
+);
+
+/** Défis WebAuthn en cours (usage unique, 5 minutes) : lus ET supprimés d'un seul coup à la vérification. */
+export const webauthnChallenges = pgTable(
+  'webauthn_challenges',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(),
+    userId: text('user_id'),
+    challenge: text('challenge').notNull(),
+    expiresAt: ts('expires_at').notNull(),
+  },
+  (t) => [index('webauthn_challenges_exp_idx').on(t.expiresAt), check('webauthn_kind_ck', sql`${t.kind} in ('register', 'login')`)],
 );
 
 export const authTokens = pgTable(

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { lt, sql } from 'drizzle-orm';
 import type { HonoEnv } from '../context.js';
-import { activityEvents, appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions, usernameHolds } from '../db/schema.js';
+import { activityEvents, appErrors, authTokens, otpCodes, pageEvents, rateLimits, securityEvents, sessions, userDevices, usernameHolds, webauthnChallenges } from '../db/schema.js';
 import { forbidden, HttpError } from '../lib/errors.js';
 import { safeEqual } from '../lib/crypto.js';
 import { processDeletionRequests } from '../services/account-deletion.js';
@@ -28,7 +28,8 @@ systemRoutes.get('/capabilities', (c) => {
   const { otp } = c.get('deps').config;
   const channels =
     otp.provider === 'smsmobile' ? [...(otp.smsmobile.whatsapp ? ['whatsapp'] : []), 'sms'] : otp.provider === 'sms8' ? ['sms'] : otp.provider === 'twilio' ? [...(otp.twilio.whatsappFrom || otp.twilio.messagingServiceSid ? ['whatsapp'] : []), ...(otp.twilio.smsFrom || otp.twilio.messagingServiceSid ? ['sms'] : [])] : otp.provider === 'dev' ? ['whatsapp', 'sms'] : [];
-  return c.json({ otpChannels: channels, emailSending: c.get('deps').config.mail.provider !== 'none' });
+  const { captcha } = c.get('deps').config;
+  return c.json({ otpChannels: channels, emailSending: c.get('deps').config.mail.provider !== 'none', captcha: captcha.enabled ? { provider: 'turnstile', siteKey: captcha.siteKey } : null });
 });
 
 /**
@@ -52,6 +53,9 @@ systemRoutes.get('/cron/maintenance', async (c) => {
     events: await count(db.delete(pageEvents).where(lt(pageEvents.at, ago(config.retentionDays.events * day))) as never),
     security: await count(db.delete(securityEvents).where(lt(securityEvents.at, ago(365 * day))) as never),
     usernameHolds: await count(db.delete(usernameHolds).where(lt(usernameHolds.until, t)) as never),
+    // Un navigateur non revu depuis plus d'un an (durée de vie maximale du cookie d'appareil) n'est plus « connu ».
+    devices: await count(db.delete(userDevices).where(lt(userDevices.lastSeenAt, ago(400 * day))) as never),
+    webauthn: await count(db.delete(webauthnChallenges).where(lt(webauthnChallenges.expiresAt, t)) as never),
     errors: await count(db.delete(appErrors).where(lt(appErrors.at, ago(config.retentionDays.errors * day))) as never),
     // Le fil d'activité de l'Admin Center cite le nom ou le pseudonyme des personnes : il n'est pas conservé indéfiniment.
     activity: await count(db.delete(activityEvents).where(lt(activityEvents.at, ago(config.retentionDays.activity * day))) as never),

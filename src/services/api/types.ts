@@ -6,7 +6,8 @@
 import type { Paged, ListQuery } from '@/models/api';
 import type { AdminCardOrder, AdminCardOrderRow, CardCatalog, CardDesign, CardItem, CardOrder, CardOrderInput, CardOrderStatus, CardPaymentMethod, CardProduct, NfcTestResult } from '@/models/cards';
 import type { VerificationDecision, VerificationInput, VerificationRequest, VerificationState } from '@/models/verification';
-import type { CodeSent, DeletionTarget, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, Session, SignInResult, TotpSetup } from '@/models/auth';
+import type { CodeSent, DeletionTarget, DeviceSession, IdentityProof, MfaMethod, MfaStatus, OtpChannel, OtpRequestResult, OtpVerifyInput, PasskeyInfo, Session, SignInResult, TotpSetup } from '@/models/auth';
+import type { AuthenticationResponseJSON, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON } from '@simplewebauthn/browser';
 import type { PageDocument, PublicPageResult } from '@/models/page';
 import type { AnalyticsReport, DateRange } from '@/models/analytics';
 import type { ChangePlanResult, Invoice, Subscription } from '@/models/billing';
@@ -20,6 +21,8 @@ import type {
 export interface Capabilities {
   otpChannels: OtpChannel[];
   emailSending: boolean;
+  /** Défi anti-robot disponible (clé PUBLIQUE du widget), ou `null` : sans clés configurées, aucun défi n'est jamais présenté. */
+  captcha: { provider: 'turnstile'; siteKey: string } | null;
 }
 
 export interface AuthApi {
@@ -27,21 +30,21 @@ export interface AuthApi {
   /** `null` quand personne n'est connecté. */
   getSession(): Promise<Session | null>;
   /** Ouvre une session, ou — si la double authentification SMS est active — demande d'abord le code reçu par SMS. */
-  signIn(email: string, password: string): Promise<SignInResult>;
+  signIn(email: string, password: string, captchaToken?: string): Promise<SignInResult>;
   /** 2e étape de la connexion : valide le code (SMS, e-mail, application ou secours) avec le jeton de l'étape 1. */
   completeTwoFactor(challenge: string, code: string, method?: MfaMethod | 'recovery'): Promise<Session>;
   /** Renvoie le code d'une méthode (SMS ou e-mail) du défi en cours. */
   sendTwoFactorCode(challenge: string, method: 'sms' | 'email'): Promise<CodeSent>;
   /** Inscription ET connexion sans mot de passe : envoie un code à l'adresse. */
-  requestEmailCode(email: string): Promise<CodeSent>;
+  requestEmailCode(email: string, captchaToken?: string): Promise<CodeSent>;
   /** Vérifie le code : ouvre le compte existant ou le crée (conditions acceptées). */
   verifyEmailCode(input: { email: string; code: string }): Promise<SignInResult>;
   signOut(): Promise<void>;
   /** Envoie un code à usage unique (WhatsApp ou SMS). Le numéro est au format E.164. */
-  requestOtp(input: { phone: string; channel: OtpChannel }): Promise<OtpRequestResult>;
+  requestOtp(input: { phone: string; channel: OtpChannel; captchaToken?: string }): Promise<OtpRequestResult>;
   /** Vérifie le code ; ouvre une session (connexion) ou crée le compte (inscription). */
   verifyOtp(input: OtpVerifyInput): Promise<Session>;
-  requestPasswordReset(email: string): Promise<void>;
+  requestPasswordReset(email: string, captchaToken?: string): Promise<void>;
   /** Réinitialisation par SMS : réponse identique que le numéro ait un compte ou non. */
   requestPhoneReset(phone: string): Promise<OtpRequestResult>;
   resetPasswordByPhone(input: { phone: string; code: string; password: string }): Promise<void>;
@@ -71,6 +74,17 @@ export interface AuthApi {
   /** Valide l'e-mail avec le jeton du lien. Retourne la session mise à jour si le lien est ouvert dans la session du même compte, sinon `null`. */
   verifyEmail(token: string): Promise<Session | null>;
   resendVerification(): Promise<void>;
+  /** Appareils connectés : sessions ouvertes sur le compte, fermeture d'une session, fermeture de toutes les autres. */
+  listSessions(): Promise<DeviceSession[]>;
+  revokeSession(id: string): Promise<void>;
+  revokeOtherSessions(): Promise<void>;
+  /** Clés d'accès (passkeys) : liste, enrôlement en deux temps (preuve d'identité), retrait, connexion sans mot de passe. */
+  listPasskeys(): Promise<PasskeyInfo[]>;
+  startPasskeyRegistration(proof: IdentityProof): Promise<{ handle: string; options: PublicKeyCredentialCreationOptionsJSON }>;
+  finishPasskeyRegistration(input: { handle: string; response: RegistrationResponseJSON; name: string }): Promise<{ passkey: PasskeyInfo; session: Session }>;
+  removePasskey(id: string, proof: IdentityProof): Promise<void>;
+  startPasskeyLogin(): Promise<{ handle: string; options: PublicKeyCredentialRequestOptionsJSON }>;
+  finishPasskeyLogin(input: { handle: string; response: AuthenticationResponseJSON }): Promise<Session>;
 }
 
 export interface ReportInput {

@@ -18,10 +18,10 @@ export interface Backend {
 
 let counter = 0;
 
-export function useBackend(): Backend {
+export function useBackend(options: Parameters<typeof createTestApp>[0] = {}): Backend {
   const ctx = {} as Backend;
   beforeAll(async () => {
-    ctx.app = await createTestApp();
+    ctx.app = await createTestApp(options);
   });
   beforeEach(async () => {
     await resetData(ctx.app.db);

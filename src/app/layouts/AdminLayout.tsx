@@ -8,6 +8,7 @@ import { useSession } from '@/state/session';
 import { AppShell, ThemeToggle, type NavEntry } from './AppShell';
 import { AccountMenu } from './header-parts';
 import { useNavBadges } from '@/hooks/useNavBadges';
+import { AdminMfaGate } from './AdminMfaGate';
 
 type NavDef = { section: AdminSection; to: string; icon: NavEntry['icon']; group: 'pilot' | 'community' | 'revenue' | 'trust' | 'platform'; primaryMobile?: boolean; end?: boolean };
 
@@ -42,6 +43,9 @@ export default function AdminLayout() {
     }));
   }, [perms, t, counts]);
   const role = session?.user.adminRole;
+
+  // Session ouverte avec un seul facteur : l'Admin Center reste fermé (le serveur refuse aussi chaque route).
+  if (session?.adminMfaRequired) return <AdminMfaGate />;
 
   return (
     <AppShell

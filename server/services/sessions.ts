@@ -1,6 +1,6 @@
 import { and, eq, gt, lt, ne } from 'drizzle-orm';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import type { AuthContext, C, Deps, UserRow } from '../context.js';
+import type { AuthContext, AuthFactor, C, Deps, UserRow } from '../context.js';
 import { pages, sessions, subscriptions, users } from '../db/schema.js';
 import { sha256, newToken } from '../lib/crypto.js';
 import { entitlementsFor, permissionsFor } from '../lib/access.js';
@@ -8,6 +8,7 @@ import { accessOf, badgePlanOf } from './access.js';
 import type { AccessInfo } from '../../src/models/access.js';
 import type { AdminRole, Session } from '../../src/models/auth.js';
 import { badgesFor } from '../../src/models/badges.js';
+import { recognizeDevice } from './devices.js';
 import type { CategoryId } from '../../src/models/category.js';
 
 const COOKIE = 'onelink_session';
@@ -22,13 +23,18 @@ function cookieOptions(deps: Deps, expires: Date) {
   return { httpOnly: true, secure: deps.config.cookieSecure, sameSite: 'Lax' as const, path: '/', expires, ...(deps.config.cookieSecure ? { prefix: 'host' as const } : {}) };
 }
 
-export async function startSession(c: C, deps: Deps, user: UserRow): Promise<Date> {
+export async function startSession(c: C, deps: Deps, user: UserRow, factor: AuthFactor = 'single'): Promise<Date> {
   const token = newToken();
   const now = deps.now();
   const expiresAt = new Date(now.getTime() + ttlMs(deps, user));
-  await deps.db.insert(sessions).values({ id: sha256(token), userId: user.id, createdAt: now, expiresAt, lastSeenAt: now, ip: c.get('ip'), userAgent: c.get('ua').slice(0, 250) });
+  const country = c.req.header('x-vercel-ip-country')?.trim().toUpperCase();
+  await deps.db.insert(sessions).values({
+    id: sha256(token), userId: user.id, createdAt: now, expiresAt, lastSeenAt: now, ip: c.get('ip'), userAgent: c.get('ua').slice(0, 250),
+    country: country && /^[A-Z]{2}$/.test(country) ? country : null, authFactor: factor,
+  });
   setCookie(c, COOKIE, token, cookieOptions(deps, expiresAt));
   await deps.db.update(users).set({ lastActiveAt: now }).where(eq(users.id, user.id));
+  await recognizeDevice(c, deps, user); // alerte par e-mail si l'appareil est inconnu alors que le compte en avait déjà un
   return expiresAt;
 }
 
@@ -64,7 +70,12 @@ export async function loadSession(c: C, deps: Deps): Promise<AuthContext | null>
     if (!row.u.adminRole) setCookie(c, COOKIE, token, cookieOptions(deps, expiresAt));
   }
   const access = accessOf(row.u, row, now);
-  return { user: row.u, sessionId: id, username: row.username, planId: access.plan, access, expiresAt };
+  return { user: row.u, sessionId: id, authFactor: row.s.authFactor as AuthFactor, username: row.username, planId: access.plan, access, expiresAt };
+}
+
+/** Élève le facteur d'une session ouverte (un second facteur vient d'être prouvé DANS cette session : TOTP, clé d'accès). */
+export async function markSessionFactor(deps: Deps, sessionId: string, factor: AuthFactor) {
+  await deps.db.update(sessions).set({ authFactor: factor }).where(eq(sessions.id, sessionId));
 }
 
 export async function endSession(deps: Deps, sessionId: string) {
@@ -81,7 +92,7 @@ export async function purgeExpiredSessions(deps: Deps) {
 }
 
 /** Représentation publique de la session (ce que voit l'interface). */
-export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId' | 'access'>, expiresAt: Date): Session {
+export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId' | 'access'>, expiresAt: Date, adminMfaRequired = false): Session {
   const u = a.user;
   return {
     user: {
@@ -94,6 +105,8 @@ export function toSession(a: Pick<AuthContext, 'user' | 'username' | 'planId' | 
     permissions: permissionsFor(u.adminRole as AdminRole | null),
     entitlements: entitlementsFor(a.planId),
     access: a.access satisfies AccessInfo,
+    /** Vrai quand cette session est celle d'un administrateur ouverte avec UN SEUL facteur : l'Admin Center reste fermé tant qu'elle n'est pas renforcée. */
+    adminMfaRequired,
     expiresAt: expiresAt.toISOString(),
   };
 }

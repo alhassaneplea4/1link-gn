@@ -8,6 +8,7 @@ import { isApiError } from '@/models/api';
 import type { OtpChannel, OtpRequestResult, Session } from '@/models/auth';
 import { COUNTRIES, DEFAULT_DIAL, countryName, maskPhone, normalizePhone } from '@/utilities/phone';
 import { useSession } from '@/state/session';
+import { useCaptcha } from './Captcha';
 
 interface Props {
   mode: 'sign_in' | 'sign_up';
@@ -77,6 +78,8 @@ export function PhoneAuth({ mode, onDone }: Props) {
     return { text: t('auth.phone.errors.generic') };
   };
 
+  const captcha = useCaptcha();
+
   const send = async (e?: FormEvent) => {
     e?.preventDefault();
     if (busy) return;
@@ -90,16 +93,19 @@ export function PhoneAuth({ mode, onDone }: Props) {
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length || !normalized) return;
+    if (!captcha.ready) return setFormError({ text: t('auth.captcha.waiting') });
     setBusy(true);
     try {
-      const res = await api.auth.requestOtp({ phone: normalized, channel });
+      const res = await api.auth.requestOtp({ phone: normalized, channel, captchaToken: captcha.token });
       setE164(normalized);
       setOtp(res);
       setCooldown(res.resendInSec);
       setCode('');
       setStep('code');
     } catch (err) {
-      setFormError(explain(err));
+      const kind = captcha.handle(err);
+      if (!kind) captcha.refresh();
+      setFormError(kind ? { text: captcha.message(kind) } : explain(err));
     } finally {
       setBusy(false);
     }
@@ -128,12 +134,14 @@ export function PhoneAuth({ mode, onDone }: Props) {
     setBusy(true);
     setFormError(null);
     try {
-      const res = await api.auth.requestOtp({ phone: e164, channel });
+      const res = await api.auth.requestOtp({ phone: e164, channel, captchaToken: captcha.token });
       setOtp(res);
       setCooldown(res.resendInSec);
       setCode('');
     } catch (err) {
-      setFormError(explain(err));
+      const kind = captcha.handle(err);
+      if (!kind) captcha.refresh();
+      setFormError(kind ? { text: captcha.message(kind) } : explain(err));
     } finally {
       setBusy(false);
     }
@@ -155,6 +163,7 @@ export function PhoneAuth({ mode, onDone }: Props) {
           </Alert>
         )}
         {alert}
+        {captcha.widget}
         <Input
           label={t('auth.phone.code')} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} error={errors.code}
           inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} className="otp-input" required data-autofocus=""
@@ -189,6 +198,7 @@ export function PhoneAuth({ mode, onDone }: Props) {
       )}
       {mode === 'sign_up' && <Checkbox label={t('auth.register.terms')} checked={terms} onChange={(e) => setTerms(e.target.checked)} error={errors.terms} />}
       {mode === 'sign_up' && <p className="subtle auth-form__note"><Link to={paths.terms} target="_blank">{t('auth.register.readTerms')}</Link> · <Link to={paths.privacy} target="_blank">{t('auth.register.readPrivacy')}</Link></p>}
+      {captcha.widget}
       <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} disabled={channels?.length === 0} iconLeft="send">{t('auth.phone.send')}</Button>
       <p className="subtle auth-form__note"><Icon name="info" size={13} /> {t('auth.phone.privacy')}</p>
     </form>

@@ -15,13 +15,13 @@ const seg = encodeURIComponent;
 const auth: AuthApi = {
   getCapabilities: () => request('GET', '/capabilities'),
   getSession: () => request<Session | null>('GET', '/auth/session'),
-  signIn: (email, password) =>
-    request<Session | { twoFactor: TwoFactorChallenge }>('POST', '/auth/sign-in', { body: { email, password } }).then(
+  signIn: (email, password, captchaToken) =>
+    request<Session | { twoFactor: TwoFactorChallenge }>('POST', '/auth/sign-in', { body: { email, password, captchaToken } }).then(
       (r): SignInResult => ('twoFactor' in r ? { kind: 'two_factor', challenge: r.twoFactor } : { kind: 'session', session: r }),
     ),
   completeTwoFactor: (challenge, code, method = 'sms') => request('POST', '/auth/sign-in/mfa', { body: { challenge, method, code } }),
   sendTwoFactorCode: (challenge, method) => request('POST', '/auth/sign-in/mfa/send', { body: { challenge, method } }),
-  requestEmailCode: (email) => request('POST', '/auth/email-code/request', { body: { email } }),
+  requestEmailCode: (email, captchaToken) => request('POST', '/auth/email-code/request', { body: { email, captchaToken } }),
   verifyEmailCode: (input) =>
     request<Session | { twoFactor: TwoFactorChallenge }>('POST', '/auth/email-code/verify', { body: { ...input, acceptTerms: true } }).then(
       (r): SignInResult => ('twoFactor' in r ? { kind: 'two_factor', challenge: r.twoFactor } : { kind: 'session', session: r }),
@@ -47,10 +47,19 @@ const auth: AuthApi = {
   signOut: () => request('POST', '/auth/sign-out'),
   requestOtp: (input) => request('POST', '/auth/otp/request', { body: input }),
   verifyOtp: (input) => request('POST', '/auth/otp/verify', { body: input }),
-  requestPasswordReset: (email) => request('POST', '/auth/password/forgot', { body: { email } }),
+  requestPasswordReset: (email, captchaToken) => request('POST', '/auth/password/forgot', { body: { email, captchaToken } }),
   resetPassword: (token, password) => request('POST', '/auth/password/reset', { body: { token, password } }),
   verifyEmail: (token) => request('POST', '/auth/email/verify', { body: { token } }),
   resendVerification: () => request('POST', '/auth/email/resend'),
+  listSessions: () => request('GET', '/me/sessions'),
+  revokeSession: (id) => request<void>('DELETE', `/me/sessions/${seg(id)}`),
+  revokeOtherSessions: () => request<void>('POST', '/me/sessions/revoke-others'),
+  listPasskeys: () => request('GET', '/me/passkeys'),
+  startPasskeyRegistration: (proof) => request('POST', '/me/passkeys/options', { body: proof }),
+  finishPasskeyRegistration: (input) => request('POST', '/me/passkeys', { body: input }),
+  removePasskey: (id, proof) => request<void>('POST', `/me/passkeys/${seg(id)}/delete`, { body: proof }),
+  startPasskeyLogin: () => request('POST', '/auth/passkey/options'),
+  finishPasskeyLogin: (input) => request('POST', '/auth/passkey/verify', { body: input }),
 };
 
 const page: PageApi = {

@@ -145,7 +145,7 @@ export function moderationWarningMessage(to: string, name: string, note: string,
     : msg(to, 'Avertissement concernant votre page 1Link', { locale, title: `Bonjour ${name}`, paragraphs: ['L’équipe de modération a examiné un signalement concernant votre page.', ...(n ? [`Message de la modération : ${n}`] : []), 'Merci de vérifier que votre contenu respecte les conditions d’utilisation. Sans modification, votre page pourra être suspendue.'] });
 }
 
-export type SecurityNotice = 'two_factor_on' | 'two_factor_off' | 'phone_linked' | 'phone_removed' | 'mfa_email_on' | 'mfa_email_off' | 'mfa_totp_on' | 'mfa_totp_off' | 'password_set' | 'deletion_requested' | 'deletion_cancelled';
+export type SecurityNotice = 'two_factor_on' | 'two_factor_off' | 'phone_linked' | 'phone_removed' | 'mfa_email_on' | 'mfa_email_off' | 'mfa_totp_on' | 'mfa_totp_off' | 'password_set' | 'passkey_added' | 'passkey_removed' | 'deletion_requested' | 'deletion_cancelled';
 
 export function securityNoticeMessage(to: string, name: string, kind: SecurityNotice, locale: Locale): MailMessage {
   const fr = {
@@ -158,6 +158,8 @@ export function securityNoticeMessage(to: string, name: string, kind: SecurityNo
     mfa_totp_on: ['Application d’authentification activée', 'Une application d’authentification est maintenant associée à votre compte : son code vous sera demandé à chaque connexion.'],
     mfa_totp_off: ['Application d’authentification désactivée', 'L’application d’authentification vient d’être retirée de votre compte.'],
     password_set: ['Mot de passe défini', 'Un mot de passe vient d’être défini sur votre compte 1Link.'],
+    passkey_added: ['Une clé d’accès a été ajoutée à votre compte', 'Une clé d’accès (passkey) vient d’être ajoutée à votre compte 1Link : elle permet de vous connecter sans mot de passe.'],
+    passkey_removed: ['Une clé d’accès a été retirée de votre compte', 'Une clé d’accès (passkey) vient d’être retirée de votre compte 1Link.'],
     deletion_requested: ['Suppression de votre compte demandée', 'La suppression de votre compte 1Link a été demandée. Elle ne sera confirmable qu’après 15 jours sans activité : si vous vous reconnectez avant, la demande est annulée.'],
     deletion_cancelled: ['Suppression de compte annulée', 'Vous vous êtes reconnecté : la demande de suppression de votre compte 1Link est annulée.'],
   } as const;
@@ -171,6 +173,8 @@ export function securityNoticeMessage(to: string, name: string, kind: SecurityNo
     mfa_totp_on: ['Authenticator app enabled', 'An authenticator app is now linked to your account: its code will be requested every time you sign in.'],
     mfa_totp_off: ['Authenticator app disabled', 'The authenticator app was just removed from your account.'],
     password_set: ['Password set', 'A password was just set on your 1Link account.'],
+    passkey_added: ['A passkey was added to your account', 'A passkey was just added to your 1Link account: it lets you sign in without a password.'],
+    passkey_removed: ['A passkey was removed from your account', 'A passkey was just removed from your 1Link account.'],
     deletion_requested: ['Account deletion requested', 'Deletion of your 1Link account was requested. It can only be confirmed after 15 days without activity: if you sign in before then, the request is cancelled.'],
     deletion_cancelled: ['Account deletion cancelled', 'You signed in again: the request to delete your 1Link account is cancelled.'],
   } as const;
@@ -222,6 +226,23 @@ export function emailCodeMessage(to: string, code: string, minutes: number, loca
   return locale === 'en'
     ? msg(to, `${code} is your 1Link code`, { locale, title: 'Your 1Link verification code', paragraphs: [`Enter this code to continue: ${code}`, `It is valid for ${minutes} minutes and can be used once. Never share it with anyone — the 1Link team will never ask for it.`, ...(from ? [`Request received from: ${from}. Not you? Do not share this code with anyone: someone may be trying to sign in to your account.`] : [])], small: 'If you did not ask for this code, ignore this message: nobody can sign in without it.' })
     : msg(to, `${code} est votre code 1Link`, { locale, title: 'Votre code de vérification 1Link', paragraphs: [`Saisissez ce code pour continuer : ${code}`, `Il est valable ${minutes} minutes et ne sert qu’une fois. Ne le communiquez à personne : l’équipe 1Link ne vous le demandera jamais.`, ...(from ? [`Demande reçue depuis : ${from}. Ce n’est pas vous ? Ne communiquez ce code à personne : quelqu’un essaie peut-être de se connecter à votre compte.`] : [])], small: 'Si vous n’avez pas demandé ce code, ignorez ce message : personne ne peut se connecter sans lui.' });
+}
+
+/** Alerte : une session vient de s'ouvrir depuis un appareil que le compte ne connaissait pas. */
+export function newDeviceMessage(to: string, name: string, context: RequestContext, at: Date, url: string, locale: Locale): MailMessage {
+  const from = whereFrom(context, locale);
+  const when = `${new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'UTC' }).format(at)} UTC`;
+  return locale === 'en'
+    ? msg(to, 'New sign-in to your 1Link account', {
+        locale, title: `New sign-in, ${name}`,
+        paragraphs: [`A session was just opened on your 1Link account from a device we do not know${from ? `: ${from}` : ''}.`, `Date: ${when}.`, 'If this was you, there is nothing to do. If not, sign out the unknown device and change how you sign in right now.'],
+        cta: { label: 'Review my devices', url }, small: 'You are receiving this message because the account has already been used from another device.',
+      })
+    : msg(to, 'Nouvelle connexion à votre compte 1Link', {
+        locale, title: `Nouvelle connexion, ${name}`,
+        paragraphs: [`Une session vient de s’ouvrir sur votre compte 1Link depuis un appareil que nous ne connaissons pas${from ? ` : ${from}` : ''}.`, `Date : ${when}.`, 'Si c’est vous, il n’y a rien à faire. Sinon, fermez la session de l’appareil inconnu et modifiez dès maintenant votre façon de vous connecter.'],
+        cta: { label: 'Vérifier mes appareils', url }, small: 'Vous recevez ce message parce que le compte avait déjà été utilisé depuis un autre appareil.',
+      });
 }
 
 /** Lien de confirmation finale de la suppression (envoyé après 15 jours sans activité). */

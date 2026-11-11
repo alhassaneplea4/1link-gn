@@ -37,6 +37,14 @@ export async function readJson<T>(c: C, schema: ZodType<T>, maxBytes = MAX_JSON_
   return parsed.data;
 }
 
+/** Adresse IP partiellement masquée pour l'affichage (« 41.77.12.• », « 2a01:e0a:12:• ») : reconnaissable par son titulaire, inexploitable par un tiers. */
+export function maskIp(ip: string | null | undefined): string | null {
+  if (!ip || ip === 'local') return null;
+  if (ip.includes(':')) return `${ip.split(':').slice(0, 3).join(':')}:•`;
+  const parts = ip.split('.');
+  return parts.length === 4 ? `${parts.slice(0, 3).join('.')}.•` : null;
+}
+
 /** Entier borné issu d'un paramètre d'URL. */
 export const intParam = (v: string | undefined, def: number, min: number, max: number) => {
   const n = Number.parseInt(v ?? '', 10);

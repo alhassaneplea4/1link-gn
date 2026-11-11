@@ -183,7 +183,7 @@ describe('capacités publiques (canaux réellement disponibles)', () => {
         app.deps.config.mail = loadConfig({ ...base, MAIL_PROVIDER: mail }).mail;
         return (await app.client().get('/api/capabilities')).body;
       };
-      expect(await caps({ OTP_PROVIDER: 'dev' })).toEqual({ otpChannels: ['whatsapp', 'sms'], emailSending: false });
+      expect(await caps({ OTP_PROVIDER: 'dev' })).toEqual({ otpChannels: ['whatsapp', 'sms'], emailSending: false, captcha: null }); // pas de défi anti-robot sans clés Turnstile
       expect((await caps({ SMS8_API_KEY: 'k'.repeat(20) }, 'dev')).otpChannels).toEqual(['sms']);
       expect((await caps({ OTP_PROVIDER: 'twilio', TWILIO_ACCOUNT_SID: 'AC', TWILIO_AUTH_TOKEN: 't', TWILIO_SMS_FROM: '+1500' })).otpChannels).toEqual(['sms']);
       expect((await caps({ OTP_PROVIDER: 'none' })).otpChannels).toEqual([]);

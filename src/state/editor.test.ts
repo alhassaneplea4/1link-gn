@@ -13,7 +13,7 @@ const load = () => {
 const types = () => useEditor.getState().doc!.blocks.map((b) => b.type);
 
 const setPlan = (plan: 'free' | 'basic' | 'pro' | 'business') =>
-  useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: false, analyticsDays: 0, teamSeats: 1 }, access: { phase: 'subscribed', plan, trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, expiresAt: '' } });
+  useSession.setState({ status: 'authenticated', session: { user: {} as never, permissions: [], entitlements: { maxBlocks: 500, removeBranding: false, analyticsDays: 0, teamSeats: 1 }, access: { phase: 'subscribed', plan, trialEndsAt: null, daysLeft: null, locked: false, paidTrialAvailable: false }, adminMfaRequired: false, expiresAt: '' } });
 
 beforeEach(() => {
   useEditor.getState().reset();

@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
-import type { C, Deps, HonoEnv, UserRow } from '../context.js';
+import type { AuthFactor, C, Deps, HonoEnv, UserRow } from '../context.js';
 import { users } from '../db/schema.js';
 import { hashPassword, needsRehash, verifyPassword } from '../lib/crypto.js';
 import { nameFromEmail } from '../../src/utilities/validation.js';
 import { badRequest, conflict, HttpError, unauthorized } from '../lib/errors.js';
 import { audit, securityEvent } from '../lib/audit.js';
-import { enforce, keyFor } from '../lib/ratelimit.js';
+import { enforce, hit, keyFor } from '../lib/ratelimit.js';
+import { assertCaptcha, requestsNeedCaptcha, signInNeedsCaptcha } from '../services/captcha.js';
 import { readJson } from '../lib/request.js';
 import { optionalAuth, requireAuth } from '../middleware.js';
 import {
@@ -14,11 +15,13 @@ import {
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
 import { challengedUser, enabledMethods, mfaChallenge, sendMfaCode, verifyMfa, type PrimaryFactor } from '../services/mfa.js';
+import { beginLogin, finishLogin } from '../services/passkeys.js';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { accountDeletedMessage, passwordChangedMessage, securityNoticeMessage, welcomeSimpleMessage } from '../lib/emails.js';
 import { confirmDeletion, deletionTarget } from '../services/account-deletion.js';
 import { notify } from '../services/notifications.js';
 import { clearSessionCookie, endSession, endUserSessions, loadSession, startSession } from '../services/sessions.js';
-import { challengeBody, deleteCodeBody, deleteConfirmBody, emailCodeRequestBody, emailCodeVerifyBody, forgotBody, mfaSendBody, mfaVerifyBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
+import { challengeBody, passkeyLoginBody, deleteCodeBody, deleteConfirmBody, emailCodeRequestBody, emailCodeVerifyBody, forgotBody, mfaSendBody, mfaVerifyBody, otpRequestBody, otpVerifyBody, phoneRequestBody, phoneResetBody, resetBody, signInBody, twoFactorBody, verifyEmailBody } from '../validation/auth.js';
 
 export const authRoutes = new Hono<HonoEnv>();
 
@@ -35,7 +38,7 @@ authRoutes.get('/session', async (c) => {
   const deps = c.get('deps');
   const s = await loadSession(c, deps);
   if (!s) return c.json(null);
-  return c.json(await buildSession(deps, s.user.id, s.expiresAt));
+  return c.json(await buildSession(deps, s.user.id, s.expiresAt, s.authFactor));
 });
 
 authRoutes.post('/sign-in', async (c) => {
@@ -46,10 +49,14 @@ authRoutes.post('/sign-in', async (c) => {
   await enforce(deps.db, keyFor('signin-ip', ip), 100, 3600, now);
   await enforce(deps.db, keyFor('signin-email', body.email), 20, 3600, now);
   await enforce(deps.db, keyFor('signin-pair', ip, body.email), 10, 900, now);
+  // Après quelques échecs, un défi anti-robot est exigé AVANT de tester le mot de passe : le défi ne donne aucune information sur lui.
+  await assertCaptcha(c, deps, await signInNeedsCaptcha(deps, ip, body.email, now), body.captchaToken);
 
   const user = await findUserByEmail(deps.db, body.email);
   const valid = user?.passwordHash ? await verifyPassword(body.password, user.passwordHash) : (await dummyVerify(deps, body.password), false);
   if (!user || !valid) {
+    await hit(deps.db, keyFor('signin-fail', ip, body.email), 1_000_000, 900, now); // compteurs d'échecs (déclencheurs du défi)
+    await hit(deps.db, keyFor('signin-fail-ip', ip), 1_000_000, 3600, now);
     await securityEvent(deps.db, { kind: 'failed_login', subject: body.email, userId: user?.id ?? null, ip }, now);
     throw unauthorized('invalid_credentials');
   }
@@ -71,15 +78,36 @@ async function finishSignIn(c: C, deps: Deps, user: UserRow, primary: PrimaryFac
   return openSession(c, deps, user);
 }
 
-async function openSession(c: C, deps: Deps, user: UserRow) {
+async function openSession(c: C, deps: Deps, user: UserRow, factor: AuthFactor = 'single') {
   await syncLocale(c, deps, user);
   if (user.deletionRequestedAt) {
     await deps.db.update(users).set({ deletionRequestedAt: null, deletionNotifiedAt: null, updatedAt: deps.now() }).where(eq(users.id, user.id));
     notify(deps, user, (to, name, locale) => securityNoticeMessage(to, name, 'deletion_cancelled', locale));
   }
-  const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
+  const expiresAt = await startSession(c, deps, user, factor);
+  return c.json(await buildSession(deps, user.id, expiresAt, factor));
 }
+
+// — Connexion par clé d'accès (passkey) : sans adresse, sans mot de passe, sans code —
+
+authRoutes.post('/passkey/options', async (c) => {
+  const deps = c.get('deps');
+  await enforce(deps.db, keyFor('passkey-opt-ip', c.get('ip')), 60, 3600, deps.now());
+  return c.json(await beginLogin(deps));
+});
+
+/**
+ * La signature prouve la possession de la clé ET l'appareil a vérifié l'utilisateur : la session s'ouvre directement, sans seconde
+ * étape (la clé d'accès VAUT deux facteurs). Compte suspendu : refusé comme partout ailleurs.
+ */
+authRoutes.post('/passkey/verify', async (c) => {
+  const deps = c.get('deps');
+  const body = await readJson(c, passkeyLoginBody);
+  await enforce(deps.db, keyFor('passkey-verify-ip', c.get('ip')), 30, 3600, deps.now());
+  const user = await finishLogin(deps, body.handle, body.response as unknown as AuthenticationResponseJSON);
+  assertCanSignIn(user);
+  return openSession(c, deps, user, 'passkey');
+});
 
 /** Seconde étape : code SMS / e-mail, code de l'application ou code de secours. */
 authRoutes.post('/sign-in/mfa', async (c) => {
@@ -87,7 +115,7 @@ authRoutes.post('/sign-in/mfa', async (c) => {
   const body = await readJson(c, mfaVerifyBody);
   const { user, primary } = await challengedUser(deps, body.challenge);
   await verifyMfa(c, deps, user, primary, body.method, body.code);
-  return openSession(c, deps, user);
+  return openSession(c, deps, user, 'mfa'); // un second facteur vient d'être validé
 });
 
 /** (Re)envoie le code d'une méthode choisie dans le défi (SMS ou e-mail). */
@@ -107,7 +135,7 @@ authRoutes.post('/sign-in/2fa', async (c) => {
   const body = await readJson(c, twoFactorBody);
   const { user, primary } = await challengedUser(deps, body.challenge);
   await verifyMfa(c, deps, user, primary, 'sms', body.code);
-  return openSession(c, deps, user);
+  return openSession(c, deps, user, 'mfa');
 });
 
 authRoutes.post('/sign-in/2fa/resend', async (c) => {
@@ -125,6 +153,7 @@ authRoutes.post('/sign-in/2fa/resend', async (c) => {
 authRoutes.post('/email-code/request', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, emailCodeRequestBody);
+  await assertCaptcha(c, deps, await requestsNeedCaptcha(deps, 'mailcode-ip', c.get('ip'), deps.now()), body.captchaToken);
   const user = await findUserByEmail(deps.db, body.email);
   const issued = await issueEmailCode(c, deps, body.email, { silent: Boolean(user && user.status !== 'active'), locale: c.get('locale') });
   return c.json(issued);
@@ -153,7 +182,7 @@ authRoutes.post('/email-code/verify', async (c) => {
   await maybeBootstrapAdmin(deps, user.id);
   notify(deps, user, (to, name, locale) => welcomeSimpleMessage(to, name, `${deps.config.publicUrl}/onboarding`, locale));
   const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
+  return c.json(await buildSession(deps, user.id, expiresAt, 'single'));
 });
 
 // L'inscription par mot de passe (`POST /auth/sign-up`) a été RETIRÉE : elle créait un compte et ouvrait une session sans aucune
@@ -199,6 +228,7 @@ authRoutes.post('/sign-out', optionalAuth, async (c) => {
 authRoutes.post('/otp/request', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, otpRequestBody);
+  await assertCaptcha(c, deps, await requestsNeedCaptcha(deps, 'otp-ip', c.get('ip'), deps.now()), body.captchaToken);
   return c.json(await issueOtp(c, deps, body.phone, body.channel));
 });
 
@@ -221,7 +251,7 @@ authRoutes.post('/otp/verify', async (c) => {
   if (!body.name?.trim() || body.acceptTerms !== true) throw badRequest('invalid');
   const user = await createAccount(deps, { name: body.name, phone: body.phone, phoneVerified: true, country: country(c), locale: c.get('locale') });
   const expiresAt = await startSession(c, deps, user);
-  return c.json(await buildSession(deps, user.id, expiresAt));
+  return c.json(await buildSession(deps, user.id, expiresAt, 'single'));
 });
 
 /** Réponse identique que le compte existe ou non ; l'envoi se fait hors du chemin de réponse (même durée dans les deux cas). */
@@ -229,6 +259,7 @@ authRoutes.post('/password/forgot', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, forgotBody);
   const now = deps.now();
+  await assertCaptcha(c, deps, await requestsNeedCaptcha(deps, 'forgot-ip', c.get('ip'), now), body.captchaToken);
   await enforce(deps.db, keyFor('forgot-ip', c.get('ip')), 10, 3600, now);
   // Par couple (IP, adresse) : un tiers ne peut pas épuiser le quota de la vraie personne ; le filet par adresse borne le bombardement.
   await enforce(deps.db, keyFor('forgot-email', c.get('ip'), body.email), 3, 3600, now);
@@ -301,7 +332,7 @@ authRoutes.post('/email/verify', optionalAuth, async (c) => {
     clearSessionCookie(c, deps); // les sessions du compte viennent d'être fermées : la personne se reconnecte par code
     return c.json(null);
   }
-  return c.json(auth && auth.user.id === userId ? await buildSession(deps, userId, auth.expiresAt) : null);
+  return c.json(auth && auth.user.id === userId ? await buildSession(deps, userId, auth.expiresAt, auth.authFactor) : null);
 });
 
 authRoutes.post('/email/resend', requireAuth, async (c) => {

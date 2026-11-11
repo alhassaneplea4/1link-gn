@@ -46,6 +46,10 @@ export interface AppConfig {
   limits: { otpGlobalPerHour: number };
   /** Refuse les mots de passe présents dans des fuites connues (Pwned Passwords, par k-anonymat). Désactivé en test (aucun appel réseau). */
   pwnedPasswords: boolean;
+  /** L'Admin Center exige une session ouverte avec un second facteur (TOTP, SMS) ou une clé d'accès. Inactif en test. */
+  adminRequireMfa: boolean;
+  /** Défi anti-robot Cloudflare Turnstile : actif seulement avec les deux clés (sinon aucun défi n'est présenté). */
+  captcha: { enabled: boolean; siteKey: string; secret: string };
   commit: string;
   /** Adresse qui devient super administrateur à la confirmation de son e-mail, tant qu'aucun super administrateur n'existe (amorçage). */
   bootstrapAdminEmail: string;
@@ -122,6 +126,9 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
   const dials = trim(env.OTP_ALLOWED_DIAL_CODES);
   const allowedDialCodes = dials ? dials.split(',').map((d) => d.trim()).filter(Boolean) : COUNTRIES.map((c) => c.dial);
 
+  const captchaKeys = { siteKey: trim(env.TURNSTILE_SITE_KEY), secret: trim(env.TURNSTILE_SECRET_KEY) };
+  if (Boolean(captchaKeys.siteKey) !== Boolean(captchaKeys.secret)) problems.push('TURNSTILE_SITE_KEY et TURNSTILE_SECRET_KEY vont ensemble : renseignez les deux ou aucune.');
+
   const devRoutes = trim(env.ENABLE_DEV_ROUTES) === '1';
   if (devRoutes && hardened) problems.push('ENABLE_DEV_ROUTES=1 est interdit en production et prévisualisation.');
   const rateLimitScale = Number(trim(env.RATE_LIMIT_SCALE) || 1);
@@ -155,6 +162,8 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90), activity: num(env.RETENTION_ACTIVITY_DAYS, 90) },
     limits: { otpGlobalPerHour: num(env.OTP_GLOBAL_PER_HOUR, 600) },
     pwnedPasswords: appEnv !== 'test' && trim(env.PWNED_PASSWORDS_CHECK) !== '0',
+    adminRequireMfa: appEnv !== 'test' && trim(env.ADMIN_REQUIRE_MFA) !== '0',
+    captcha: { ...captchaKeys, enabled: Boolean(captchaKeys.siteKey && captchaKeys.secret) },
     commit: trim(env.VERCEL_GIT_COMMIT_SHA).slice(0, 7),
     bootstrapAdminEmail: trim(env.BOOTSTRAP_ADMIN_EMAIL).toLowerCase(),
     ...overrides,

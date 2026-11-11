@@ -8,6 +8,7 @@ import { useT } from '@/i18n/core';
 import { isEmail } from '@/utilities/validation';
 import { AuthHeading, MethodSwitch, authErrorKey, type AuthMethod } from './parts';
 import { PhoneReset } from './PhoneReset';
+import { useCaptcha } from './Captcha';
 
 export default function ForgotPasswordPage() {
   const t = useT('auth', 'common');
@@ -18,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [method, setMethod] = useState<AuthMethod>('email');
+  const captcha = useCaptcha();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,12 +27,15 @@ export default function ForgotPasswordPage() {
     setFormError(null);
     if (!isEmail(email)) return setError(t('common.validation.email'));
     setError(undefined);
+    if (!captcha.ready) return setFormError(t('auth.captcha.waiting'));
     setBusy(true);
     try {
-      await api.auth.requestPasswordReset(email);
+      await api.auth.requestPasswordReset(email, captcha.token);
       setSent(true);
     } catch (err) {
-      setFormError(t(authErrorKey(err)));
+      const kind = captcha.handle(err);
+      if (!kind) captcha.refresh();
+      setFormError(kind ? captcha.message(kind) : t(authErrorKey(err)));
     } finally {
       setBusy(false);
     }
@@ -53,6 +58,7 @@ export default function ForgotPasswordPage() {
       <form onSubmit={(e) => void submit(e)} noValidate className="auth-form">
         {formError && <Alert tone="danger">{formError}</Alert>}
         <Input label={t('auth.fields.email')} type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} required />
+        {captcha.widget}
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy}>{t('auth.forgot.submit')}</Button>
       </form>
       )}

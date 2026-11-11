@@ -215,4 +215,11 @@ export default {
     reserved: 'Pseudonymes réservés',
     reservedText: 'Ces noms ne peuvent pas être choisis comme adresse de page (routes de l’application et mots sensibles).',
   },
+  mfaGate: {
+    title: 'Un second facteur est requis pour l’Admin Center',
+    text: 'Cette session a été ouverte avec un seul facteur (mot de passe, code e-mail ou code SMS). L’Admin Center exige une session ouverte avec deux facteurs, ou avec une clé d’accès.',
+    steps: 'Activez l’application d’authentification ou ajoutez une clé d’accès depuis la page Sécurité : cette session sera aussitôt renforcée. Vous pouvez aussi activer la vérification par SMS, puis vous reconnecter.',
+    cta: 'Ouvrir la page Sécurité',
+    signOut: 'Changer de compte',
+  },
 } satisfies Dict;

@@ -182,4 +182,21 @@ export default {
     text: 'Pour votre sécurité, votre session a pris fin. Reconnectez-vous pour reprendre là où vous en étiez.',
     login: 'Se reconnecter',
   },
+  captcha: {
+    title: 'Vérification de sécurité',
+    loading: 'Chargement de la vérification…',
+    required: 'Pour votre sécurité, confirmez que vous n’êtes pas un robot, puis validez de nouveau.',
+    failed: 'La vérification a échoué. Recommencez-la, puis validez de nouveau.',
+    unavailable: 'La vérification de sécurité est momentanément indisponible. Réessayez dans un instant, ou connectez-vous avec un code reçu par e-mail.',
+    waiting: 'Terminez la vérification de sécurité ci-dessus pour continuer.',
+  },
+  passkey: {
+    signIn: 'Se connecter avec une clé d’accès',
+    or: 'ou',
+    cancelled: 'Connexion annulée. Vous pouvez réessayer, ou utiliser un code reçu par e-mail.',
+    unknown: 'Cette clé d’accès n’est pas reconnue. Utilisez un code reçu par e-mail ou votre mot de passe.',
+    expired: 'La demande a expiré. Réessayez.',
+    failed: 'La connexion par clé d’accès a échoué. Utilisez un code reçu par e-mail ou votre mot de passe.',
+    suspended: 'Ce compte est suspendu.',
+  },
 } satisfies Dict;

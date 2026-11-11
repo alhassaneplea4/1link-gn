@@ -1,6 +1,6 @@
 /** Comptes : création, mots de passe, jetons à usage unique (e-mail, réinitialisation) et codes OTP. */
 import { and, desc, eq, gt, isNull } from 'drizzle-orm';
-import type { C, Deps, UserRow } from '../context.js';
+import type { AuthFactor, C, Deps, UserRow } from '../context.js';
 import { authTokens, otpCodes, pages, sessions, subscriptions, users } from '../db/schema.js';
 import type { Executor } from '../db/client.js';
 import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, verifyPassword } from '../lib/crypto.js';
@@ -133,7 +133,7 @@ export async function claimUnverifiedAccount(db: Executor, userId: string, now: 
 }
 
 /** Construit la session à partir de l'état COURANT de la base (e-mail vérifié, plan, pseudonyme…). */
-export async function buildSession(deps: Deps, userId: string, expiresAt: Date): Promise<Session> {
+export async function buildSession(deps: Deps, userId: string, expiresAt: Date, factor?: AuthFactor): Promise<Session> {
   const [row] = await deps.db
     .select({ u: users, username: pages.username, planId: subscriptions.planId, status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, renewsAt: subscriptions.renewsAt })
     .from(users)
@@ -143,7 +143,8 @@ export async function buildSession(deps: Deps, userId: string, expiresAt: Date):
     .limit(1);
   if (!row) throw new HttpError(401, 'no_session');
   const access = accessOf(row.u, row, deps.now());
-  return toSession({ user: row.u, username: row.username, planId: access.plan, access }, expiresAt);
+  const adminMfaRequired = Boolean(row.u.adminRole) && deps.config.adminRequireMfa && factor === 'single';
+  return toSession({ user: row.u, username: row.username, planId: access.plan, access }, expiresAt, adminMfaRequired);
 }
 
 export type { SessionUser };

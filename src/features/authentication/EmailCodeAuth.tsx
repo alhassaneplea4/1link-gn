@@ -8,6 +8,7 @@ import type { CodeSent, Session, TwoFactorChallenge } from '@/models/auth';
 import { useSession } from '@/state/session';
 import { isEmail } from '@/utilities/validation';
 import { explainOtpError } from './otpErrors';
+import { useCaptcha } from './Captcha';
 
 interface Props {
   /** `sign_up` demande l'acceptation explicite des conditions ; `sign_in` la rappelle seulement. */
@@ -32,6 +33,7 @@ export function EmailCodeAuth({ mode, onDone, onTwoFactor }: Props) {
   const [errors, setErrors] = useState<{ email?: string; terms?: string; code?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const captcha = useCaptcha();
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -48,15 +50,18 @@ export function EmailCodeAuth({ mode, onDone, onTwoFactor }: Props) {
     setErrors(found);
     setError(null);
     if (Object.keys(found).length) return;
+    if (!captcha.ready) return setError(t('auth.captcha.waiting'));
     setBusy(true);
     try {
-      const res = await api.auth.requestEmailCode(email.trim().toLowerCase());
+      const res = await api.auth.requestEmailCode(email.trim().toLowerCase(), captcha.token);
       setSent(res);
       setCooldown(res.resendInSec);
       setCode('');
       setStep('code');
     } catch (err) {
-      setError(explainOtpError(t, err));
+      const kind = captcha.handle(err);
+      if (!kind) captcha.refresh();
+      setError(kind ? captcha.message(kind) : explainOtpError(t, err));
     } finally {
       setBusy(false);
     }
@@ -88,12 +93,14 @@ export function EmailCodeAuth({ mode, onDone, onTwoFactor }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.auth.requestEmailCode(email.trim().toLowerCase());
+      const res = await api.auth.requestEmailCode(email.trim().toLowerCase(), captcha.token);
       setSent(res);
       setCooldown(res.resendInSec);
       setCode('');
     } catch (err) {
-      setError(explainOtpError(t, err));
+      const kind = captcha.handle(err);
+      if (!kind) captcha.refresh();
+      setError(kind ? captcha.message(kind) : explainOtpError(t, err));
     } finally {
       setBusy(false);
     }
@@ -113,6 +120,7 @@ export function EmailCodeAuth({ mode, onDone, onTwoFactor }: Props) {
           label={t('auth.emailCode.code')} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} error={errors.code}
           inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} className="otp-input" required data-autofocus=""
         />
+        {captcha.widget}
         <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} disabled={code.length !== 6}>{t('auth.emailCode.verify')}</Button>
         <div className="auth-form__split">
           <Button type="button" variant="ghost" size="sm" iconLeft="arrow-left" onClick={() => { setStep('email'); setError(null); }}>{t('auth.emailCode.change')}</Button>
@@ -136,6 +144,7 @@ export function EmailCodeAuth({ mode, onDone, onTwoFactor }: Props) {
       ) : (
         <p className="subtle auth-form__note">{t('auth.emailCode.continueNote')}</p>
       )}
+      {captcha.widget}
       <Button type="submit" variant="gradient" size="lg" fullWidth loading={busy} iconLeft="send">{t('auth.emailCode.send')}</Button>
       <p className="subtle auth-form__note"><Icon name="info" size={13} /> {t('auth.emailCode.noPassword')}</p>
     </form>

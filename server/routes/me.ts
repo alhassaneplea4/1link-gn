@@ -165,7 +165,7 @@ meRoutes.post('/phone/verify', async (c) => {
   // Un numéro remplacé change le moyen de connexion : les autres sessions ouvertes sont fermées.
   if (auth.user.phone && auth.user.phone !== body.phone) await endUserSessions(deps, auth.user.id, auth.sessionId);
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_linked', locale));
-  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt, auth.authFactor));
 });
 
 /** Retire le numéro (et la double authentification). Impossible s'il est le seul moyen de connexion du compte. */
@@ -179,7 +179,7 @@ meRoutes.post('/phone/remove', async (c) => {
   const now = deps.now();
   await deps.db.update(users).set({ phone: null, phoneVerifiedAt: null, twoFactorSms: false, updatedAt: now }).where(eq(users.id, auth.user.id));
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, 'phone_removed', locale));
-  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt, auth.authFactor));
 });
 
 /** Active ou désactive la double authentification par SMS (mot de passe exigé ; numéro vérifié requis pour l'activer). */
@@ -193,7 +193,7 @@ meRoutes.post('/2fa', async (c) => {
   await deps.db.update(users).set({ twoFactorSms: body.enabled, updatedAt: now }).where(eq(users.id, auth.user.id));
   await securityEvent(deps.db, { kind: 'new_device', subject: body.enabled ? 'Double authentification activée' : 'Double authentification désactivée', userId: auth.user.id, ip: c.get('ip') }, now);
   notify(deps, auth.user, (to, name, locale) => securityNoticeMessage(to, name, body.enabled ? 'two_factor_on' : 'two_factor_off', locale));
-  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt));
+  return c.json(await buildSession(deps, auth.user.id, auth.expiresAt, auth.authFactor));
 });
 
 // — Suppression du compte —

@@ -30,6 +30,12 @@ export async function hit(db: Executor, key: string, limit: number, windowSec: n
   return { allowed: row.count <= limit * scale, count: row.count, retryAfterSec: Math.max(1, Math.ceil(windowSec - elapsed)) };
 }
 
+/** Compteur COURANT d'une clé, sans l'incrémenter (0 si la fenêtre est échue ou la clé inconnue). */
+export async function peek(db: Executor, key: string, windowSec: number, now: Date): Promise<number> {
+  const res = await db.execute<{ count: number }>(sql`select count from rate_limits where key = ${key} and window_start > ${now}::timestamptz - make_interval(secs => ${windowSec})`);
+  return res.rows[0]?.count ?? 0;
+}
+
 /** Comme `hit`, mais lève une 429 normalisée quand la limite est dépassée. */
 export async function enforce(db: Executor, key: string, limit: number, windowSec: number, now: Date, message = 'rate_limited'): Promise<void> {
   const r = await hit(db, key, limit, windowSec, now);

@@ -53,7 +53,36 @@ export interface Session {
   entitlements: Entitlements;
   /** Phase d'accès (essai gratuit, essai d'abonnement, abonné, expiré) et offre effective : les droits détaillés viennent de `RIGHTS[access.plan]`. */
   access: AccessInfo;
+  /**
+   * Administrateur dont la session a été ouverte avec UN SEUL facteur : l'Admin Center reste fermé (le serveur le refuse) tant
+   * qu'un second facteur (application d'authentification, code SMS) ou une clé d'accès n'a pas été validé dans la session.
+   */
+  adminMfaRequired: boolean;
   expiresAt: string;
+}
+
+/** Clé d'accès (passkey) enregistrée sur le compte : jamais de clé publique ni de secret côté interface. */
+export interface PasskeyInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  deviceType: string;
+  backedUp: boolean;
+}
+
+/** Une session ouverte sur le compte (« appareil connecté »). L'adresse IP est déjà masquée par le serveur. */
+export interface DeviceSession {
+  id: string;
+  current: boolean;
+  createdAt: string;
+  lastSeenAt: string;
+  browser: string | null;
+  os: string | null;
+  country: string | null;
+  ip: string | null;
+  /** Facteurs franchis à l'ouverture : un seul, un second facteur validé, ou une clé d'accès. */
+  factor: 'single' | 'mfa' | 'passkey';
 }
 
 /** Un contact vérifié (e-mail OU téléphone) suffit pour publier. */

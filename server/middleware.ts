@@ -68,6 +68,17 @@ export const requireAuth: MiddlewareHandler<HonoEnv> = async (c, next) => {
   await next();
 };
 
+/**
+ * L'Admin Center exige une session ouverte avec PLUS D'UN facteur (second facteur validé, ou clé d'accès). Le facteur est celui de
+ * CETTE session, enregistré à son ouverture : un administrateur qui a activé la double authentification mais s'est connecté par
+ * un seul facteur n'entre pas. Les routes `/me/*` restent ouvertes : c'est là qu'il active son second facteur.
+ */
+export const requireAdminMfa: MiddlewareHandler<HonoEnv> = async (c, next) => {
+  const auth = c.get('auth');
+  if (auth?.user.adminRole && c.get('deps').config.adminRequireMfa && auth.authFactor === 'single') throw new HttpError(403, 'admin_mfa_required');
+  await next();
+};
+
 /** Exige l'une des permissions listées (le rôle est lu en base à chaque requête : une révocation est immédiate). */
 export const requireAnyPermission = (...needed: Permission[]): MiddlewareHandler<HonoEnv> => async (c, next) => {
   const auth = c.get('auth');

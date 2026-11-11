@@ -8,6 +8,8 @@ import { accountContact, isContactVerified } from '@/models/auth';
 import { PhoneSecurity } from './PhoneSecurity';
 import { MfaCard } from './MfaCard';
 import { PasswordCard } from './PasswordCard';
+import { PasskeysCard } from './PasskeysCard';
+import { DevicesCard } from './DevicesCard';
 import './settings.css';
 
 /**
@@ -37,6 +39,8 @@ export default function SecurityPage() {
 
         <MfaCard />
 
+        <PasskeysCard />
+
         <Card padding="lg" className="settings__card">
           <h2><Icon name="monitor" size={18} /> {t('dashboard.security.sessionTitle')}</h2>
           <dl className="kv">
@@ -47,6 +51,8 @@ export default function SecurityPage() {
         </Card>
 
         <PhoneSecurity />
+
+        <DevicesCard />
       </div>
     </div>
   );

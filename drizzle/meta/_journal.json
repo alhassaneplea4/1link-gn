@@ -64,6 +64,13 @@
       "when": 1794358079529,
       "tag": "0008_pseudonymes_en_quarantaine",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794395624068,
+      "tag": "0009_appareils_passkeys_facteur",
+      "breakpoints": true
     }
   ]
 }

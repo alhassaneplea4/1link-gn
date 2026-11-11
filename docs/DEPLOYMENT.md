@@ -52,6 +52,8 @@ Le test `server/tests/imports.test.ts` et la commande `npm run verify:vercel` ga
 | `OTP_ALLOWED_DIAL_CODES` | recommandé | Indicatifs autorisés pour les codes SMS (ex. `224,221,225,223`). Vide = tous les pays proposés : exposé à la fraude aux SMS vers des destinations surtaxées |
 | `OTP_GLOBAL_PER_HOUR` | non (600) | Plafond **global** de SMS par heure, toutes adresses IP confondues (anti « SMS pumping ») ; à ajuster à votre trafic |
 | `PWNED_PASSWORDS_CHECK` | non (actif) | Refuse les mots de passe présents dans des fuites publiées (API Pwned Passwords). Seuls les **5 premiers caractères de l'empreinte SHA-1** sont envoyés à `api.pwnedpasswords.com` (k-anonymat) : ni le mot de passe ni son empreinte complète ne quittent le serveur. Si le service est injoignable, le mot de passe est accepté (jamais de blocage). `0` désactive |
+| `ADMIN_REQUIRE_MFA` | non (actif) | L'**Admin Center exige une session ouverte avec deux facteurs** (code de l'application d'authentification ou SMS après le mot de passe / le code e-mail), ou avec une clé d'accès. Un administrateur connecté par un seul facteur voit un écran d'explication et le serveur refuse toutes les routes `/api/admin/*` (`admin_mfa_required`). Il active son second facteur depuis *Sécurité* : la session est aussitôt renforcée. `0` désactive (échappatoire en cas de blocage) |
+| `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | non | Défi anti-robot **Cloudflare Turnstile**, adaptatif : il n'apparaît qu'après 3 échecs de connexion pour une même adresse/IP, 10 échecs depuis une IP, ou plus de 6 demandes de codes/liens par heure depuis une IP. Les deux clés vont ensemble ; **sans elles, aucun défi n'est présenté** (rien n'est simulé). La CSP de `vercel.json` autorise `challenges.cloudflare.com` (script, cadre, connexion) |
 | `RETENTION_ACTIVITY_DAYS` | non (90) | Durée de conservation du fil d'activité de l'Admin Center (il cite des noms et pseudonymes) |
 | `SMSMOBILEAPI_KEY` (ou `SMS8_API_KEY`, `TWILIO_*`) | pour le téléphone | Codes par SMS pour 3 usages : inscription/connexion par téléphone, **double authentification** (code après le mot de passe) et **mot de passe oublié par SMS**. Choix automatique : smsmobileapi > SMS8 > Twilio |
 | `MIGRATE_ON_BUILD=1` | **Production uniquement** | Applique les migrations pendant le build |
@@ -125,3 +127,10 @@ npm run dev     # PostgreSQL 17 réel embarqué (.data/), API (port 8787) et int
 Les e-mails et codes OTP sont affichés dans le terminal ; l'interface montre le code dans un encadré « Mode développement »
 (uniquement quand le fournisseur est `dev`, jamais en production). Premier administrateur local :
 `npm run admin -- create-admin --email moi@exemple.com --name Moi` avec `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/onelink`.
+
+## Clés d'accès (passkeys), appareils connus
+
+- Les **clés d'accès** (WebAuthn) sont liées au **domaine** de `APP_URL` (l'identifiant du site est son nom d'hôte) : définissez `APP_URL` sur le domaine définitif AVANT que les utilisateurs n'en ajoutent, car changer de domaine les rend inutilisables (elles restent stockées mais ne correspondent plus au site). Les origines acceptées sont celles de `APP_URL` et de `ALLOWED_ORIGINS` qui en sont des sous-domaines.
+- Une connexion par clé d'accès ouvre une session de facteur « passkey » (l'appareil a vérifié l'utilisateur) : pas de seconde étape, et accès à l'Admin Center.
+- Un e-mail d'alerte part quand une session s'ouvre depuis un **appareil inconnu** (cookie d'appareil de 400 jours, seule son empreinte est stockée) alors que le compte en avait déjà un. La page *Sécurité* liste les sessions ouvertes et permet de les fermer. La maintenance purge les appareils non revus depuis plus de 400 jours.
+- Migration `0009` : colonnes `sessions.country` / `sessions.auth_factor` et tables `user_devices`, `passkeys`, `webauthn_challenges` (ajouts purs, sans interruption).

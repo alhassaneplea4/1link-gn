@@ -47,7 +47,18 @@ export const testConfig = (databaseUrl: string, overrides: Partial<AppConfig> = 
 /** Vide toutes les tables (isolation entre deux tests d'un même fichier). */
 export async function resetData(db: Db): Promise<void> {
   const { sql } = await import('drizzle-orm');
-  await db.execute(sql.raw('truncate table users, otp_codes, rate_limits, audit_logs, security_events, activity_events, app_errors, support_tickets, payments, username_holds restart identity cascade'));
+  // Une requête du test précédent peut encore être en vol (envoi différé, journalisation) : PostgreSQL peut alors détecter un
+  // interblocage (40P01) entre elle et ce nettoyage, qui verrouille toutes les tables. Il suffit de réessayer.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await db.execute(sql.raw('truncate table users, otp_codes, rate_limits, audit_logs, security_events, activity_events, app_errors, support_tickets, payments, username_holds, webauthn_challenges restart identity cascade'));
+      return;
+    } catch (e) {
+      const code = (e as { code?: string; cause?: { code?: string } }).code ?? (e as { cause?: { code?: string } }).cause?.code;
+      if (attempt >= 6 || (code !== '40P01' && code !== '55P03')) throw e;
+      await new Promise((r) => setTimeout(r, 50 * attempt));
+    }
+  }
 }
 
 export interface Clock {

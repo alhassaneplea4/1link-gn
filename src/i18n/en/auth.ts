@@ -163,4 +163,21 @@ export default {
   },
   signedOut: { title: 'You are signed out', text: 'See you soon! Your page remains available to your visitors.', login: 'Sign in again', home: 'Back to home' },
   expired: { title: 'Session expired', text: 'For your security, your session has ended. Sign in again to pick up where you left off.', login: 'Sign in again' },
+  captcha: {
+    title: 'Security check',
+    loading: 'Loading the check…',
+    required: 'For your security, confirm you are not a robot, then submit again.',
+    failed: 'The check failed. Redo it, then submit again.',
+    unavailable: 'The security check is temporarily unavailable. Try again in a moment, or sign in with a code sent by email.',
+    waiting: 'Complete the security check above to continue.',
+  },
+  passkey: {
+    signIn: 'Sign in with a passkey',
+    or: 'or',
+    cancelled: 'Sign-in cancelled. You can try again, or use a code sent by email.',
+    unknown: 'This passkey is not recognised. Use a code sent by email or your password.',
+    expired: 'The request expired. Try again.',
+    failed: 'Passkey sign-in failed. Use a code sent by email or your password.',
+    suspended: 'This account is suspended.',
+  },
 } satisfies Dict;

@@ -21,9 +21,14 @@ export interface Deps {
   defer: (work: Promise<unknown>) => void;
 }
 
+/** Facteurs franchis pour ouvrir une session : un seul, un second facteur validé, ou une clé d'accès (voir `sessions.auth_factor`). */
+export type AuthFactor = 'single' | 'mfa' | 'passkey';
+
 export interface AuthContext {
   user: UserRow;
   sessionId: string;
+  /** Facteurs franchis à l'ouverture de CETTE session (jamais déduits du compte : un administrateur peut avoir une session à un seul facteur). */
+  authFactor: AuthFactor;
   username: string | null;
   /** Offre EFFECTIVE (selon l'essai ou l'abonnement en cours). */
   planId: PlanId;

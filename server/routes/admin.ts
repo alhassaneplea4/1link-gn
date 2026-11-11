@@ -7,7 +7,7 @@ import { ROLE_PERMISSIONS } from '../lib/access.js';
 import { badRequest } from '../lib/errors.js';
 import { parseListQuery } from '../lib/lists.js';
 import { readJson } from '../lib/request.js';
-import { requireAnyPermission, requireAuth } from '../middleware.js';
+import { requireAdminMfa, requireAnyPermission, requireAuth } from '../middleware.js';
 import * as admin from '../services/admin.js';
 import { platformOverview } from '../services/analytics.js';
 import { decideVerification } from '../services/verification.js';
@@ -18,7 +18,7 @@ import { adminCardRoutes } from './cards.js';
 import { adminBadges } from '../services/nav-badges.js';
 
 export const adminRoutes = new Hono<HonoEnv>();
-adminRoutes.use('*', requireAuth);
+adminRoutes.use('*', requireAuth, requireAdminMfa);
 adminRoutes.route('/', adminCardRoutes);
 // Pastilles du menu : éléments à traiter, limités aux rubriques lisibles par le rôle (un rôle sans accès admin reçoit 403).
 adminRoutes.get('/nav-badges', requireAnyPermission('overview:read', 'users:read', 'reports:read', 'moderation:read', 'support:read', 'payments:read', 'cards:read'), async (c) => c.json(await adminBadges(c.get('deps'), c.get('auth')!)));

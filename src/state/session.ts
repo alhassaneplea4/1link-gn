@@ -15,7 +15,7 @@ interface SessionState {
   status: SessionStatus;
   session: Session | null;
   init(): Promise<void>;
-  signIn(email: string, password: string): Promise<SignInResult>;
+  signIn(email: string, password: string, captchaToken?: string): Promise<SignInResult>;
   completeTwoFactor(challenge: string, code: string, method?: MfaMethod | 'recovery'): Promise<Session>;
   signOut(): Promise<void>;
   setSession(session: Session): void;
@@ -42,8 +42,8 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
 
-  async signIn(email, password) {
-    const result = await api.auth.signIn(email, password);
+  async signIn(email, password, captchaToken) {
+    const result = await api.auth.signIn(email, password, captchaToken);
     if (result.kind === 'session') set({ status: 'authenticated', session: result.session });
     return result;
   },
