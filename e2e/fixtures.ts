@@ -69,7 +69,7 @@ export async function signIn(page: Page, who: Pick<Account, 'email' | 'password'
   await page.getByRole('button', { name: 'Se connecter avec un mot de passe' }).click();
   await page.getByLabel(/Adresse e-mail/).fill(who.email);
   await page.getByLabel(/^Mot de passe/).fill(who.password);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
+  await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
   await page.waitForURL(/\/(dashboard|admin|onboarding)/);
 }
 

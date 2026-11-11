@@ -436,11 +436,11 @@ test.describe('états d’erreur et formulaires', () => {
   test('connexion : validation et identifiants refusés', async ({ page }) => {
     await page.goto('/auth/login');
     await page.getByRole('button', { name: 'Se connecter avec un mot de passe' }).click();
-    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
     await expect(page.getByRole('alert').first()).toBeVisible();
     await page.getByLabel(/Adresse e-mail/).fill('inconnu@exemple.com');
     await page.getByLabel(/^Mot de passe/).fill('abc');
-    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
     await expect(page.getByText(/incorrect/)).toBeVisible();
   });
 

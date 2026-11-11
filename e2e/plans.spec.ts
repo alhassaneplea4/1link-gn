@@ -162,7 +162,7 @@ test.describe('sécurité du compte', () => {
     await page.getByRole('button', { name: 'Se connecter avec un mot de passe' }).click();
     await page.getByLabel(/Adresse e-mail/).fill(mariama.email);
     await page.getByLabel(/^Mot de passe/).fill(mariama.password);
-    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
     await expect(page.getByText(/Saisissez le code à 6 chiffres envoyé à/)).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/login/); // la première étape seule n'ouvre aucune session
     await page.getByRole('button', { name: 'Remplir' }).click();
