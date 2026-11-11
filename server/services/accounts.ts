@@ -7,7 +7,8 @@ import { hashPassword, hmac, newId, newToken, randomCode, safeEqual, sha256, ver
 import { activity, audit, securityEvent } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, HttpError, tooMany } from '../lib/errors.js';
 import { enforce, hit, keyFor } from '../lib/ratelimit.js';
-import { emailCodeMessage, pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
+import { describeRequest, emailCodeMessage, pickLocale, resetPasswordMessage, verifyEmailMessage, welcomeMessage } from '../lib/emails.js';
+import { pwnedCount } from '../lib/pwned.js';
 import { asLocale } from './notifications.js';
 import { toSession } from './sessions.js';
 import type { Session, SessionUser } from '../../src/models/auth.js';
@@ -43,6 +44,18 @@ export function assertStrongPassword(password: string, identity: string[] = []) 
   const p = password.normalize('NFKC');
   const lower = p.toLowerCase();
   if (p.length < 8 || p.length > 200 || COMMON_PASSWORDS.has(lower) || /^(.)\1+$/.test(p) || identity.some((i) => i && lower === i.toLowerCase())) throw badRequest('weak_password', { password: 'weak' });
+}
+
+/**
+ * Refuse un mot de passe présent dans une fuite connue. S'ajoute à `assertStrongPassword` (qui ne connaît que 16 mots triviaux) :
+ * c'est la liste des mots de passe réellement utilisés par les attaquants (NIST 800-63B §5.1.1.2). Ne bloque jamais si le service
+ * est injoignable.
+ */
+export async function assertNotPwned(deps: Deps, password: string): Promise<void> {
+  if (!deps.config.pwnedPasswords) return;
+  const count = await pwnedCount(password);
+  if (count === null) console.warn('[password] vérification des mots de passe compromis indisponible : mot de passe accepté.');
+  else if (count > 0) throw badRequest('pwned_password', { password: 'pwned' });
 }
 
 let dummyHash: Promise<string> | null = null;
@@ -293,7 +306,9 @@ export async function issueEmailCode(c: C, deps: Deps, email: string, options: {
     await tx.insert(otpCodes).values({ id, phone: key, codeHash: codeHash(deps, key, code), channel: 'email', expiresAt: new Date(now.getTime() + OTP_TTL_SEC * 1000), ip: c.get('ip'), createdAt: now });
   });
   try {
-    await deps.mailer.send(emailCodeMessage(to, code, OTP_TTL_SEC / 60, options.locale ?? pickLocale(c.req.header('accept-language'))));
+    // Le message dit d'où vient la demande (navigateur, système, pays) : une personne qui reçoit un code qu'elle n'a pas demandé le voit tout de suite.
+    const context = describeRequest(c.get('ua'), c.req.header('x-vercel-ip-country'));
+    await deps.mailer.send(emailCodeMessage(to, code, OTP_TTL_SEC / 60, options.locale ?? pickLocale(c.req.header('accept-language')), context));
   } catch (e) {
     await deps.db.delete(otpCodes).where(eq(otpCodes.id, id));
     console.error('[mail] échec de l’envoi du code :', (e as Error).message);

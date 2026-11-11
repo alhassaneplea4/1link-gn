@@ -44,6 +44,8 @@ export interface AppConfig {
   retentionDays: { events: number; errors: number; activity: number };
   /** Plafonds globaux (toutes adresses IP confondues). */
   limits: { otpGlobalPerHour: number };
+  /** Refuse les mots de passe présents dans des fuites connues (Pwned Passwords, par k-anonymat). Désactivé en test (aucun appel réseau). */
+  pwnedPasswords: boolean;
   commit: string;
   /** Adresse qui devient super administrateur à la confirmation de son e-mail, tant qu'aucun super administrateur n'existe (amorçage). */
   bootstrapAdminEmail: string;
@@ -152,6 +154,7 @@ export function loadConfig(env: Source = process.env, overrides: Partial<AppConf
     devRoutes, rateLimitScale,
     retentionDays: { events: num(env.RETENTION_EVENTS_DAYS, 400), errors: num(env.RETENTION_ERRORS_DAYS, 90), activity: num(env.RETENTION_ACTIVITY_DAYS, 90) },
     limits: { otpGlobalPerHour: num(env.OTP_GLOBAL_PER_HOUR, 600) },
+    pwnedPasswords: appEnv !== 'test' && trim(env.PWNED_PASSWORDS_CHECK) !== '0',
     commit: trim(env.VERCEL_GIT_COMMIT_SHA).slice(0, 7),
     bootstrapAdminEmail: trim(env.BOOTSTRAP_ADMIN_EMAIL).toLowerCase(),
     ...overrides,

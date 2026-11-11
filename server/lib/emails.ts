@@ -186,10 +186,42 @@ export function otpMessage(code: string, minutes: number, locale: Locale): strin
 }
 
 /** Code à six chiffres (inscription, connexion et double authentification par e-mail). */
-export function emailCodeMessage(to: string, code: string, minutes: number, locale: Locale): MailMessage {
+/** D'où vient la demande (déduit de l'en-tête User-Agent et du pays posé par la plateforme) : sert à reconnaître une demande qu'on n'a pas faite. */
+export interface RequestContext {
+  browser: string | null;
+  os: string | null;
+  /** Code pays ISO 3166-1 alpha-2, ou `null`. */
+  country: string | null;
+}
+
+/** Navigateur et système, en termes grossiers (jamais la chaîne User-Agent brute) ; pays en majuscules si le code est valide. */
+export function describeRequest(userAgent: string, countryCode: string | null | undefined): RequestContext {
+  const os = /iPhone|iPad|iPod/i.test(userAgent) ? 'iOS' : /Android/i.test(userAgent) ? 'Android' : /Windows/i.test(userAgent) ? 'Windows' : /Mac OS X|Macintosh/i.test(userAgent) ? 'macOS' : /Linux|X11/i.test(userAgent) ? 'Linux' : null;
+  const browser = /Edg\//.test(userAgent) ? 'Edge' : /OPR\/|Opera/.test(userAgent) ? 'Opera' : /Firefox\/|FxiOS/.test(userAgent) ? 'Firefox' : /Chrome\/|CriOS/.test(userAgent) ? 'Chrome' : /Safari\//.test(userAgent) ? 'Safari' : null;
+  const code = (countryCode ?? '').trim().toUpperCase();
+  return { browser, os, country: /^[A-Z]{2}$/.test(code) ? code : null };
+}
+
+/** « Chrome sur Windows, Guinée » — vide quand rien n'est connu. */
+function whereFrom(ctx: RequestContext | undefined, locale: Locale): string {
+  if (!ctx) return '';
+  let country: string | null = null;
+  if (ctx.country) {
+    try {
+      country = new Intl.DisplayNames([locale], { type: 'region' }).of(ctx.country) ?? null;
+    } catch {
+      country = null;
+    }
+  }
+  const device = ctx.browser && ctx.os ? `${ctx.browser} ${locale === 'en' ? 'on' : 'sur'} ${ctx.os}` : (ctx.browser ?? ctx.os);
+  return [device, country].filter(Boolean).join(', ');
+}
+
+export function emailCodeMessage(to: string, code: string, minutes: number, locale: Locale, context?: RequestContext): MailMessage {
+  const from = whereFrom(context, locale);
   return locale === 'en'
-    ? msg(to, `${code} is your 1Link code`, { locale, title: 'Your 1Link verification code', paragraphs: [`Enter this code to continue: ${code}`, `It is valid for ${minutes} minutes and can be used once. Never share it with anyone — the 1Link team will never ask for it.`], small: 'If you did not ask for this code, ignore this message: nobody can sign in without it.' })
-    : msg(to, `${code} est votre code 1Link`, { locale, title: 'Votre code de vérification 1Link', paragraphs: [`Saisissez ce code pour continuer : ${code}`, `Il est valable ${minutes} minutes et ne sert qu’une fois. Ne le communiquez à personne : l’équipe 1Link ne vous le demandera jamais.`], small: 'Si vous n’avez pas demandé ce code, ignorez ce message : personne ne peut se connecter sans lui.' });
+    ? msg(to, `${code} is your 1Link code`, { locale, title: 'Your 1Link verification code', paragraphs: [`Enter this code to continue: ${code}`, `It is valid for ${minutes} minutes and can be used once. Never share it with anyone — the 1Link team will never ask for it.`, ...(from ? [`Request received from: ${from}. Not you? Do not share this code with anyone: someone may be trying to sign in to your account.`] : [])], small: 'If you did not ask for this code, ignore this message: nobody can sign in without it.' })
+    : msg(to, `${code} est votre code 1Link`, { locale, title: 'Votre code de vérification 1Link', paragraphs: [`Saisissez ce code pour continuer : ${code}`, `Il est valable ${minutes} minutes et ne sert qu’une fois. Ne le communiquez à personne : l’équipe 1Link ne vous le demandera jamais.`, ...(from ? [`Demande reçue depuis : ${from}. Ce n’est pas vous ? Ne communiquez ce code à personne : quelqu’un essaie peut-être de se connecter à votre compte.`] : [])], small: 'Si vous n’avez pas demandé ce code, ignorez ce message : personne ne peut se connecter sans lui.' });
 }
 
 /** Lien de confirmation finale de la suppression (envoyé après 15 jours sans activité). */

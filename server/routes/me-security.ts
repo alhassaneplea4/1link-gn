@@ -12,7 +12,7 @@ import { securityNoticeMessage } from '../lib/emails.js';
 import { badRequest, conflict } from '../lib/errors.js';
 import { readJson } from '../lib/request.js';
 import { requireAuth } from '../middleware.js';
-import { assertStrongPassword, buildSession, issueEmailCode } from '../services/accounts.js';
+import { assertNotPwned, assertStrongPassword, buildSession, issueEmailCode } from '../services/accounts.js';
 import { confirmIdentity } from '../services/identity.js';
 import { beginTotpSetup, disableTotp, enabledMethods, finishTotpSetup, newRecoveryCodes } from '../services/mfa.js';
 import { notify } from '../services/notifications.js';
@@ -105,6 +105,7 @@ securityRoutes.post('/password', async (c) => {
   const auth = c.get('auth')!;
   const body = await readJson(c, setPasswordBody);
   assertStrongPassword(body.newPassword, [auth.user.email ?? '', (auth.user.email ?? '').split('@')[0] ?? '']);
+  await assertNotPwned(deps, body.newPassword);
   await confirmIdentity(c, deps, auth.user, body);
   await deps.db.update(users).set({ passwordHash: await hashPassword(body.newPassword, deps.config.scryptLog2N), updatedAt: deps.now() }).where(eq(users.id, auth.user.id));
   await endUserSessions(deps, auth.user.id, auth.sessionId);

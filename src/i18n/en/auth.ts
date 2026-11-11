@@ -16,6 +16,7 @@ export default {
     termsRequired: 'You must accept the terms to create an account.',
     invalidToken: 'This link is invalid or has expired.',
     weakPassword: 'This password is too short.',
+    pwnedPassword: 'This password appears in published data breaches: choose another one that you do not use anywhere else.',
     wrongPassword: 'Incorrect password.',
   },
   method: { label: 'Method', email: 'Email', phone: 'Phone' },

@@ -26,6 +26,7 @@ export default {
     termsRequired: 'Vous devez accepter les conditions pour créer un compte.',
     invalidToken: 'Ce lien est invalide ou a expiré.',
     weakPassword: 'Ce mot de passe est trop court.',
+    pwnedPassword: 'Ce mot de passe figure dans des fuites de données publiées : choisissez-en un autre, que vous n’utilisez nulle part ailleurs.',
     wrongPassword: 'Mot de passe incorrect.',
   },
   method: { label: 'Méthode', email: 'E-mail', phone: 'Téléphone' },

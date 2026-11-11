@@ -120,3 +120,44 @@ describe('e-mails de bienvenue et de suivi', () => {
     }
   });
 });
+
+describe('e-mail du code : contexte de la demande', () => {
+  const CHROME_WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+  const codeMailTo = (email: string) => mailsTo(email).filter((m) => /code 1Link|1Link code/.test(m.subject)).at(-1)!;
+
+  it('dit d’où vient la demande (navigateur, système, pays) pour qu’on reconnaisse une demande qu’on n’a pas faite', async () => {
+    const { email } = await createUser(t.db);
+    const c = t.client({ 'x-real-ip': `203.0.113.${ip++}`, 'user-agent': CHROME_WINDOWS, 'x-vercel-ip-country': 'GN' });
+    expect((await c.post('/api/auth/email-code/request', { email: email! })).status).toBe(200);
+    const mail = codeMailTo(email!);
+    expect(mail.text).toContain('Demande reçue depuis : Chrome sur Windows, Guinée');
+    expect(mail.text).toContain('Ce n’est pas vous ?');
+    expect(mail.html).toContain('Chrome sur Windows, Guinée');
+    expect(mail.text).not.toContain('Mozilla'); // jamais la chaîne User-Agent brute
+  });
+
+  it('écrit le contexte en anglais selon la langue de la demande', async () => {
+    const { email } = await createUser(t.db);
+    const c = t.client({ 'x-real-ip': `203.0.113.${ip++}`, 'user-agent': CHROME_WINDOWS, 'x-vercel-ip-country': 'GN', 'accept-language': 'en' });
+    await c.post('/api/auth/email-code/request', { email: email! });
+    expect(codeMailTo(email!).text).toContain('Request received from: Chrome on Windows, Guinea');
+  });
+
+  it('n’ajoute rien quand rien n’est connu, et ignore un code pays invalide', async () => {
+    const { email } = await createUser(t.db);
+    await t.client({ 'x-real-ip': `203.0.113.${ip++}`, 'x-vercel-ip-country': '<script>' }).post('/api/auth/email-code/request', { email: email! });
+    expect(codeMailTo(email!).text).not.toContain('Demande reçue depuis');
+  });
+
+  it('reconnaît les systèmes et navigateurs courants', async () => {
+    const { describeRequest } = await import('../lib/emails.js');
+    const cases: Array<[string, { browser: string | null; os: string | null }]> = [
+      ['Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36', { browser: 'Chrome', os: 'Android' }],
+      ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', { browser: 'Safari', os: 'iOS' }],
+      ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36 Edg/130.0', { browser: 'Edge', os: 'Windows' }],
+      ['Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0', { browser: 'Firefox', os: 'Linux' }],
+      ['curl/8.0', { browser: null, os: null }],
+    ];
+    for (const [ua, expected] of cases) expect(describeRequest(ua, 'sn')).toMatchObject({ ...expected, country: 'SN' });
+  });
+});

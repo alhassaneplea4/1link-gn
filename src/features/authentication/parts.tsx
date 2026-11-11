@@ -44,6 +44,7 @@ export function authErrorKey(e: unknown): MessageKey {
     if (e.code === 'conflict') return 'auth.errors.emailTaken';
     if (e.message === 'invalid_token' || e.message === 'token_expired') return 'auth.errors.invalidToken';
     if (e.message === 'weak_password') return 'auth.errors.weakPassword';
+    if (e.message === 'pwned_password') return 'auth.errors.pwnedPassword';
   }
   return 'auth.errors.generic';
 }

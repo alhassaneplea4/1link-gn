@@ -10,7 +10,7 @@ import { enforce, keyFor } from '../lib/ratelimit.js';
 import { readJson } from '../lib/request.js';
 import { optionalAuth, requireAuth } from '../middleware.js';
 import {
-  assertCanSignIn, assertStrongPassword, claimUnverifiedAccount, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, emailCodeKey, findUserByEmail, findUserByPhone, issueEmailCode, issueOtp,
+  assertCanSignIn, assertNotPwned, assertStrongPassword, claimUnverifiedAccount, maybeBootstrapAdmin, buildSession, checkOtp, consumeAuthToken, createAccount, dummyVerify, emailCodeKey, findUserByEmail, findUserByPhone, issueEmailCode, issueOtp,
   sendPasswordReset, sendVerificationEmail,
 } from '../services/accounts.js';
 import { challengedUser, enabledMethods, mfaChallenge, sendMfaCode, verifyMfa, type PrimaryFactor } from '../services/mfa.js';
@@ -255,6 +255,7 @@ authRoutes.post('/password/reset-phone', async (c) => {
   const deps = c.get('deps');
   const body = await readJson(c, phoneResetBody);
   assertStrongPassword(body.password); // avant de consommer le code : l'utilisateur peut corriger sans le perdre
+  await assertNotPwned(deps, body.password);
   await checkOtp(c, deps, body.phone, body.code);
   const user = await findUserByPhone(deps.db, body.phone);
   if (!user || !user.phoneVerifiedAt || !user.passwordHash || user.status !== 'active') throw badRequest('no_account');
@@ -271,6 +272,7 @@ authRoutes.post('/password/reset', async (c) => {
   const body = await readJson(c, resetBody);
   await enforce(deps.db, keyFor('reset-ip', c.get('ip')), 20, 3600, deps.now());
   assertStrongPassword(body.password); // avant de consommer le jeton : l'utilisateur peut corriger sans le perdre
+  await assertNotPwned(deps, body.password);
   const userId = await consumeAuthToken(deps, body.token, 'password_reset');
   const now = deps.now();
   const [user] = await deps.db.update(users).set({ passwordHash: await hashPassword(body.password, deps.config.scryptLog2N), updatedAt: now }).where(eq(users.id, userId)).returning();

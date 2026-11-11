@@ -28,6 +28,8 @@ Méthodes : `sms` (`users.two_factor_sms`, numéro vérifié), `email` (`two_fac
 - Jamais de réponse qui révèle si une adresse a un compte avant la preuve de possession.
 - Tout facteur de connexion ajouté ou remplacé (téléphone, TOTP, mot de passe) exige `confirmIdentity()` : une session volée ne doit pas suffire à poser le sien. Remplacer un numéro ferme les autres sessions.
 - Plafonds d'envoi par adresse : liés au couple (IP, adresse) + un filet large par adresse ; un tiers ne doit jamais pouvoir épuiser le quota d'une victime. Plafond GLOBAL pour les SMS (coût).
+- Tout mot de passe défini (`/me/password`, réinitialisations) passe par `assertStrongPassword` PUIS `assertNotPwned` (liste des fuites, par k-anonymat, sans jamais bloquer si le service est en panne), avant de consommer le jeton ou le code.
+- L'e-mail du code indique d'où vient la demande (navigateur, système, pays : `describeRequest`) ; ne jamais y mettre l'adresse IP ni le User-Agent brut.
 - Un code TOTP ne sert qu'une fois (`users.totp_last_step`, mise à jour atomique et monotone).
 - Adresses e-mail : `isEmail` (src/utilities/validation.ts) est strict exprès, car la valeur part telle quelle vers l'analyseur d'adresses du serveur d'envoi.
 - Tests : `server/tests/mfa.test.ts`, `seo-deletion.test.ts`, `auth.test.ts`, `sms.test.ts` ; e2e `e2e/plans.spec.ts` (section sécurité).

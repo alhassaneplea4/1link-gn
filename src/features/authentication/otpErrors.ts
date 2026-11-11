@@ -21,6 +21,7 @@ export function explainOtpError(t: T, e: unknown): string {
   if (msg === 'invalid_challenge') return t('auth.twoFactor.expired');
   if (msg === 'wrong_password') return t('auth.errors.wrongPassword');
   if (msg === 'weak_password') return t('auth.errors.weakPassword');
+  if (msg === 'pwned_password') return t('auth.errors.pwnedPassword');
   if (msg === 'no_account') return t('auth.phone.errors.noAccount');
   if (msg === 'mail_unavailable') return t('auth.emailCode.unavailable');
   return t('auth.phone.errors.generic');
