@@ -349,7 +349,8 @@ test.describe('Admin Center', () => {
     const { devCode } = (await requested.json()) as { devCode: string };
     const res = await anon.post('/api/auth/email-code/verify', { data: { email, code: devCode, acceptTerms: true }, headers });
     expect(res.status()).toBe(200);
-    await expect(page.locator('.adm-feed li').first()).toContainText(nameFromEmail(email), { timeout: 12_000 });
+    // Les tests s'exécutent en parallèle sur la même base : on cherche CETTE inscription, pas « la plus récente » du fil.
+    await expect(page.locator('.adm-feed li', { hasText: nameFromEmail(email) }).first()).toBeVisible({ timeout: 12_000 });
     await anon.dispose();
   });
 
