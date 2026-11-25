@@ -3,7 +3,7 @@
  * Ils décrivent ce que la plateforme fait réellement : toute évolution du traitement des données doit s'accompagner
  * d'une mise à jour de ce fichier (et de la date `UPDATED`). À faire relire par un juriste avant lancement commercial.
  */
-export const UPDATED = '2026-10-12';
+export const UPDATED = '2026-11-26';
 export const CONTACT_EMAIL = 'astronetgn@gmail.com';
 
 export interface LegalSection {
@@ -22,7 +22,7 @@ export type LegalLocale = 'fr' | 'en';
 
 const privacyFr: LegalDocument = {
   title: 'Politique de confidentialité',
-  updated: 'Dernière mise à jour : 12 octobre 2026',
+  updated: 'Dernière mise à jour : 26 novembre 2026',
   intro: 'Cette politique explique quelles données 1Link collecte, pourquoi, avec qui elles sont partagées, combien de temps elles sont conservées et comment exercer vos droits. 1Link est édité par ASTRONET GN INC, Conakry, Guinée.',
   sections: [
     {
@@ -35,6 +35,7 @@ const privacyFr: LegalDocument = {
         'Données de compte : nom, adresse e-mail et/ou numéro de téléphone, langue, type de profil choisi. Le mot de passe n’est jamais conservé en clair : seule une empreinte irréversible (scrypt) est stockée.',
         'Contenu de votre page : textes, liens, coordonnées que vous choisissez d’afficher, images que vous téléversez. Une fois votre page publiée, ce contenu est public : n’y mettez que ce que vous acceptez de montrer à tout le monde.',
         'Statistiques d’audience de votre page : nombre de vues et de clics, canal d’origine (paramètre de lien), pays approximatif. Aucun cookie n’est déposé chez vos visiteurs et leur adresse IP n’est pas conservée avec ces statistiques : un visiteur du jour est compté grâce à une empreinte technique qui change chaque jour et ne permet pas de le reconnaître d’un jour à l’autre.',
+        'Mesure d’audience du site (Vercel Web Analytics), pages publiques comprises : adresse de la page consultée (sans ses paramètres), adresse du site d’où vous arrivez, localisation approximative (pays, région, ville), type d’appareil, système et navigateur. Les visites sont distinguées par une empreinte calculée à partir de la requête, et la session de visite est abandonnée au bout de 24 heures. L’Admin Center n’est pas mesuré.',
         'Données de sécurité : adresse IP et navigateur associés à vos sessions de connexion, aux tentatives de connexion et aux demandes de codes, afin de protéger les comptes contre les abus.',
         'Codes de vérification (SMS) : conservés sous forme d’empreinte, valables 5 minutes.',
         'Signalements : si vous signalez une page, le motif et vos précisions sont transmis à la modération (le signalement est anonyme pour le titulaire de la page).',
@@ -47,6 +48,7 @@ const privacyFr: LegalDocument = {
         'Vous envoyer des messages liés à votre compte : confirmation d’adresse, réinitialisation de mot de passe, avis de sécurité, page en ligne, décisions de modération. Nous n’envoyons pas de publicité.',
         'Assurer la sécurité et lutter contre la fraude et les abus (limitation du nombre de tentatives, modération des pages signalées).',
         'Vous montrer les statistiques de votre propre page.',
+        'Mesurer la fréquentation de 1Link pour améliorer le service.',
         'Respecter nos obligations légales.',
       ],
       paragraphs: ['Ces traitements reposent sur l’exécution du service que vous demandez, sur notre intérêt légitime à protéger la plateforme et, le cas échéant, sur nos obligations légales.'],
@@ -55,7 +57,7 @@ const privacyFr: LegalDocument = {
       title: '4. Avec qui sont-elles partagées ?',
       paragraphs: ['Nous ne vendons aucune donnée personnelle. Nous faisons appel à des prestataires techniques qui traitent des données pour notre compte :'],
       items: [
-        'Vercel Inc. : hébergement de l’application (États-Unis / réseau mondial).',
+        'Vercel Inc. : hébergement de l’application et mesure d’audience du site (États-Unis / réseau mondial).',
         'Neon : base de données PostgreSQL qui contient vos données.',
         'Google (Gmail / SMTP) : envoi des e-mails liés à votre compte.',
         'smsmobileapi.com : transmission des SMS de vérification (votre numéro de téléphone et le code).',
@@ -81,7 +83,7 @@ const privacyFr: LegalDocument = {
     },
     {
       title: '8. Cookies et stockage local',
-      paragraphs: ['1Link n’utilise aucun cookie publicitaire ni traceur d’analyse tiers. Un seul cookie est déposé quand vous vous connectez : le cookie de session, strictement nécessaire, protégé (HttpOnly, Secure). Le navigateur conserve aussi vos préférences d’affichage (langue, thème, mode économe). Aucune donnée de votre compte n’est stockée dans le navigateur.'],
+      paragraphs: ['1Link n’utilise aucun cookie publicitaire. Pour mesurer la fréquentation du site, nous utilisons Vercel Web Analytics, le service de mesure d’audience de notre hébergeur, qui ne dépose pas de cookie. Un seul cookie est déposé quand vous vous connectez : le cookie de session, strictement nécessaire, protégé (HttpOnly, Secure). Le navigateur conserve aussi vos préférences d’affichage (langue, thème, mode économe). Aucune donnée de votre compte n’est stockée dans le navigateur.'],
     },
     {
       title: '9. Paiements',
@@ -104,7 +106,7 @@ const privacyFr: LegalDocument = {
 
 const privacyEn: LegalDocument = {
   title: 'Privacy policy',
-  updated: 'Last updated: 12 October 2026',
+  updated: 'Last updated: 26 November 2026',
   intro: 'This policy explains which data 1Link collects, why, who it is shared with, how long it is kept and how to exercise your rights. 1Link is published by ASTRONET GN INC, Conakry, Guinea.',
   sections: [
     { title: '1. Who is responsible for your data?', paragraphs: [`The data controller is ASTRONET GN INC (Conakry, Guinea), publisher of 1Link. For any question about your data: ${CONTACT_EMAIL}.`] },
@@ -114,6 +116,7 @@ const privacyEn: LegalDocument = {
         'Account data: name, email address and/or phone number, language, chosen profile type. Your password is never stored in clear text: only an irreversible hash (scrypt) is kept.',
         'Your page content: texts, links, contact details you choose to display, images you upload. Once your page is published this content is public: only add what you are happy to show to everyone.',
         'Your page audience statistics: number of views and clicks, origin channel (link parameter), approximate country. No cookie is set on your visitors and their IP address is not stored with these statistics: a daily visitor is counted using a technical fingerprint that changes every day and cannot be used to recognise someone from one day to the next.',
+        'Site audience measurement (Vercel Web Analytics), public pages included: address of the page viewed (without its parameters), address of the site you arrive from, approximate location (country, region, city), device type, operating system and browser. Visits are told apart by a fingerprint computed from the request, and the visit session is discarded after 24 hours. The Admin Center is not measured.',
         'Security data: IP address and browser linked to your sign-in sessions, sign-in attempts and code requests, to protect accounts against abuse.',
         'Verification codes (SMS): stored as a hash, valid for 5 minutes.',
         'Reports: if you report a page, the reason and your details are sent to moderation (the report is anonymous for the page owner).',
@@ -126,6 +129,7 @@ const privacyEn: LegalDocument = {
         'To send you messages about your account: email confirmation, password reset, security notices, page live, moderation decisions. We do not send advertising.',
         'To keep the platform safe and fight fraud and abuse (attempt limits, moderation of reported pages).',
         'To show you the statistics of your own page.',
+        'To measure how 1Link is used, in order to improve the service.',
         'To meet our legal obligations.',
       ],
       paragraphs: ['These uses are based on performing the service you ask for, on our legitimate interest in protecting the platform and, where applicable, on legal obligations.'],
@@ -134,7 +138,7 @@ const privacyEn: LegalDocument = {
       title: '4. Who it is shared with',
       paragraphs: ['We do not sell personal data. We use technical providers that process data on our behalf:'],
       items: [
-        'Vercel Inc.: application hosting (United States / global network).',
+        'Vercel Inc.: application hosting and site audience measurement (United States / global network).',
         'Neon: the PostgreSQL database that holds your data.',
         'Google (Gmail / SMTP): sending of account-related emails.',
         'smsmobileapi.com: delivery of verification SMS (your phone number and the code).',
@@ -157,7 +161,7 @@ const privacyEn: LegalDocument = {
     },
     {
       title: '8. Cookies and local storage',
-      paragraphs: ['1Link uses no advertising cookie or third-party analytics tracker. A single cookie is set when you sign in: the session cookie, strictly necessary and protected (HttpOnly, Secure). Your browser also keeps your display preferences (language, theme, data-saving mode). No account data is stored in the browser.'],
+      paragraphs: ['1Link uses no advertising cookie. To measure site traffic we use Vercel Web Analytics, our host’s audience measurement service, which sets no cookie. A single cookie is set when you sign in: the session cookie, strictly necessary and protected (HttpOnly, Secure). Your browser also keeps your display preferences (language, theme, data-saving mode). No account data is stored in the browser.'],
     },
     { title: '9. Payments', paragraphs: ['1Link does not process any payment and does not collect card or bank account numbers. The payment methods you display on your page (Mobile Money, transfer…) are simply information your visitors use outside 1Link, under your responsibility.'] },
     { title: '10. Minors', paragraphs: ['1Link is intended for people aged 16 or over. If you believe someone under 16 has created an account, contact us: we will delete their data.'] },
