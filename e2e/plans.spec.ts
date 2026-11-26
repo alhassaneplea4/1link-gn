@@ -7,25 +7,33 @@ const unique = () => Date.now().toString(36).slice(-6) + Math.random().toString(
 const DAY = 86_400_000;
 
 test.describe('offres, essais et droits (appliqués par le serveur, reflétés par l’interface)', () => {
-  test('Free : blocs réservés grisés, thèmes et onglets verrouillés, statistiques réservées', async ({ page, seed }) => {
+  test('Free : blocs et onglets réservés proposent l’abonnement, thèmes verrouillés, statistiques réservées', async ({ page, seed }) => {
     const free = await seed.creator({ plan: 'free', name: 'Fatou Free' });
     await signIn(page, free);
 
     await page.goto('/dashboard/page');
     await page.getByRole('button', { name: 'Ajouter un bloc' }).click();
     const picker = page.getByRole('dialog');
-    await expect(picker.getByRole('button', { name: /^Vidéo/ }).first()).toBeDisabled();
-    await expect(picker.getByRole('button', { name: /^Texte/ }).first()).toBeDisabled();
     await expect(picker.getByText('Disponible avec l’offre Basique').first()).toBeVisible();
+    await expect(picker.getByRole('button', { name: /^Texte/ }).first()).toContainText('Disponible avec l’offre');
     await expect(picker.getByRole('button', { name: /^Lien/ }).first()).toBeEnabled(); // 1 lien sur 4
-    await page.keyboard.press('Escape');
+    // Un bloc réservé reste cliquable : le clic propose l'abonnement, sans quitter l'éditeur.
+    await picker.getByRole('button', { name: /^Vidéo/ }).first().click();
+    const upgrade = page.getByRole('dialog', { name: 'Fonctionnalité réservée' });
+    await expect(upgrade).toContainText('« Vidéo » est disponible avec l’offre');
+    await upgrade.getByRole('button', { name: 'Non, plus tard' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/dashboard\/page$/);
 
     await page.goto('/dashboard/appearance');
     await expect(page.getByRole('button', { name: /Professional/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Dark/ })).toBeEnabled();
+    // Un onglet réservé propose aussi l'abonnement ; refusé, il laisse voir l'offre requise.
     await page.getByRole('tab', { name: 'Boutons & cartes' }).click();
+    await upgrade.getByRole('button', { name: 'Non, plus tard' }).click();
     await expect(page.getByText('Réservé à l’offre Basique')).toBeVisible();
     await page.getByRole('tab', { name: 'Mise en page' }).click();
+    await upgrade.getByRole('button', { name: 'Non, plus tard' }).click();
     await expect(page.getByText('Réservé à l’offre Pro')).toBeVisible();
     await page.getByRole('tab', { name: 'Couleurs' }).click();
     await expect(page.getByLabel('Couleur principale', { exact: true })).toBeVisible(); // l'onglet Couleurs est ouvert à toutes les offres

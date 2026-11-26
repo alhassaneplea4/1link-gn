@@ -40,7 +40,7 @@ test.describe('navigation publique', () => {
     await expect(page.getByRole('tabpanel')).toContainText('Mission');
     await page.getByRole('button', { name: 'Dark' }).click();
     await expect(page.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
-    const q = page.getByRole('button', { name: /Est-ce vraiment gratuit/ });
+    const q = page.getByRole('button', { name: /L’offre gratuite a-t-elle une limite de durée/ });
     await q.click();
     await expect(q).toHaveAttribute('aria-expanded', 'true');
   });

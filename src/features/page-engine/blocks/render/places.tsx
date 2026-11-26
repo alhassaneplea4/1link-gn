@@ -108,13 +108,8 @@ export function QrCode({ value, size = 168, label, withLogo = true }: { value: s
             rx={1}
             fill="#ffffff"
           />
-          <svg
-            x={data.logo.start}
-            y={data.logo.start}
-            width={data.logo.size}
-            height={data.logo.size}
-            viewBox="0 0 48 48"
-          >
+          {/* Groupe, pas <svg> imbriqué : le QR code doit rester une seule image. Le logo est dessiné sur une grille 48 × 48. */}
+          <g transform={`translate(${data.logo.start} ${data.logo.start}) scale(${data.logo.size / 48})`}>
             <rect width="48" height="48" rx="14" fill={`url(#${gradId})`} />
             <path
               d="M14.5 17.5 22 11.5V34h8"
@@ -125,7 +120,7 @@ export function QrCode({ value, size = 168, label, withLogo = true }: { value: s
               strokeLinejoin="round"
             />
             <circle cx="36" cy="34" r="3.1" fill="none" stroke="#fff" strokeWidth="2.6" />
-          </svg>
+          </g>
         </g>
       )}
     </svg>
